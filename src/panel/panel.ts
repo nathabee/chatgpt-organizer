@@ -1,32 +1,29 @@
 // src/panel/panel.ts
+
+
 import { MSG } from "../shared/messages";
 import type { ConversationItem } from "../shared/types";
 
-
-// ###################################################################################
 // ELEMENT REFERENCE
-// ###################################################################################
-
 const btnScan = document.getElementById("btnScan") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLSpanElement;
 const countEl = document.getElementById("count") as HTMLElement;
 const selectedCountEl = document.getElementById("selectedCount") as HTMLElement;
 const listEl = document.getElementById("list") as HTMLUListElement;
+
 const btnSelectAll = document.getElementById("btnSelectAll") as HTMLButtonElement;
 const btnSelectNone = document.getElementById("btnSelectNone") as HTMLButtonElement;
 const cbToggleAll = document.getElementById("cbToggleAll") as HTMLInputElement;
+
 const btnDryRun = document.getElementById("btnDryRun") as HTMLButtonElement;
+const btnExecuteDelete = document.getElementById("btnExecuteDelete") as HTMLButtonElement; // NEW
+const cbConfirmExecute = document.getElementById("cbConfirmExecute") as HTMLInputElement; // NEW
+
 const btnClearReport = document.getElementById("btnClearReport") as HTMLButtonElement;
 const reportEl = document.getElementById("report") as HTMLPreElement;
 
-
 let lastConvos: ConversationItem[] = [];
 const selected = new Set<string>(); // conversation ids selected for deletion
-
-
-// ###################################################################################
-// HELPER
-// ###################################################################################
 
 function setStatus(s: string) {
   statusEl.textContent = s;
@@ -37,7 +34,6 @@ function updateSelectedCount() {
 }
 
 function updateToggleAllState() {
-  // If nothing loaded yet, keep it unchecked.
   if (!lastConvos.length) {
     cbToggleAll.checked = false;
     cbToggleAll.indeterminate = false;
@@ -59,7 +55,6 @@ function updateToggleAllState() {
 }
 
 function syncListSelectionStyles() {
-  // Update checkboxes + row style for whatever is currently rendered
   const items = Array.from(listEl.querySelectorAll<HTMLLIElement>("li.item"));
   for (const li of items) {
     const id = li.dataset["id"];
@@ -101,18 +96,17 @@ function clearReport() {
 }
 
 function getSelectedItems(): ConversationItem[] {
-  // Keep the order as currently shown in the list
   return lastConvos.filter((c) => selected.has(c.id));
 }
 
-function buildDryRunReport(items: ConversationItem[]): string {
+function buildLocalListReport(items: ConversationItem[], title: string): string {
   const lines: string[] = [];
   const now = new Date().toISOString();
 
-  lines.push(`DRY-RUN ONLY (no deletion performed)`);
+  lines.push(title);
   lines.push(`Generated: ${now}`);
   lines.push(`Selected count: ${items.length}`);
-  lines.push(``);
+  lines.push("");
 
   for (const c of items) {
     lines.push(`- ${c.title}`);
@@ -120,30 +114,22 @@ function buildDryRunReport(items: ConversationItem[]): string {
     lines.push(`  url: ${c.href}`);
   }
 
-  if (items.length === 0) {
-    lines.push(`(Nothing selected)`);
-  }
-
+  if (!items.length) lines.push("(Nothing selected)");
   return lines.join("\n");
 }
 
 async function runDryRun() {
   const items = getSelectedItems();
-  const localReport = buildDryRunReport(items);
+  const localReport = buildLocalListReport(items, "DRY-RUN ONLY (no deletion performed)");
 
-  // Always show local report first
   writeReport(localReport);
 
-  // If nothing selected, stop here
   const ids = items.map((c) => c.id).filter(Boolean);
   if (!ids.length) return;
 
-  // Now append network-backed dry-run
   setStatus("Dry-run (network)…");
 
-  const res = await chrome.runtime
-    .sendMessage({ type: MSG.DRY_RUN_DELETE, ids })
-    .catch(() => null);
+  const res = await chrome.runtime.sendMessage({ type: MSG.DRY_RUN_DELETE, ids }).catch(() => null);
 
   setStatus("Done");
 
@@ -180,10 +166,76 @@ async function runDryRun() {
   writeReport(localReport + "\n\n" + lines.join("\n"));
 }
 
+async function runExecuteDelete() {
+  const items = getSelectedItems();
+  const ids = items.map((c) => c.id).filter(Boolean);
 
-// ###################################################################################
-// RENDER
-// ###################################################################################
+  // Always print what we intend to delete first
+  const base = buildLocalListReport(items, "EXECUTE DELETE (about to run)");
+  writeReport(base + "\n");
+
+  if (!ids.length) return;
+
+  if (!cbConfirmExecute?.checked) {
+    writeReport(base + "\n\nBlocked: tick the confirmation checkbox first.\n");
+    return;
+  }
+
+  // Second confirmation: require exact count
+  const expected = String(ids.length);
+  const typed = prompt(`Type the number of selected conversations (${expected}) to confirm deletion:`) || "";
+  if (typed.trim() !== expected) {
+    writeReport(base + "\n\nCancelled: confirmation did not match.\n");
+    return;
+  }
+
+  // Final “are you sure”
+  if (!confirm(`This will hide ${ids.length} conversation(s) immediately. Continue?`)) {
+    writeReport(base + "\n\nCancelled.\n");
+    return;
+  }
+
+  setStatus("Deleting…");
+
+  const res = await chrome.runtime
+    .sendMessage({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 })
+    .catch(() => null);
+
+  setStatus("Done");
+
+  if (!res) {
+    writeReport(base + "\n\n---\nEXECUTE\nFailed: no response from background.\n");
+    return;
+  }
+
+  if (!res.ok) {
+    writeReport(base + `\n\n---\nEXECUTE\nFailed: ${res.error}\n`);
+    return;
+  }
+
+  const okCount = (res.results || []).filter((r: any) => r.ok).length;
+  const failCount = (res.results || []).filter((r: any) => !r.ok).length;
+
+  const lines: string[] = [];
+  lines.push("---");
+  lines.push("EXECUTE");
+  lines.push(`Logged in: ${res.loggedIn ? "yes" : "no"}${res.meHint ? ` (${res.meHint})` : ""}`);
+  lines.push(`Throttle: ${res.throttleMs} ms`);
+  lines.push(res.note || "");
+  lines.push("");
+  lines.push(`Result: ${okCount} ok, ${failCount} failed`);
+  lines.push("");
+
+  for (const r of res.results || []) {
+    if (r.ok) lines.push(`✓ ${r.id} (HTTP ${r.status ?? "?"})`);
+    else lines.push(`✗ ${r.id} (${r.error || "failed"}${r.status ? `, HTTP ${r.status}` : ""})`);
+  }
+
+  lines.push("");
+  lines.push("Tip: refresh chatgpt.com to confirm the sidebar updates.");
+
+  writeReport(base + "\n\n" + lines.join("\n"));
+}
 
 function render(convos: ConversationItem[]) {
   lastConvos = convos;
@@ -196,8 +248,6 @@ function render(convos: ConversationItem[]) {
     li.className = "item";
     li.dataset["id"] = c.id;
 
-
-    // Left: delete checkbox
     const left = document.createElement("div");
     left.className = "left";
 
@@ -211,13 +261,11 @@ function render(convos: ConversationItem[]) {
       else selected.delete(c.id);
       updateSelectedCount();
       updateToggleAllState();
-
       li.classList.toggle("selected", cb.checked);
     });
 
     left.appendChild(cb);
 
-    // Middle: title + link
     const mid = document.createElement("div");
     mid.className = "mid";
 
@@ -238,28 +286,18 @@ function render(convos: ConversationItem[]) {
     li.appendChild(left);
     li.appendChild(mid);
 
-    // initial selected style
     li.classList.toggle("selected", selected.has(c.id));
-
     listEl.appendChild(li);
   }
 
   updateSelectedCount();
   updateToggleAllState();
-
 }
-
-
-// ###################################################################################
-// FUNCTION SCAN : INIT LIST CONVERSATION
-// ###################################################################################
 
 async function scan() {
   setStatus("Scanning…");
 
-  const res = await chrome.runtime
-    .sendMessage({ type: MSG.LIST_CONVERSATIONS })
-    .catch(() => null);
+  const res = await chrome.runtime.sendMessage({ type: MSG.LIST_CONVERSATIONS }).catch(() => null);
 
   if (!res) {
     setStatus("Scan failed (no response).");
@@ -284,11 +322,7 @@ async function scan() {
   render(convos);
 }
 
-
-
-// ###################################################################################
-// ADD LISTNER ON EVENT TO CALL FUNCTION 
-// ###################################################################################
+// LISTENERS
 btnDryRun.addEventListener("click", () => {
   runDryRun().catch((e) => {
     console.error(e);
@@ -297,18 +331,20 @@ btnDryRun.addEventListener("click", () => {
   });
 });
 
+btnExecuteDelete.addEventListener("click", () => {
+  runExecuteDelete().catch((e) => {
+    console.error(e);
+    setStatus("Error");
+    writeReport("Execute crashed. See console.");
+  });
+});
 
 btnClearReport.addEventListener("click", () => clearReport());
 
 btnSelectAll.addEventListener("click", () => selectAllVisible());
 btnSelectNone.addEventListener("click", () => selectNoneVisible());
 
-cbToggleAll.addEventListener("change", () => {
-  // If user clicks the checkbox, treat it as “toggle all”.
-  // (We drive the checked/indeterminate state ourselves.)
-  toggleAllVisible();
-});
-
+cbToggleAll.addEventListener("change", () => toggleAllVisible());
 
 btnScan.addEventListener("click", () => {
   scan().catch((e) => {

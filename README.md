@@ -3,7 +3,7 @@
 </a>
 
 
-# ChatGPT Organizer (CGO)
+# ChatGPT Organizer (CGO)  <img src="./docs/icon.svg" alt="CGO Icon" width="60" style="vertical-align:middle; margin-right:20px;"> 
 
 **ChatGPT Organizer** is a browser extension that helps you inspect, organize, and clean up your ChatGPT conversations.
 
@@ -12,6 +12,9 @@ The first goal is pragmatic:
 
 The project is intentionally simple, local-first, and transparent.
 
+ 
+
+ 
 ---
 
 ## What this extension does

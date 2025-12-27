@@ -89,9 +89,41 @@
   margin-top: 6px;
 }
 
+/* Clearer destructive styling */
 button.danger {
-  border: 1px solid rgba(180, 0, 0, 0.35);
+  border: 1px solid rgba(180, 0, 0, 0.55);
+  background: rgba(180, 0, 0, 0.08);
+  font-weight: 600;
 }
+
+button.danger:hover {
+  background: rgba(180, 0, 0, 0.14);
+  border-color: rgba(180, 0, 0, 0.75);
+}
+
+button.danger:active {
+  background: rgba(180, 0, 0, 0.18);
+}
+
+button.danger:focus-visible {
+  outline: 2px solid rgba(180, 0, 0, 0.65);
+  outline-offset: 2px;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+
+/* Optional: group the risky actions visually */
+.row--danger {
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(180, 0, 0, 0.05);
+  border: 1px dashed rgba(180, 0, 0, 0.25);
+}
+
 
 .report {
   margin: 10px 0 0;
@@ -104,4 +136,14 @@ button.danger {
   white-space: pre-wrap;
   word-break: break-word;
   font-size: 12px;
+}
+
+
+.confirm {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  user-select: none;
+  font-size: 12px;
+  opacity: 0.9;
 }

@@ -35,10 +35,21 @@
             <button id="btnDryRun" type="button" class="danger">
                 Delete selected (dry-run)
             </button>
+
+            <button id="btnExecuteDelete" type="button" class="danger">
+                Delete selected (execute)
+            </button>
+
+            <label class="confirm">
+                <input id="cbConfirmExecute" type="checkbox" />
+                I understand this will hide chats immediately
+            </label>
+
             <button id="btnClearReport" type="button">
                 Clear report
             </button>
         </div>
+
 
         <pre id="report" class="report" aria-live="polite"></pre>
 
