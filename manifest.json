@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "ChatGPT Organizer",
+  "version": "0.0.1",
+  "description": "Organize ChatGPT conversations (list, select, and later delete by date range).",
+  "icons": {
+    "16": "assets/icons/icon-16.png",
+    "32": "assets/icons/icon-32.png",
+    "48": "assets/icons/icon-48.png",
+    "128": "assets/icons/icon-128.png"
+  },
+  "permissions": ["tabs", "storage", "scripting", "activeTab", "sidePanel"],
+  "host_permissions": ["https://chatgpt.com/*"],
+  "background": {
+    "service_worker": "dist/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://chatgpt.com/*"],
+      "js": ["dist/content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "dist/panel/panel.html"
+  },
+  "action": {
+    "default_title": "ChatGPT Organizer"
+  }
+}

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>ChatGPT Organizer</title>
+    <link rel="stylesheet" href="./panel.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <header class="header">
+        <h1>ChatGPT Organizer</h1>
+        <p class="sub">List conversations from the current ChatGPT tab (scraped).</p>
+      </header>
+
+      <section class="controls">
+        <button id="btnScan" type="button">Scan conversations</button>
+        <span id="status" class="status">Idle</span>
+      </section>
+
+      <section class="results">
+        <div class="summary">
+          Found <strong id="count">0</strong> conversations
+        </div>
+        <ul id="list" class="list"></ul>
+      </section>
+
+      <footer class="footer">
+        <small>Next: date range + selection + deletion (network-backed).</small>
+      </footer>
+    </div>
+
+    <script type="module" src="../panel.js"></script>
+  </body>
+</html>
