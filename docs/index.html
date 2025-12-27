@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>beelab Project Portal</title>
+  <link rel="icon" type="image/svg+xml" href="beelab.svg">
+
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+  <script>
+    // Make sure headings get predictable ids so #anchors work
+    marked.setOptions({ headerIds: true, mangle: false });
+  </script>
+
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({ startOnLoad: false });
+    window.mermaid = mermaid;
+  </script>
+
+</head>
+
+<body>
+  <button id="backToTop">⬆️ Top</button>
+  <div class="container">
+    <div class="header">
+      <div class="header-left">
+        <svg id="logo" xmlns="http://www.w3.org/2000/svg" width="512" height="160" viewBox="0 0 512 160"
+          aria-label="DJANGO ML">
+          <rect width="100%" height="100%" fill="none" />
+          <g id="wordmark" transform="translate(256,70)">
+            <text text-anchor="middle" dominant-baseline="central"
+              font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif"
+              font-size="64" font-weight="800" letter-spacing="1.5">
+              <tspan class="django">Bee</tspan>
+              <tspan class="ml">Lab</tspan>
+            </text>
+          </g>
+          <g id="tagline" transform="translate(256,120)">
+            <text text-anchor="middle" dominant-baseline="central" font-family="Inter, system-ui, sans-serif"
+              font-size="28" font-weight="600" letter-spacing="1">
+              <tspan class="powered">Powered by Docker</tspan>
+            </text>
+          </g>
+        </svg>
+
+      </div>
+
+      <div class="translate-box">
+        🌐 Translate: <span id="google_translate_element"></span>
+      </div>
+    </div>
+
+    <script type="text/javascript">
+      function googleTranslateElementInit() {
+        new google.translate.TranslateElement(
+          { pageLanguage: 'en' },
+          'google_translate_element'
+        );
+      }
+    </script>
+    <script type="text/javascript"
+      src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+
+
+
+
+    <p style="margin-top: 1rem;">
+      🔗 View the full source code and documentation on
+      <a href="https://github.com/nathabee/chatgpt-organizer" target="_blank">GitHub Repository</a>
+    </p>
+
+    <h2>📚 Project Documentation</h2>
+    <div class="doc-list">
+
+      <details>
+        <summary><strong>🧭 Overview</strong></summary>
+        <ul>
+          <li><a href="presentation.md">📖 Project Presentation</a></li>
+        </ul>
+      </details>
+
+      <details>
+        <summary><strong>💻 Installation</strong></summary>
+        <ul>
+          <li><a href="installation.md">☁️ Installation</a></li> 
+        </ul>
+      </details>
+ 
+
+      <details>
+        <summary><strong>Development</strong></summary>
+        <ul> 
+          <li><a href="developper-test.md">📄 Developper Tests </a></li> 
+        </ul>
+      </details>
+ 
+
+
+    </div>
+
+
+
+
+
+
+    <div id="content"></div>
+  </div>
+
+  <script src="main.js"></script>
+
+
+
+
+</body>
+
+</html>
