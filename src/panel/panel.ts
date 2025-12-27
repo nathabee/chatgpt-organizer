@@ -1,3 +1,4 @@
+// src/panel/panel.ts
 import { MSG } from "../shared/messages";
 import type { ConversationItem } from "../shared/types";
 
@@ -37,10 +38,24 @@ function render(convos: ConversationItem[]) {
 async function scan() {
   setStatus("Scanning…");
 
-  const res = await chrome.runtime.sendMessage({ type: MSG.LIST_CONVERSATIONS }).catch(() => null);
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!tab?.id) {
+    setStatus("No active tab.");
+    render([]);
+    return;
+  }
+
+  // Optional sanity check
+  if (!tab.url?.startsWith("https://chatgpt.com/")) {
+    setStatus("Open a chatgpt.com tab first.");
+    render([]);
+    return;
+  }
+
+  const res = await chrome.tabs.sendMessage(tab.id, { type: MSG.LIST_CONVERSATIONS }).catch(() => null);
 
   if (!res?.ok) {
-    setStatus("Scan failed (no response). Open chatgpt.com in an active tab.");
+    setStatus("Scan failed (content script not responding). Reload ChatGPT tab.");
     render([]);
     return;
   }

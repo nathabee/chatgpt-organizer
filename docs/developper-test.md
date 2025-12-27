@@ -1,4 +1,4 @@
-# DEVELOPPER TIPPS : TESTS
+# DEVELOPPER TIPPS : UNIT TESTS
 
 
 ## 1) Confirm your `dist/` contains everything the extension needs
@@ -22,9 +22,8 @@ Chrome is the easiest for Manifest V3 + side panel.
 2. Enable **Developer mode** (top right)
 3. Click **Load unpacked**
 4. Select your extension folder that contains `manifest.json`
-
-   * If `manifest.json` is in the project root, select `chatgpt-organizer/`
-   * If `manifest.json` is in `dist/`, select `chatgpt-organizer/dist/`
+ 
+   * select `chatgpt-organizer/dist/`
 
 After loading: you should see “ChatGPT Organizer” in the list.
 

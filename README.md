@@ -106,6 +106,18 @@ Deleting conversations is a separate step we will implement carefully (dry-run, 
 🚧 Early development
 APIs and internals may change as ChatGPT evolves.
 
+
+
+## For more information
+
+Visit the github pages: <a href="https://nathabee.github.io/chatgpt-organizer/index.html"> 
+  <img src="./docs/visitgithubpage.svg" alt="CGO Docs" width="300" style="vertical-align:middle;">
+</a>
+
+
+---
+
+
 ##  License
 
 MIT — see LICENSE
