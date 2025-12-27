@@ -2,6 +2,11 @@
 import { MSG } from "../shared/messages";
 import type { ConversationItem } from "../shared/types";
 
+
+// ###################################################################################
+// ELEMENT REFERENCE
+// ###################################################################################
+
 const btnScan = document.getElementById("btnScan") as HTMLButtonElement;
 const statusEl = document.getElementById("status") as HTMLSpanElement;
 const countEl = document.getElementById("count") as HTMLElement;
@@ -10,10 +15,18 @@ const listEl = document.getElementById("list") as HTMLUListElement;
 const btnSelectAll = document.getElementById("btnSelectAll") as HTMLButtonElement;
 const btnSelectNone = document.getElementById("btnSelectNone") as HTMLButtonElement;
 const cbToggleAll = document.getElementById("cbToggleAll") as HTMLInputElement;
+const btnDryRun = document.getElementById("btnDryRun") as HTMLButtonElement;
+const btnClearReport = document.getElementById("btnClearReport") as HTMLButtonElement;
+const reportEl = document.getElementById("report") as HTMLPreElement;
 
 
 let lastConvos: ConversationItem[] = [];
 const selected = new Set<string>(); // conversation ids selected for deletion
+
+
+// ###################################################################################
+// HELPER
+// ###################################################################################
 
 function setStatus(s: string) {
   statusEl.textContent = s;
@@ -79,6 +92,50 @@ function toggleAllVisible() {
   else selectAllVisible();
 }
 
+function writeReport(text: string) {
+  reportEl.textContent = text;
+}
+
+function clearReport() {
+  reportEl.textContent = "";
+}
+
+function getSelectedItems(): ConversationItem[] {
+  // Keep the order as currently shown in the list
+  return lastConvos.filter((c) => selected.has(c.id));
+}
+
+function buildDryRunReport(items: ConversationItem[]): string {
+  const lines: string[] = [];
+  const now = new Date().toISOString();
+
+  lines.push(`DRY-RUN ONLY (no deletion performed)`);
+  lines.push(`Generated: ${now}`);
+  lines.push(`Selected count: ${items.length}`);
+  lines.push(``);
+
+  for (const c of items) {
+    lines.push(`- ${c.title}`);
+    lines.push(`  id: ${c.id}`);
+    lines.push(`  url: ${c.href}`);
+  }
+
+  if (items.length === 0) {
+    lines.push(`(Nothing selected)`);
+  }
+
+  return lines.join("\n");
+}
+
+function runDryRun() {
+  const items = getSelectedItems();
+  const report = buildDryRunReport(items);
+  writeReport(report);
+}
+
+// ###################################################################################
+// RENDER
+// ###################################################################################
 
 function render(convos: ConversationItem[]) {
   lastConvos = convos;
@@ -144,6 +201,11 @@ function render(convos: ConversationItem[]) {
 
 }
 
+
+// ###################################################################################
+// FUNCTION SCAN : INIT LIST CONVERSATION
+// ###################################################################################
+
 async function scan() {
   setStatus("Scanning…");
 
@@ -173,6 +235,14 @@ async function scan() {
 
   render(convos);
 }
+
+
+
+// ###################################################################################
+// ADD LISTNER ON EVENT TO CALL FUNCTION 
+// ###################################################################################
+btnDryRun.addEventListener("click", () => runDryRun());
+btnClearReport.addEventListener("click", () => clearReport());
 
 btnSelectAll.addEventListener("click", () => selectAllVisible());
 btnSelectNone.addEventListener("click", () => selectNoneVisible());

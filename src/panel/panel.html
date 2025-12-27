@@ -31,11 +31,23 @@
             </label>
         </div>
 
+        <div class="row row--danger">
+            <button id="btnDryRun" type="button" class="danger">
+                Delete selected (dry-run)
+            </button>
+            <button id="btnClearReport" type="button">
+                Clear report
+            </button>
+        </div>
+
+        <pre id="report" class="report" aria-live="polite"></pre>
+
 
         <div class="summary">
             Found <span id="count">0</span> conversations ·
             Selected for delete: <span id="selectedCount">0</span>
         </div>
+
 
         <ul id="list" class="list"></ul>
     </div>
