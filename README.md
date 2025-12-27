@@ -14,6 +14,23 @@ The project is intentionally simple, local-first, and transparent.
 
 ---
 
+## What this extension does
+
+- Runs entirely in your browser
+- Acts only on your own ChatGPT account
+- Requires you to be logged in to chatgpt.com
+- Does not store credentials
+- Does not access other users' data
+
+---
+
+## Responsibility
+
+This tool automates actions that are normally performed manually
+by the user in the ChatGPT interface. Use at your own discretion.
+
+---
+
 ## Why this exists
 
 Long ChatGPT histories slow down browsers (especially Firefox) and make the UI painful to use.  

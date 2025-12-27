@@ -127,11 +127,59 @@ function buildDryRunReport(items: ConversationItem[]): string {
   return lines.join("\n");
 }
 
-function runDryRun() {
+async function runDryRun() {
   const items = getSelectedItems();
-  const report = buildDryRunReport(items);
-  writeReport(report);
+  const localReport = buildDryRunReport(items);
+
+  // Always show local report first
+  writeReport(localReport);
+
+  // If nothing selected, stop here
+  const ids = items.map((c) => c.id).filter(Boolean);
+  if (!ids.length) return;
+
+  // Now append network-backed dry-run
+  setStatus("Dry-run (network)…");
+
+  const res = await chrome.runtime
+    .sendMessage({ type: MSG.DRY_RUN_DELETE, ids })
+    .catch(() => null);
+
+  setStatus("Done");
+
+  if (!res) {
+    writeReport(localReport + "\n\n---\nNETWORK DRY-RUN\nFailed: no response from background.\n");
+    return;
+  }
+
+  if (!res.ok) {
+    writeReport(localReport + `\n\n---\nNETWORK DRY-RUN\nFailed: ${res.error}\n`);
+    return;
+  }
+
+  const lines: string[] = [];
+  lines.push("---");
+  lines.push("NETWORK DRY-RUN");
+  lines.push(`Logged in: ${res.loggedIn ? "yes" : "no"}${res.meHint ? ` (${res.meHint})` : ""}`);
+  lines.push(res.note || "");
+  lines.push("");
+
+  if (!res.requests?.length) {
+    lines.push("(No requests prepared.)");
+  } else {
+    lines.push(`Would send ${res.requests.length} request(s):`);
+    lines.push("");
+    res.requests.forEach((r: any, i: number) => {
+      lines.push(`${i + 1}. ${r.method} ${r.url}`);
+      lines.push(`   headers: ${JSON.stringify(r.headers)}`);
+      lines.push(`   body: ${JSON.stringify(r.body)}`);
+      lines.push("");
+    });
+  }
+
+  writeReport(localReport + "\n\n" + lines.join("\n"));
 }
+
 
 // ###################################################################################
 // RENDER
@@ -241,7 +289,15 @@ async function scan() {
 // ###################################################################################
 // ADD LISTNER ON EVENT TO CALL FUNCTION 
 // ###################################################################################
-btnDryRun.addEventListener("click", () => runDryRun());
+btnDryRun.addEventListener("click", () => {
+  runDryRun().catch((e) => {
+    console.error(e);
+    setStatus("Error");
+    writeReport("Dry-run crashed. See console.");
+  });
+});
+
+
 btnClearReport.addEventListener("click", () => clearReport());
 
 btnSelectAll.addEventListener("click", () => selectAllVisible());
