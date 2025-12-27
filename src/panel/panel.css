@@ -1,85 +1,85 @@
-:root {
-  color-scheme: light dark;
-  --pad: 12px;
-}
-
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
-  font: 13px/1.35 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial;
-}
+/* src/panel/panel.css */
 
 .wrap {
-  padding: var(--pad);
-  display: grid;
-  gap: 12px;
+  font: 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  padding: 12px;
 }
 
-.header h1 {
-  font-size: 16px;
-  margin: 0 0 4px 0;
-}
-
-.sub {
-  margin: 0;
-  opacity: 0.75;
-}
-
-.controls {
+.row {
   display: flex;
-  align-items: center;
   gap: 10px;
-}
-
-button {
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(127, 127, 127, 0.35);
-  background: transparent;
-  cursor: pointer;
-}
-
-button:hover {
-  border-color: rgba(127, 127, 127, 0.6);
+  align-items: center;
+  margin-bottom: 10px;
 }
 
 .status {
-  opacity: 0.75;
+  opacity: 0.8;
 }
 
 .summary {
-  margin-bottom: 8px;
+  margin: 10px 0;
+  opacity: 0.9;
 }
 
 .list {
   list-style: none;
   padding: 0;
   margin: 0;
-  display: grid;
-  gap: 8px;
 }
 
 .item {
-  border: 1px solid rgba(127, 127, 127, 0.25);
-  border-radius: 12px;
-  padding: 10px;
   display: grid;
-  gap: 4px;
+  grid-template-columns: 28px 1fr;
+  gap: 10px;
+  padding: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 10px;
+  margin-bottom: 8px;
 }
 
-.item .title {
+.item.selected {
+  border-color: rgba(180, 0, 0, 0.35);
+  background: rgba(180, 0, 0, 0.05);
+}
+
+.left {
+  display: flex;
+  align-items: start;
+  padding-top: 2px;
+}
+
+.deleteCb {
+  width: 16px;
+  height: 16px;
+}
+
+.title {
   font-weight: 600;
+  margin-bottom: 4px;
 }
 
-.item a {
+.link {
+  display: block;
+  font-size: 12px;
   opacity: 0.85;
-  text-decoration: none;
   word-break: break-all;
 }
 
-.footer {
-  opacity: 0.7;
+
+.row--select {
+  margin-top: -2px;
+}
+
+.toggleAll {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+  user-select: none;
+  opacity: 0.9;
+}
+
+.toggleAll input {
+  width: 16px;
+  height: 16px;
 }

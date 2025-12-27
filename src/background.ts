@@ -1,53 +1,54 @@
 // src/background.ts
-
-
+ 
 import { MSG, type AnyRequest, type AnyResponse } from "./shared/messages";
 
-chrome.action.onClicked.addListener(async (tab) => {
-  if (!tab.id) return;
+function isChatGPTUrl(url?: string): boolean {
+  return !!url && url.startsWith("https://chatgpt.com/");
+}
 
-  try {
-    // Opens the side panel for the current tab.
-    await chrome.sidePanel.open({ tabId: tab.id });
-    await chrome.sidePanel.setOptions({
-      tabId: tab.id,
-      path: "panel/panel.html",
-      enabled: true
-    });
-  } catch (e) {
-    // If sidePanel is unsupported or fails, we just do nothing.
-    console.warn("sidePanel.open failed:", e);
-  }
-});
+async function getActiveChatGPTTab(): Promise<chrome.tabs.Tab | null> {
+  const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+  if (!tab || !isChatGPTUrl(tab.url)) return null;
+  return tab;
+}
 
-// Panel -> Background -> Content (active tab)
+async function sendToTab<TReq extends AnyRequest, TRes extends AnyResponse>(
+  tabId: number,
+  msg: TReq
+): Promise<TRes> {
+  return await chrome.tabs.sendMessage(tabId, msg) as TRes;
+}
+
 chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) => {
   (async () => {
-    if (msg?.type === MSG.PING) {
-      const res: AnyResponse = { ok: true };
-      sendResponse(res);
-      return;
-    }
-
     if (msg?.type === MSG.LIST_CONVERSATIONS) {
-      const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tab = await getActiveChatGPTTab();
       if (!tab?.id) {
-        sendResponse({ ok: true, conversations: [] } satisfies AnyResponse);
+        sendResponse({ ok: false, error: "No active chatgpt.com tab." });
         return;
       }
 
-      // Ask the content script to scrape conversations.
-      const res = await chrome.tabs.sendMessage(tab.id, msg).catch(() => null);
-      if (res && res.ok) {
-        sendResponse(res as AnyResponse);
-      } else {
-        sendResponse({ ok: true, conversations: [] } satisfies AnyResponse);
+      try {
+        const res = await sendToTab(tab.id, msg);
+        sendResponse(res);
+      } catch (e) {
+        // Most common: content script not injected / tab not matching / needs reload
+        sendResponse({
+          ok: false,
+          error:
+            "Could not reach content script. Reload the ChatGPT tab, then try again."
+        });
       }
       return;
     }
 
-    sendResponse({ ok: true } satisfies AnyResponse);
+    if (msg?.type === MSG.PING) {
+      sendResponse({ ok: true });
+      return;
+    }
+
+    sendResponse({ ok: false, error: "Unknown message." });
   })();
 
-  return true; // keep the message channel open
+  return true; // keep the message channel open for async
 });

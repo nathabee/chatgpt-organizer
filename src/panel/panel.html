@@ -1,35 +1,46 @@
+<!-- src/panel/panel.html -->
 <!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
+<html>
+
+<head>
+    <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>ChatGPT Organizer</title>
     <link rel="stylesheet" href="./panel.css" />
-  </head>
-  <body>
+    <title>ChatGPT Organizer</title>
+</head>
+
+<body>
     <div class="wrap">
-      <header class="header">
         <h1>ChatGPT Organizer</h1>
-        <p class="sub">List conversations from the current ChatGPT tab (scraped).</p>
-      </header>
 
-      <section class="controls">
-        <button id="btnScan" type="button">Scan conversations</button>
-        <span id="status" class="status">Idle</span>
-      </section>
+        <p class="muted">
+            List conversations from the current ChatGPT tab (scraped).
+        </p>
 
-      <section class="results">
-        <div class="summary">
-          Found <strong id="count">0</strong> conversations
+        <div class="row">
+            <button id="btnScan" type="button">Scan conversations</button>
+            <span id="status" class="status">Idle</span>
         </div>
-        <ul id="list" class="list"></ul>
-      </section>
 
-      <footer class="footer">
-        <small>Next: date range + selection + deletion (network-backed).</small>
-      </footer>
+        <div class="row row--select">
+            <button id="btnSelectAll" type="button">Select all</button>
+            <button id="btnSelectNone" type="button">Select none</button>
+            <label class="toggleAll">
+                <input id="cbToggleAll" type="checkbox" />
+                Toggle all
+            </label>
+        </div>
+
+
+        <div class="summary">
+            Found <span id="count">0</span> conversations ·
+            Selected for delete: <span id="selectedCount">0</span>
+        </div>
+
+        <ul id="list" class="list"></ul>
     </div>
 
     <script type="module" src="../panel.js"></script>
-  </body>
+</body>
+
 </html>
