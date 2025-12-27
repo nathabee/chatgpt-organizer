@@ -1,4 +1,9 @@
-# ChatGPT Organizer
+<a href="https://nathabee.github.io/chatgpt-organizer/index.html">
+  <img src="./docs/cgo.svg" alt="CGO Logo" width="300" style="vertical-align:middle; margin-right:20px;"> 
+</a>
+
+
+# ChatGPT Organizer (CGO)
 
 **ChatGPT Organizer** is a browser extension that helps you inspect, organize, and clean up your ChatGPT conversations.
 
