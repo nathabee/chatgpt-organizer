@@ -17,48 +17,62 @@
             List conversations from the current ChatGPT tab (scraped).
         </p>
 
+        <!-- NEW v0.0.6: scan row now includes Deep Scan + Cancel + scan progress output -->
         <div class="row">
             <button id="btnScan" type="button">Scan conversations</button>
+            <button id="btnDeepScan" type="button">Deep scan (auto-scroll)</button>
+            <button id="btnCancelScan" type="button" hidden>Cancel</button>
             <span id="status" class="status">Idle</span>
         </div>
 
+        <!-- NEW v0.0.6: show scan progress (deep scan) -->
+        <div class="row">
+            <div id="scanOut" class="status" aria-live="polite"></div>
+        </div>
+
+        <!-- NEW v0.0.6: remove Select all / Select none. Keep Toggle all only. -->
         <div class="row row--select">
-            <button id="btnSelectAll" type="button">Select all</button>
-            <button id="btnSelectNone" type="button">Select none</button>
             <label class="toggleAll">
                 <input id="cbToggleAll" type="checkbox" />
                 Toggle all
             </label>
         </div>
 
+        <!-- NEW v0.0.6: minimum safe UX for execute delete -->
         <div class="row row--danger">
-            <button id="btnDryRun" type="button" class="danger">
-                Delete selected (dry-run)
-            </button>
-
             <button id="btnExecuteDelete" type="button" class="danger">
                 Delete selected (execute)
             </button>
-
-            <label class="confirm">
-                <input id="cbConfirmExecute" type="checkbox" />
-                I understand this will hide chats immediately
-            </label>
-
-            <button id="btnClearReport" type="button">
-                Clear report
-            </button>
         </div>
 
+        <!-- NEW v0.0.6: exec output area (small note/output) -->
+        <pre id="execOut" class="report" aria-live="polite"></pre>
 
-        <pre id="report" class="report" aria-live="polite"></pre>
+        <!-- NEW v0.0.6: confirmation UI block (inline), hidden by default -->
+        <div id="confirmBox" class="confirmBox" hidden>
+            <div class="confirmTitle" id="confirmTitle"></div>
 
+            <ul id="confirmPreview" class="confirmPreview"></ul>
+
+            <label class="confirm">
+                <input id="cbConfirm" type="checkbox" />
+                I understand this can’t be undone here.
+            </label>
+
+            <div class="row">
+                <button id="btnConfirmExecute" type="button" class="danger">
+                    Yes, delete
+                </button>
+                <button id="btnCancelExecute" type="button">
+                    Cancel
+                </button>
+            </div>
+        </div>
 
         <div class="summary">
             Found <span id="count">0</span> conversations ·
             Selected for delete: <span id="selectedCount">0</span>
         </div>
-
 
         <ul id="list" class="list"></ul>
     </div>

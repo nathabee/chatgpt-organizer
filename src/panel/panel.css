@@ -147,3 +147,57 @@ button:disabled {
   font-size: 12px;
   opacity: 0.9;
 }
+
+
+/* -----------------------------------------------------------
+   NEW v0.0.6 — Scan progress line
+   ----------------------------------------------------------- */
+
+#scanOut {
+  margin-top: -4px;
+  opacity: 0.85;
+  font-size: 12px;
+}
+
+/* -----------------------------------------------------------
+   NEW v0.0.6 — Confirmation block (inline)
+   ----------------------------------------------------------- */
+
+.confirmBox {
+  margin: 10px 0 0;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(180, 0, 0, 0.18);
+  background: rgba(180, 0, 0, 0.04);
+}
+
+.confirmTitle {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.confirmPreview {
+  list-style: disc;
+  margin: 0 0 10px 18px;
+  padding: 0;
+  font-size: 12px;
+  opacity: 0.92;
+}
+
+.confirmPreview li {
+  margin: 2px 0;
+}
+
+/* -----------------------------------------------------------
+   NEW v0.0.6 — Disabled controls clarity
+   ----------------------------------------------------------- */
+
+input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Optional: keep confirm checkbox aligned nicely in confirm box */
+.confirmBox .confirm {
+  margin: 6px 0 10px;
+}

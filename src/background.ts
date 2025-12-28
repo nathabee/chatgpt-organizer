@@ -1,10 +1,15 @@
 // src/background.ts
- 
 
 import { MSG, type AnyRequest, type AnyResponse } from "./shared/messages";
 
+/* -----------------------------------------------------------
+ * URL / tab helpers
+ * ----------------------------------------------------------- */
+
 function isChatGPTUrl(url?: string): boolean {
-  return !!url && url.startsWith("https://chatgpt.com/");
+  // NEW v0.0.6: allow both domains if your manifest includes them.
+  // If your manifest only includes chatgpt.com, you can remove the chat.openai.com check.
+  return !!url && (url.startsWith("https://chatgpt.com/") || url.startsWith("https://chat.openai.com/"));
 }
 
 async function getActiveChatGPTTab(): Promise<chrome.tabs.Tab | null> {
@@ -23,6 +28,10 @@ async function sendToTab<TReq extends AnyRequest, TRes extends AnyResponse>(
 function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
+
+/* -----------------------------------------------------------
+ * Session + delete helpers
+ * ----------------------------------------------------------- */
 
 async function fetchSession(): Promise<{ loggedIn: boolean; accessToken?: string; meHint?: string }> {
   try {
@@ -46,7 +55,10 @@ async function fetchSession(): Promise<{ loggedIn: boolean; accessToken?: string
   }
 }
 
-async function deleteConversation(accessToken: string, id: string): Promise<{ ok: boolean; status?: number; error?: string }> {
+async function deleteConversation(
+  accessToken: string,
+  id: string
+): Promise<{ ok: boolean; status?: number; error?: string }> {
   try {
     const resp = await fetch(`https://chatgpt.com/backend-api/conversation/${id}`, {
       method: "PATCH",
@@ -69,12 +81,29 @@ async function deleteConversation(accessToken: string, id: string): Promise<{ ok
   }
 }
 
+/* -----------------------------------------------------------
+ * NEW v0.0.6: re-entrancy guard for execute delete
+ * ----------------------------------------------------------- */
+
+let executeRunning = false;
+
+/* -----------------------------------------------------------
+ * Message handler
+ * ----------------------------------------------------------- */
+
 chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) => {
   (async () => {
+    // PING
+    if (msg?.type === MSG.PING) {
+      sendResponse({ ok: true });
+      return;
+    }
+
+    // LIST (quick scan)
     if (msg?.type === MSG.LIST_CONVERSATIONS) {
       const tab = await getActiveChatGPTTab();
       if (!tab?.id) {
-        sendResponse({ ok: false, error: "No active chatgpt.com tab." });
+        sendResponse({ ok: false, error: "No active ChatGPT tab (chatgpt.com)." });
         return;
       }
 
@@ -90,6 +119,49 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       return;
     }
 
+    /* -----------------------------------------------------------
+     * NEW v0.0.6: DEEP SCAN start (route to content script)
+     * ----------------------------------------------------------- */
+    if (msg?.type === MSG.DEEP_SCAN_START) {
+      const tab = await getActiveChatGPTTab();
+      if (!tab?.id) {
+        sendResponse({ ok: false, error: "No active ChatGPT tab (chatgpt.com)." });
+        return;
+      }
+
+      try {
+        const res = await sendToTab(tab.id, msg);
+        sendResponse(res);
+      } catch {
+        sendResponse({
+          ok: false,
+          error: "Could not reach content script. Reload the ChatGPT tab, then try again.",
+        });
+      }
+      return;
+    }
+
+    /* -----------------------------------------------------------
+     * NEW v0.0.6: DEEP SCAN cancel (route to content script)
+     * ----------------------------------------------------------- */
+    if (msg?.type === MSG.DEEP_SCAN_CANCEL) {
+      const tab = await getActiveChatGPTTab();
+      if (!tab?.id) {
+        sendResponse({ ok: false, error: "No active ChatGPT tab (chatgpt.com)." });
+        return;
+      }
+
+      try {
+        const res = await sendToTab(tab.id, msg);
+        sendResponse(res);
+      } catch {
+        // Cancel is best-effort; if it fails, user can just wait.
+        sendResponse({ ok: true });
+      }
+      return;
+    }
+
+    // DRY RUN (kept, even if UI hidden)
     if (msg?.type === MSG.DRY_RUN_DELETE) {
       const ids = (msg.ids || []).filter(Boolean);
       if (!ids.length) {
@@ -129,7 +201,9 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       return;
     }
 
-    // NEW: execute delete
+    /* -----------------------------------------------------------
+     * EXECUTE DELETE (real)
+     * ----------------------------------------------------------- */
     if (msg?.type === MSG.EXECUTE_DELETE) {
       const ids = (msg.ids || []).filter(Boolean);
       if (!ids.length) {
@@ -137,50 +211,59 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
         return;
       }
 
-      const throttleMs = Math.max(150, Math.min(5000, Number(msg.throttleMs ?? 600)));
-
-      const session = await fetchSession();
-      if (!session.loggedIn || !session.accessToken) {
-        sendResponse({
-          ok: true,
-          loggedIn: false,
-          meHint: session.meHint,
-          note: "Not logged in (or access token not available).",
-          throttleMs,
-          results: ids.map((id) => ({ id, ok: false, error: "Not logged in" })),
-        });
+      // NEW v0.0.6: re-entrancy guard
+      if (executeRunning) {
+        sendResponse({ ok: false, error: "An execute delete is already running." });
         return;
       }
+      executeRunning = true;
 
-      const results: Array<{ id: string; ok: boolean; status?: number; error?: string }> = [];
+      try {
+        const throttleMs = Math.max(150, Math.min(5000, Number(msg.throttleMs ?? 600)));
 
-      for (let i = 0; i < ids.length; i++) {
-        const id = ids[i];
-        const r = await deleteConversation(session.accessToken, id);
-        results.push({ id, ...r });
+        const session = await fetchSession();
+        if (!session.loggedIn || !session.accessToken) {
+          sendResponse({
+            ok: true,
+            loggedIn: false,
+            meHint: session.meHint,
+            note: "Not logged in (or access token not available).",
+            throttleMs,
+            results: ids.map((id) => ({ id, ok: false, error: "Not logged in" })),
+          });
+          return;
+        }
 
-        // throttle between requests (not after the last)
-        if (i < ids.length - 1) await sleep(throttleMs);
+        const results: Array<{ id: string; ok: boolean; status?: number; error?: string }> = [];
+
+        for (let i = 0; i < ids.length; i++) {
+          const id = ids[i];
+          const r = await deleteConversation(session.accessToken, id);
+          results.push({ id, ...r });
+
+          // NEW v0.0.6: jitter to avoid looking robotic
+          if (i < ids.length - 1) {
+            const jitter = Math.floor(Math.random() * 300); // 0..299ms
+            await sleep(throttleMs + jitter);
+          }
+        }
+
+        sendResponse({
+          ok: true,
+          loggedIn: true,
+          meHint: session.meHint,
+          note: "Execute done. These are soft-deletes (visibility off). Refresh ChatGPT to confirm.",
+          throttleMs,
+          results,
+        });
+        return;
+      } finally {
+        executeRunning = false;
       }
-
-      sendResponse({
-        ok: true,
-        loggedIn: true,
-        meHint: session.meHint,
-        note: "Execute done. These are soft-deletes (visibility off). Refresh ChatGPT to confirm.",
-        throttleMs,
-        results,
-      });
-      return;
-    }
-
-    if (msg?.type === MSG.PING) {
-      sendResponse({ ok: true });
-      return;
     }
 
     sendResponse({ ok: false, error: "Unknown message." });
   })();
 
-  return true;
+  return true; // keep channel open for async sendResponse
 });
