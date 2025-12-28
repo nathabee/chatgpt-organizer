@@ -4,6 +4,22 @@ This document tracks functional and architectural changes of the ChatGPT Organiz
 Chrome extension.
 
 Versions are listed with the **newest at the top**.
+
+
+---
+
+## v0.0.9 - Read existing ChatGPT projects
+
+
+--
+
+## v0.0.8 — Panel tabs  Projects  
+
+### Key changes
+* Tab bar: “Delete” | “Projects”
+* Persist active tab 
+* Basic CRUD: add/edit/delete project
+ 
 ---
 
 ## v0.0.7 — Progression in delete

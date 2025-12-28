@@ -3,10 +3,29 @@
 import { MSG, type AnyEvent } from "../shared/messages";
 import type { ConversationItem } from "../shared/types";
 
+// NEW v0.0.8
+import {
+  getActiveTab,
+  setActiveTab,
+  listProjects,
+  addProject,
+  updateProject,
+  deleteProject,
+  type PanelTab,
+  type Project,
+} from "../shared/storage";
+
 /* -----------------------------------------------------------
  * ELEMENTS
  * ----------------------------------------------------------- */
 
+// NEW v0.0.8: tabs + views
+const tabDelete = document.getElementById("tabDelete") as HTMLButtonElement;
+const tabProjects = document.getElementById("tabProjects") as HTMLButtonElement;
+const viewDelete = document.getElementById("viewDelete") as HTMLElement;
+const viewProjects = document.getElementById("viewProjects") as HTMLElement;
+
+// Delete view elements (existing)
 const btnScan = document.getElementById("btnScan") as HTMLButtonElement;
 const btnDeepScan = document.getElementById("btnDeepScan") as HTMLButtonElement;
 const btnCancelScan = document.getElementById("btnCancelScan") as HTMLButtonElement;
@@ -23,7 +42,6 @@ const cbToggleAll = document.getElementById("cbToggleAll") as HTMLInputElement;
 const btnExecuteDelete = document.getElementById("btnExecuteDelete") as HTMLButtonElement;
 const execOutEl = document.getElementById("execOut") as HTMLPreElement;
 
-// Confirm UI
 const confirmBoxEl = document.getElementById("confirmBox") as HTMLDivElement;
 const confirmTitleEl = document.getElementById("confirmTitle") as HTMLDivElement;
 const confirmPreviewEl = document.getElementById("confirmPreview") as HTMLUListElement;
@@ -31,10 +49,17 @@ const cbConfirm = document.getElementById("cbConfirm") as HTMLInputElement;
 const btnConfirmExecute = document.getElementById("btnConfirmExecute") as HTMLButtonElement;
 const btnCancelExecute = document.getElementById("btnCancelExecute") as HTMLButtonElement;
 
-// NEW v0.0.7: execute progress UI
 const execProgressWrapEl = document.getElementById("execProgressWrap") as HTMLDivElement;
 const execProgressEl = document.getElementById("execProgress") as HTMLProgressElement;
 const execProgressTextEl = document.getElementById("execProgressText") as HTMLDivElement;
+
+// NEW v0.0.8: projects elements
+const projectNameEl = document.getElementById("projectName") as HTMLInputElement;
+const projectNotesEl = document.getElementById("projectNotes") as HTMLTextAreaElement;
+const btnAddProject = document.getElementById("btnAddProject") as HTMLButtonElement;
+const projectsStatusEl = document.getElementById("projectsStatus") as HTMLSpanElement;
+const projectsCountEl = document.getElementById("projectsCount") as HTMLSpanElement;
+const projectsListEl = document.getElementById("projectsList") as HTMLUListElement;
 
 /* -----------------------------------------------------------
  * STATE
@@ -46,12 +71,42 @@ const selected = new Set<string>();
 let isBusy = false;
 let isDeepScanning = false;
 
-// NEW v0.0.7: current execute run tracking
+// Execute run tracking (v0.0.7)
 let execRunId: string | null = null;
 let execTotal = 0;
 let execOk = 0;
 let execFail = 0;
-let execTargetIds = new Set<string>(); // ids we intended to delete (for quick membership checks)
+let execTargetIds = new Set<string>();
+
+// NEW v0.0.8: projects cache
+let projects: Project[] = [];
+
+/* -----------------------------------------------------------
+ * TAB ROUTER — NEW v0.0.8
+ * ----------------------------------------------------------- */
+
+function setTabUI(tab: PanelTab) {
+  const isDelete = tab === "delete";
+
+  tabDelete.classList.toggle("is-active", isDelete);
+  tabDelete.setAttribute("aria-selected", String(isDelete));
+
+  tabProjects.classList.toggle("is-active", !isDelete);
+  tabProjects.setAttribute("aria-selected", String(!isDelete));
+
+  viewDelete.hidden = !isDelete;
+  viewProjects.hidden = isDelete;
+}
+
+async function switchTab(tab: PanelTab) {
+  setTabUI(tab);
+  await setActiveTab(tab);
+
+  // Lazy-load projects when switching to projects tab
+  if (tab === "projects") {
+    await refreshProjects();
+  }
+}
 
 /* -----------------------------------------------------------
  * UI helpers
@@ -75,13 +130,17 @@ function appendExecOut(line: string) {
   execOutEl.scrollTop = execOutEl.scrollHeight;
 }
 
+function setProjectsStatus(s: string) {
+  projectsStatusEl.textContent = s;
+}
+
 function setBusy(next: boolean) {
   isBusy = next;
 
+  // Delete view controls
   btnScan.disabled = next;
   btnDeepScan.disabled = next;
   btnExecuteDelete.disabled = next;
-
   cbToggleAll.disabled = next;
 
   const cbs = Array.from(listEl.querySelectorAll<HTMLInputElement>("input.deleteCb"));
@@ -92,6 +151,14 @@ function setBusy(next: boolean) {
   btnCancelExecute.disabled = next;
 
   btnCancelScan.disabled = !isDeepScanning || next;
+
+  // Projects view controls
+  projectNameEl.disabled = next;
+  projectNotesEl.disabled = next;
+  btnAddProject.disabled = next;
+
+  const projButtons = Array.from(projectsListEl.querySelectorAll<HTMLButtonElement>("button"));
+  for (const b of projButtons) b.disabled = next;
 }
 
 function showConfirmBox(show: boolean) {
@@ -103,7 +170,6 @@ function showConfirmBox(show: boolean) {
   }
 }
 
-// NEW v0.0.7: progress UI controls
 function showExecProgress(show: boolean) {
   execProgressWrapEl.hidden = !show;
   if (!show) {
@@ -223,7 +289,6 @@ function openExecuteConfirm() {
     return;
   }
 
-  // Freeze selection while confirm is open (prevents count drifting)
   cbToggleAll.disabled = true;
   const cbs = Array.from(listEl.querySelectorAll<HTMLInputElement>("input.deleteCb"));
   for (const cb of cbs) cb.disabled = true;
@@ -233,7 +298,7 @@ function openExecuteConfirm() {
 }
 
 /* -----------------------------------------------------------
- * Rendering
+ * Rendering (delete view)
  * ----------------------------------------------------------- */
 
 function render(convos: ConversationItem[]) {
@@ -296,20 +361,15 @@ function render(convos: ConversationItem[]) {
   setBusy(isBusy);
 }
 
-// NEW v0.0.7: remove a conversation item from UI/state immediately
 function removeConversationFromUI(id: string) {
-  // state: selected
   selected.delete(id);
 
-  // state: lastConvos
   const idx = lastConvos.findIndex((c) => c.id === id);
   if (idx >= 0) lastConvos.splice(idx, 1);
 
-  // DOM: remove li
   const li = listEl.querySelector<HTMLLIElement>(`li.item[data-id="${id}"]`);
   li?.remove();
 
-  // counts
   countEl.textContent = String(lastConvos.length);
   updateSelectedCount();
   updateToggleAllState();
@@ -374,7 +434,7 @@ async function deepScan() {
   const res = await chrome.runtime
     .sendMessage({
       type: MSG.DEEP_SCAN_START,
-      options: { maxSteps: 140, stepDelayMs: 350, noNewLimit: 10 }
+      options: { maxSteps: 140, stepDelayMs: 350, noNewLimit: 10 },
     })
     .catch(() => null);
 
@@ -415,7 +475,7 @@ async function cancelDeepScan() {
 }
 
 /* -----------------------------------------------------------
- * NEW v0.0.7: Execute delete — event-driven progress
+ * Execute delete (event-driven progress)
  * ----------------------------------------------------------- */
 
 function startExecuteUI(total: number) {
@@ -434,8 +494,6 @@ function startExecuteUI(total: number) {
 function finishExecuteUI(summary: string) {
   setStatus("Done");
   execProgressTextEl.textContent = summary;
-  // Keep progress visible so user can read the result.
-  // They can scan again if they want.
 }
 
 async function executeDeleteStart() {
@@ -447,13 +505,11 @@ async function executeDeleteStart() {
     return;
   }
 
-  // Guidance without hard-block
   if (ids.length > 50) {
     appendExecOut(`Note: large batch (${ids.length}). Expect ~1–4 seconds per delete (server-paced).`);
   }
 
-  // Prepare run tracking
-  execRunId = null; // will be set from first progress event
+  execRunId = null;
   execTargetIds = new Set(ids);
 
   writeExecOut("");
@@ -462,32 +518,142 @@ async function executeDeleteStart() {
   startExecuteUI(ids.length);
   setBusy(true);
 
-  // Fire-and-forget. The background will emit progress + done events.
-  // We still await the promise to catch immediate errors (e.g. background not reachable),
-  // but we do NOT rely on the final response for UI completion.
   chrome.runtime.sendMessage({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 }).catch(() => null);
 }
 
 /* -----------------------------------------------------------
- * NEW v0.0.7: message listener for progress + done
+ * Projects view — NEW v0.0.8
+ * ----------------------------------------------------------- */
+
+function renderProjects(items: Project[]) {
+  projects = items;
+  projectsCountEl.textContent = String(items.length);
+  projectsListEl.innerHTML = "";
+
+  for (const p of items) {
+    const li = document.createElement("li");
+    li.className = "item";
+
+    const row = document.createElement("div");
+    row.className = "projectItem";
+
+    const left = document.createElement("div");
+
+    const title = document.createElement("div");
+    title.className = "projectTitle";
+    title.textContent = p.name;
+
+    const meta = document.createElement("div");
+    meta.className = "projectMeta";
+    meta.textContent = p.notes ? p.notes : "—";
+
+    left.appendChild(title);
+    left.appendChild(meta);
+
+    const actions = document.createElement("div");
+    actions.className = "projectActions";
+
+    const btnEdit = document.createElement("button");
+    btnEdit.className = "small";
+    btnEdit.type = "button";
+    btnEdit.textContent = "Edit";
+    btnEdit.addEventListener("click", async () => {
+      if (isBusy) return;
+
+      const nextName = prompt("Project name:", p.name) ?? "";
+      if (!nextName.trim()) return;
+
+      const nextNotes = prompt("Notes (optional):", p.notes || "") ?? "";
+
+      try {
+        setProjectsStatus("Saving…");
+        await updateProject(p.id, { name: nextName, notes: nextNotes });
+        await refreshProjects();
+        setProjectsStatus("Saved.");
+      } catch (e: any) {
+        setProjectsStatus(`Error: ${e?.message || "failed"}`);
+      }
+    });
+
+    const btnDel = document.createElement("button");
+    btnDel.className = "small danger";
+    btnDel.type = "button";
+    btnDel.textContent = "Delete";
+    btnDel.addEventListener("click", async () => {
+      if (isBusy) return;
+      if (!confirm(`Delete project "${p.name}"?`)) return;
+
+      try {
+        setProjectsStatus("Deleting…");
+        await deleteProject(p.id);
+        await refreshProjects();
+        setProjectsStatus("Deleted.");
+      } catch (e: any) {
+        setProjectsStatus(`Error: ${e?.message || "failed"}`);
+      }
+    });
+
+    actions.appendChild(btnEdit);
+    actions.appendChild(btnDel);
+
+    row.appendChild(left);
+    row.appendChild(actions);
+
+    li.innerHTML = "";
+    li.appendChild(row);
+    projectsListEl.appendChild(li);
+  }
+
+  setBusy(isBusy);
+}
+
+async function refreshProjects() {
+  setProjectsStatus("Loading…");
+  try {
+    const items = await listProjects();
+    renderProjects(items);
+    setProjectsStatus("");
+  } catch (e: any) {
+    setProjectsStatus(`Error: ${e?.message || "failed"}`);
+  }
+}
+
+async function onAddProject() {
+  const name = (projectNameEl.value || "").trim();
+  const notes = (projectNotesEl.value || "").trim();
+
+  if (!name) {
+    setProjectsStatus("Project name is required.");
+    return;
+  }
+
+  try {
+    setProjectsStatus("Adding…");
+    await addProject({ name, notes });
+    projectNameEl.value = "";
+    projectNotesEl.value = "";
+    await refreshProjects();
+    setProjectsStatus("Added.");
+  } catch (e: any) {
+    setProjectsStatus(`Error: ${e?.message || "failed"}`);
+  }
+}
+
+/* -----------------------------------------------------------
+ * Message listener (progress events)
  * ----------------------------------------------------------- */
 
 chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
-  // Deep scan progress
   if ((msg as any)?.type === MSG.DEEP_SCAN_PROGRESS) {
     const m = msg as any;
     onDeepScanProgress(Number(m.found || 0), Number(m.step || 0));
     return;
   }
 
-  // Execute progress
   if ((msg as any)?.type === MSG.EXECUTE_DELETE_PROGRESS) {
     const m = msg as any;
 
-    // Adopt runId on first message
     if (!execRunId) execRunId = m.runId;
-
-    // Ignore stale runs
     if (execRunId !== m.runId) return;
 
     const i = Number(m.i || 0);
@@ -506,7 +672,6 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
     if (ok) execOk++;
     else execFail++;
 
-    // Find title for logging (best effort)
     const title = lastConvos.find((c) => c.id === id)?.title || id.slice(0, 8);
 
     const line =
@@ -518,7 +683,6 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
 
     execProgressTextEl.textContent = `Deleting ${i}/${total} · ok ${execOk} · failed ${execFail} · last ${formatMs(lastOpMs)}`;
 
-    // NEW v0.0.7: remove successful deletes from list immediately
     if (ok && execTargetIds.has(id)) {
       removeConversationFromUI(id);
       execTargetIds.delete(id);
@@ -527,7 +691,6 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
     return;
   }
 
-  // Execute done
   if ((msg as any)?.type === MSG.EXECUTE_DELETE_DONE) {
     const m = msg as any;
 
@@ -545,11 +708,8 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
     appendExecOut(`SUMMARY: ok ${okCount}/${total}, failed ${failCount}, elapsed ${formatMs(elapsedMs)}.`);
     appendExecOut("Tip: refresh ChatGPT tab to see sidebar update.");
 
-    // Re-enable UI
     setBusy(false);
 
-    // Reset run tracking (keep execTargetIds with failures)
-    // Remaining ids in execTargetIds are those not confirmed as ok by progress events.
     execRunId = null;
     return;
   }
@@ -559,6 +719,14 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
  * Listeners
  * ----------------------------------------------------------- */
 
+// Tabs — NEW v0.0.8
+tabDelete.addEventListener("click", () => switchTab("delete"));
+tabProjects.addEventListener("click", () => switchTab("projects"));
+
+// Projects — NEW v0.0.8
+btnAddProject.addEventListener("click", () => onAddProject().catch(() => null));
+
+// Delete view existing listeners
 cbToggleAll.addEventListener("change", () => {
   if (isBusy) return;
   toggleAllVisible();
@@ -593,7 +761,6 @@ btnExecuteDelete.addEventListener("click", () => {
 btnCancelExecute.addEventListener("click", () => {
   showConfirmBox(false);
 
-  // re-enable selection controls
   cbToggleAll.disabled = isBusy;
   const cbs = Array.from(listEl.querySelectorAll<HTMLInputElement>("input.deleteCb"));
   for (const cb of cbs) cb.disabled = isBusy;
@@ -607,7 +774,6 @@ btnConfirmExecute.addEventListener("click", () => {
 
   showConfirmBox(false);
 
-  // re-enable selection controls (busy will disable again during execute)
   cbToggleAll.disabled = isBusy;
   const cbs = Array.from(listEl.querySelectorAll<HTMLInputElement>("input.deleteCb"));
   for (const cb of cbs) cb.disabled = isBusy;
@@ -620,5 +786,19 @@ btnConfirmExecute.addEventListener("click", () => {
   });
 });
 
-// Auto-scan on open
-scan().catch(() => setStatus("Idle"));
+/* -----------------------------------------------------------
+ * Boot
+ * ----------------------------------------------------------- */
+
+(async () => {
+  const tab = await getActiveTab();
+  setTabUI(tab);
+
+  // Always scan on open (delete tab feels “alive”)
+  scan().catch(() => setStatus("Idle"));
+
+  // If landing on projects tab, load them
+  if (tab === "projects") {
+    await refreshProjects();
+  }
+})();

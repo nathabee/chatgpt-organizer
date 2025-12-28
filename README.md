@@ -2,19 +2,15 @@
   <img src="./docs/cgo.svg" alt="CGO Logo" width="300" style="vertical-align:middle; margin-right:20px;"> 
 </a>
 
-
 # ChatGPT Organizer (CGO)  <img src="./docs/icon.svg" alt="CGO Icon" width="60" style="vertical-align:middle; margin-right:20px;"> 
 
-**ChatGPT Organizer** is a browser extension that helps you inspect, organize, and clean up your ChatGPT conversations.
+**ChatGPT Organizer** is a browser extension that helps you inspect and clean up your ChatGPT conversations.
 
 The first goal is pragmatic:  
-**list and later delete conversations by date range**, without manually clicking hundreds of chats in the sidebar.
+**list and bulk-delete conversations safely**, without manually clicking hundreds of chats in the sidebar.
 
 The project is intentionally simple, local-first, and transparent.
 
- 
-
- 
 ---
 
 ## What this extension does
@@ -36,12 +32,12 @@ by the user in the ChatGPT interface. Use at your own discretion.
 
 ## Why this exists
 
-Long ChatGPT histories slow down browsers (especially Firefox) and make the UI painful to use.  
+Long ChatGPT histories slow down browsers and make the UI painful to use.  
 ChatGPT currently offers:
 - delete one conversation at a time, or
-- delete *everything*
+- delete everything
 
-What’s missing is **controlled cleanup**.
+What’s missing is controlled, selective cleanup.
 
 ChatGPT Organizer aims to fill that gap.
 
@@ -51,19 +47,28 @@ ChatGPT Organizer aims to fill that gap.
 
 - Chrome MV3 extension
 - Side panel UI
-- Lists conversations from the active `chatgpt.com` tab
-- Shows total number of conversations found
+- Quick scan: lists conversations visible in the current ChatGPT UI
+- Deep scan (auto-scroll): collects more conversations by scrolling the UI
+- Checkbox selection with live counters
+- Safe bulk delete:
+  - inline confirmation (count + preview + checkbox)
+  - throttled execution
+  - progress indicator and per-item log
+  - removed items disappear from the list as they are deleted
+
+Notes:
+- The extension lists what ChatGPT loads in the UI. For very large histories, scanning everything depends on how ChatGPT loads older items.
 
 ---
 
 ## Planned features
 
-- Delete conversations by **date range**
-- Checkbox-based selection with live counter
-- Safe “dry run” mode before deletion
-- Keyword filtering (title first, content later)
-- Statistics (conversation age, count per period)
-- Optional archiving instead of deletion
+- Better large-history handling:
+  - improved deep scan strategies
+  - optional chunked deletion (run in batches)
+- Keyword filtering (titles)
+- Lightweight grouping and saved “project” lists (local-only)
+- Basic stats based on local scanning history (first seen / last seen), not on true creation dates
 
 ---
 
@@ -92,19 +97,19 @@ ChatGPT Organizer aims to fill that gap.
 ```bash
 npm install
 npm run build
-```
+````
 
 ---
 
 ## Installation
 
 Load the extension from the generated dist/ directory via:
+
 ```bash
 chrome://extensions → Load unpacked
 ```
 
-
-Detailles installation  of extension (Chrome/Chromium) :
+Detailed installation (Chrome/Chromium):
 
 * Open chrome://extensions
 * Enable “Developer mode”
@@ -113,31 +118,24 @@ Detailles installation  of extension (Chrome/Chromium) :
 
 The extension should appear. Open ChatGPT, then open the side panel.
 
-* Notes
+Notes:
 
 This is a client-side tool. It does not require your ChatGPT password. It relies on the fact that you are already logged into chatgpt.com in your browser.
 
-Deleting conversations is a separate step we will implement carefully (dry-run, confirmations, throttling, and clear status).
-
-
+---
 
 ## Status
 
-🚧 Early development
-APIs and internals may change as ChatGPT evolves.
-
-
-
-## For more information
-
-Visit the github pages: <a href="https://nathabee.github.io/chatgpt-organizer/index.html"> 
-  <img src="./docs/visitgithubpage.svg" alt="CGO Docs" width="300" style="vertical-align:middle;">
-</a>
-
+Early development. APIs and UI may change as ChatGPT evolves.
 
 ---
 
+## For more information
 
-##  License
+Visit the github pages: <a href="https://nathabee.github.io/chatgpt-organizer/index.html"> <img src="./docs/visitgithubpage.svg" alt="CGO Docs" width="300" style="vertical-align:middle;"> </a>
+
+---
+
+## License
 
 MIT — see LICENSE

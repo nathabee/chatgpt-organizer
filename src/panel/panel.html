@@ -13,68 +13,121 @@
     <div class="wrap">
         <h1>ChatGPT Organizer</h1>
 
-        <p class="muted">
-            List conversations from the current ChatGPT tab (scraped).
-        </p>
-
-        <div class="row">
-            <button id="btnScan" type="button">Scan conversations</button>
-            <button id="btnDeepScan" type="button">Deep scan (auto-scroll)</button>
-            <button id="btnCancelScan" type="button" hidden>Cancel</button>
-            <span id="status" class="status">Idle</span>
-        </div>
-
-        <div class="row">
-            <div id="scanOut" class="status" aria-live="polite"></div>
-        </div>
-
-        <div class="row row--select">
-            <label class="toggleAll">
-                <input id="cbToggleAll" type="checkbox" />
-                Toggle all
-            </label>
-        </div>
-
-        <div class="row row--danger">
-            <button id="btnExecuteDelete" type="button" class="danger">
-                Delete selected (execute)
+        <!-- NEW v0.0.8: tab bar -->
+        <div class="tabs" role="tablist" aria-label="CGO Tabs">
+            <button id="tabDelete" class="tab is-active" role="tab" aria-selected="true" type="button">
+                Delete
+            </button>
+            <button id="tabProjects" class="tab" role="tab" aria-selected="false" type="button">
+                Projects
             </button>
         </div>
 
-        <!-- exec output / log -->
-        <pre id="execOut" class="report" aria-live="polite"></pre>
-
-        <!-- NEW v0.0.7: progress UI -->
-        <div id="execProgressWrap" class="execProgressWrap" hidden>
-            <progress id="execProgress" value="0" max="100"></progress>
-            <div id="execProgressText" class="status"></div>
-        </div>
-
-        <div id="confirmBox" class="confirmBox" hidden>
-            <div class="confirmTitle" id="confirmTitle"></div>
-            <ul id="confirmPreview" class="confirmPreview"></ul>
-
-            <label class="confirm">
-                <input id="cbConfirm" type="checkbox" />
-                I understand this can’t be undone here.
-            </label>
+        <!-- =========================
+             DELETE VIEW
+             ========================= -->
+        <section id="viewDelete" class="view is-active" role="tabpanel" aria-labelledby="tabDelete">
+            <p class="muted">
+                List conversations from the current ChatGPT tab (scraped).
+            </p>
 
             <div class="row">
-                <button id="btnConfirmExecute" type="button" class="danger">
-                    Yes, delete
-                </button>
-                <button id="btnCancelExecute" type="button">
-                    Cancel
+                <button id="btnScan" type="button">Scan conversations</button>
+                <button id="btnDeepScan" type="button">Deep scan (auto-scroll)</button>
+                <button id="btnCancelScan" type="button" hidden>Cancel</button>
+                <span id="status" class="status">Idle</span>
+            </div>
+
+            <div class="row">
+                <div id="scanOut" class="status" aria-live="polite"></div>
+            </div>
+
+            <div class="row row--select">
+                <label class="toggleAll">
+                    <input id="cbToggleAll" type="checkbox" />
+                    Toggle all
+                </label>
+            </div>
+
+            <div class="row row--danger">
+                <button id="btnExecuteDelete" type="button" class="danger">
+                    Delete selected (execute)
                 </button>
             </div>
-        </div>
 
-        <div class="summary">
-            Found <span id="count">0</span> conversations ·
-            Selected for delete: <span id="selectedCount">0</span>
-        </div>
+            <!-- exec output / log -->
+            <pre id="execOut" class="report" aria-live="polite"></pre>
 
-        <ul id="list" class="list"></ul>
+            <!-- execute progress UI -->
+            <div id="execProgressWrap" class="execProgressWrap" hidden>
+                <progress id="execProgress" value="0" max="100"></progress>
+                <div id="execProgressText" class="status"></div>
+            </div>
+
+            <div id="confirmBox" class="confirmBox" hidden>
+                <div class="confirmTitle" id="confirmTitle"></div>
+                <ul id="confirmPreview" class="confirmPreview"></ul>
+
+                <label class="confirm">
+                    <input id="cbConfirm" type="checkbox" />
+                    I understand this can’t be undone here.
+                </label>
+
+                <div class="row">
+                    <button id="btnConfirmExecute" type="button" class="danger">
+                        Yes, delete
+                    </button>
+                    <button id="btnCancelExecute" type="button">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+
+            <div class="summary">
+                Found <span id="count">0</span> conversations ·
+                Selected for delete: <span id="selectedCount">0</span>
+            </div>
+
+            <ul id="list" class="list"></ul>
+        </section>
+
+        <!-- =========================
+             PROJECTS VIEW
+             ========================= -->
+        <section id="viewProjects" class="view" role="tabpanel" aria-labelledby="tabProjects" hidden>
+            <p class="muted">
+                Projects are stored locally in your browser (chrome.storage.local).
+            </p>
+
+            <!-- NEW v0.0.8: add project form -->
+            <div class="card">
+                <div class="row">
+                    <div class="field">
+                        <label for="projectName">Project name</label>
+                        <input id="projectName" type="text" placeholder="e.g. BeeLab" />
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="field">
+                        <label for="projectNotes">Notes (optional)</label>
+                        <textarea id="projectNotes" rows="3" placeholder="Short description…"></textarea>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <button id="btnAddProject" type="button">Add project</button>
+                    <span id="projectsStatus" class="status"></span>
+                </div>
+            </div>
+
+            <!-- NEW v0.0.8: projects list -->
+            <div class="summary">
+                Projects: <span id="projectsCount">0</span>
+            </div>
+
+            <ul id="projectsList" class="list"></ul>
+        </section>
     </div>
 
     <script type="module" src="../panel.js"></script>
