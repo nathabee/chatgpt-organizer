@@ -1,18 +1,18 @@
 // src/panel/panel.ts
 
-import { MSG } from "../shared/messages";
+import { MSG, type AnyEvent } from "../shared/messages";
 import type { ConversationItem } from "../shared/types";
 
 /* -----------------------------------------------------------
- * ELEMENT REFERENCE
+ * ELEMENTS
  * ----------------------------------------------------------- */
 
 const btnScan = document.getElementById("btnScan") as HTMLButtonElement;
-const btnDeepScan = document.getElementById("btnDeepScan") as HTMLButtonElement; // NEW v0.0.6
-const btnCancelScan = document.getElementById("btnCancelScan") as HTMLButtonElement; // NEW v0.0.6
+const btnDeepScan = document.getElementById("btnDeepScan") as HTMLButtonElement;
+const btnCancelScan = document.getElementById("btnCancelScan") as HTMLButtonElement;
 
 const statusEl = document.getElementById("status") as HTMLSpanElement;
-const scanOutEl = document.getElementById("scanOut") as HTMLDivElement; // NEW v0.0.6
+const scanOutEl = document.getElementById("scanOut") as HTMLDivElement;
 
 const countEl = document.getElementById("count") as HTMLElement;
 const selectedCountEl = document.getElementById("selectedCount") as HTMLElement;
@@ -20,29 +20,38 @@ const listEl = document.getElementById("list") as HTMLUListElement;
 
 const cbToggleAll = document.getElementById("cbToggleAll") as HTMLInputElement;
 
-// NEW v0.0.6: execute-only UX
 const btnExecuteDelete = document.getElementById("btnExecuteDelete") as HTMLButtonElement;
 const execOutEl = document.getElementById("execOut") as HTMLPreElement;
 
-const confirmBoxEl = document.getElementById("confirmBox") as HTMLDivElement; // NEW v0.0.6
-const confirmTitleEl = document.getElementById("confirmTitle") as HTMLDivElement; // NEW v0.0.6
-const confirmPreviewEl = document.getElementById("confirmPreview") as HTMLUListElement; // NEW v0.0.6
-const cbConfirm = document.getElementById("cbConfirm") as HTMLInputElement; // NEW v0.0.6
-const btnConfirmExecute = document.getElementById("btnConfirmExecute") as HTMLButtonElement; // NEW v0.0.6
-const btnCancelExecute = document.getElementById("btnCancelExecute") as HTMLButtonElement; // NEW v0.0.6
+// Confirm UI
+const confirmBoxEl = document.getElementById("confirmBox") as HTMLDivElement;
+const confirmTitleEl = document.getElementById("confirmTitle") as HTMLDivElement;
+const confirmPreviewEl = document.getElementById("confirmPreview") as HTMLUListElement;
+const cbConfirm = document.getElementById("cbConfirm") as HTMLInputElement;
+const btnConfirmExecute = document.getElementById("btnConfirmExecute") as HTMLButtonElement;
+const btnCancelExecute = document.getElementById("btnCancelExecute") as HTMLButtonElement;
+
+// NEW v0.0.7: execute progress UI
+const execProgressWrapEl = document.getElementById("execProgressWrap") as HTMLDivElement;
+const execProgressEl = document.getElementById("execProgress") as HTMLProgressElement;
+const execProgressTextEl = document.getElementById("execProgressText") as HTMLDivElement;
 
 /* -----------------------------------------------------------
  * STATE
  * ----------------------------------------------------------- */
 
 let lastConvos: ConversationItem[] = [];
-const selected = new Set<string>(); // conversation ids selected for deletion
+const selected = new Set<string>();
 
-// NEW v0.0.6: busy state (scan/delete)
 let isBusy = false;
-
-// NEW v0.0.6: deep scan running state (to show cancel)
 let isDeepScanning = false;
+
+// NEW v0.0.7: current execute run tracking
+let execRunId: string | null = null;
+let execTotal = 0;
+let execOk = 0;
+let execFail = 0;
+let execTargetIds = new Set<string>(); // ids we intended to delete (for quick membership checks)
 
 /* -----------------------------------------------------------
  * UI helpers
@@ -63,9 +72,9 @@ function writeExecOut(text: string) {
 function appendExecOut(line: string) {
   const prev = execOutEl.textContent || "";
   execOutEl.textContent = prev ? `${prev}\n${line}` : line;
+  execOutEl.scrollTop = execOutEl.scrollHeight;
 }
 
-// NEW v0.0.6: disable controls while busy
 function setBusy(next: boolean) {
   isBusy = next;
 
@@ -75,20 +84,16 @@ function setBusy(next: boolean) {
 
   cbToggleAll.disabled = next;
 
-  // disable per-row checkboxes
   const cbs = Array.from(listEl.querySelectorAll<HTMLInputElement>("input.deleteCb"));
   for (const cb of cbs) cb.disabled = next;
 
-  // confirmation controls also disabled when busy
   cbConfirm.disabled = next;
   btnConfirmExecute.disabled = next;
   btnCancelExecute.disabled = next;
 
-  // Deep scan cancel is special: only enabled when scanning
   btnCancelScan.disabled = !isDeepScanning || next;
 }
 
-// NEW v0.0.6: show/hide confirm box
 function showConfirmBox(show: boolean) {
   confirmBoxEl.hidden = !show;
   if (!show) {
@@ -98,9 +103,22 @@ function showConfirmBox(show: boolean) {
   }
 }
 
-/* -----------------------------------------------------------
- * Selection helpers
- * ----------------------------------------------------------- */
+// NEW v0.0.7: progress UI controls
+function showExecProgress(show: boolean) {
+  execProgressWrapEl.hidden = !show;
+  if (!show) {
+    execProgressEl.value = 0;
+    execProgressEl.max = 100;
+    execProgressTextEl.textContent = "";
+  }
+}
+
+function formatMs(ms: number): string {
+  if (!Number.isFinite(ms)) return "?";
+  if (ms < 1000) return `${ms}ms`;
+  const s = Math.round(ms / 100) / 10;
+  return `${s}s`;
+}
 
 function updateSelectedCount() {
   selectedCountEl.textContent = String(selected.size);
@@ -126,6 +144,10 @@ function updateToggleAllState() {
     cbToggleAll.indeterminate = true;
   }
 }
+
+/* -----------------------------------------------------------
+ * Selection helpers
+ * ----------------------------------------------------------- */
 
 function syncListSelectionStyles() {
   const items = Array.from(listEl.querySelectorAll<HTMLLIElement>("li.item"));
@@ -165,7 +187,7 @@ function getSelectedItems(): ConversationItem[] {
 }
 
 /* -----------------------------------------------------------
- * Confirmation UI (execute delete) — NEW v0.0.6
+ * Confirm UI
  * ----------------------------------------------------------- */
 
 function renderConfirmPreview(items: ConversationItem[]) {
@@ -189,8 +211,6 @@ function renderConfirmPreview(items: ConversationItem[]) {
   }
 
   cbConfirm.checked = false;
-
-  // Label the confirm button with the count
   btnConfirmExecute.textContent = `Yes, delete ${n}`;
 }
 
@@ -204,10 +224,6 @@ function openExecuteConfirm() {
   }
 
   // Freeze selection while confirm is open (prevents count drifting)
-  setBusy(true);
-  setBusy(false); // allow UI generally, but we will block selection below
-
-  // NEW v0.0.6: disable selection controls while confirm box is visible
   cbToggleAll.disabled = true;
   const cbs = Array.from(listEl.querySelectorAll<HTMLInputElement>("input.deleteCb"));
   for (const cb of cbs) cb.disabled = true;
@@ -217,7 +233,7 @@ function openExecuteConfirm() {
 }
 
 /* -----------------------------------------------------------
- * Scanning
+ * Rendering
  * ----------------------------------------------------------- */
 
 function render(convos: ConversationItem[]) {
@@ -277,9 +293,31 @@ function render(convos: ConversationItem[]) {
   updateSelectedCount();
   updateToggleAllState();
 
-  // NEW v0.0.6: re-apply busy disables on re-render
   setBusy(isBusy);
 }
+
+// NEW v0.0.7: remove a conversation item from UI/state immediately
+function removeConversationFromUI(id: string) {
+  // state: selected
+  selected.delete(id);
+
+  // state: lastConvos
+  const idx = lastConvos.findIndex((c) => c.id === id);
+  if (idx >= 0) lastConvos.splice(idx, 1);
+
+  // DOM: remove li
+  const li = listEl.querySelector<HTMLLIElement>(`li.item[data-id="${id}"]`);
+  li?.remove();
+
+  // counts
+  countEl.textContent = String(lastConvos.length);
+  updateSelectedCount();
+  updateToggleAllState();
+}
+
+/* -----------------------------------------------------------
+ * Scanning
+ * ----------------------------------------------------------- */
 
 async function scan() {
   setStatus("Scanning…");
@@ -307,7 +345,6 @@ async function scan() {
   const convos: ConversationItem[] = res.conversations || [];
   setStatus("Done");
 
-  // prune selection to visible ids only (current list)
   const validIds = new Set(convos.map((c) => c.id));
   for (const id of Array.from(selected)) {
     if (!validIds.has(id)) selected.delete(id);
@@ -317,7 +354,7 @@ async function scan() {
 }
 
 /* -----------------------------------------------------------
- * NEW v0.0.6: Deep scan (auto-scroll)
+ * Deep scan
  * ----------------------------------------------------------- */
 
 function onDeepScanProgress(found: number, step: number) {
@@ -326,7 +363,6 @@ function onDeepScanProgress(found: number, step: number) {
 
 async function deepScan() {
   showConfirmBox(false);
-  writeExecOut("");
   setScanOut("");
 
   isDeepScanning = true;
@@ -364,7 +400,6 @@ async function deepScan() {
   setStatus("Done");
   setScanOut(`Deep scan done. Collected ${convos.length}.`);
 
-  // prune selection to returned ids
   const validIds = new Set(convos.map((c) => c.id));
   for (const id of Array.from(selected)) {
     if (!validIds.has(id)) selected.delete(id);
@@ -375,92 +410,153 @@ async function deepScan() {
 
 async function cancelDeepScan() {
   if (!isDeepScanning) return;
-
-  // best effort: request cancel, UI will settle when deepScan promise returns
   await chrome.runtime.sendMessage({ type: MSG.DEEP_SCAN_CANCEL }).catch(() => null);
   setScanOut("Cancel requested…");
 }
 
 /* -----------------------------------------------------------
- * NEW v0.0.6: Execute delete flow (no dry-run, inline confirm)
+ * NEW v0.0.7: Execute delete — event-driven progress
  * ----------------------------------------------------------- */
 
-async function executeDeleteConfirmed() {
+function startExecuteUI(total: number) {
+  execTotal = total;
+  execOk = 0;
+  execFail = 0;
+
+  showExecProgress(true);
+  execProgressEl.max = total;
+  execProgressEl.value = 0;
+  execProgressTextEl.textContent = `Starting… 0/${total}`;
+
+  setStatus("Deleting…");
+}
+
+function finishExecuteUI(summary: string) {
+  setStatus("Done");
+  execProgressTextEl.textContent = summary;
+  // Keep progress visible so user can read the result.
+  // They can scan again if they want.
+}
+
+async function executeDeleteStart() {
   const items = getSelectedItems();
   const ids = items.map((c) => c.id).filter(Boolean);
 
   if (!ids.length) {
     writeExecOut("Nothing selected.");
-    showConfirmBox(false);
     return;
   }
 
-  if (!cbConfirm.checked) {
-    writeExecOut("Blocked: tick the confirmation checkbox.");
-    return;
+  // Guidance without hard-block
+  if (ids.length > 50) {
+    appendExecOut(`Note: large batch (${ids.length}). Expect ~1–4 seconds per delete (server-paced).`);
   }
 
-  showConfirmBox(false);
+  // Prepare run tracking
+  execRunId = null; // will be set from first progress event
+  execTargetIds = new Set(ids);
+
+  writeExecOut("");
+  appendExecOut(`EXECUTE: deleting ${ids.length} conversation(s)…`);
+
+  startExecuteUI(ids.length);
   setBusy(true);
-  setStatus("Deleting…");
-  writeExecOut(`Deleting ${ids.length}…`);
 
-  const res = await chrome.runtime
-    .sendMessage({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 })
-    .catch(() => null);
-
-  setBusy(false);
-
-  if (!res) {
-    setStatus("Done");
-    writeExecOut("Failed: no response from background.");
-    return;
-  }
-
-  if (!res.ok) {
-    setStatus("Done");
-    writeExecOut(`Failed: ${res.error}`);
-    return;
-  }
-
-  const okCount = (res.results || []).filter((r: any) => r.ok).length;
-  const fail = (res.results || []).filter((r: any) => !r.ok);
-
-  setStatus("Done");
-
-  writeExecOut(
-    [
-      `Deleted (hidden): ${okCount}`,
-      `Failed: ${fail.length}`,
-      "",
-      "Refresh ChatGPT tab to see sidebar update."
-    ].join("\n")
-  );
-
-  if (fail.length) {
-    appendExecOut("");
-    appendExecOut("Failures:");
-    for (const r of fail) {
-      appendExecOut(`- ${r.id} (${r.error || "failed"}${r.status ? `, HTTP ${r.status}` : ""})`);
-    }
-  }
-
-  // NEW v0.0.6: re-scan automatically (quick scan)
-  await scan().catch(() => null);
+  // Fire-and-forget. The background will emit progress + done events.
+  // We still await the promise to catch immediate errors (e.g. background not reachable),
+  // but we do NOT rely on the final response for UI completion.
+  chrome.runtime.sendMessage({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 }).catch(() => null);
 }
 
 /* -----------------------------------------------------------
- * NEW v0.0.6: runtime message listener for progress events
+ * NEW v0.0.7: message listener for progress + done
  * ----------------------------------------------------------- */
 
-chrome.runtime.onMessage.addListener((msg: any) => {
-  if (msg?.type === MSG.DEEP_SCAN_PROGRESS) {
-    onDeepScanProgress(Number(msg.found || 0), Number(msg.step || 0));
+chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
+  // Deep scan progress
+  if ((msg as any)?.type === MSG.DEEP_SCAN_PROGRESS) {
+    const m = msg as any;
+    onDeepScanProgress(Number(m.found || 0), Number(m.step || 0));
+    return;
+  }
+
+  // Execute progress
+  if ((msg as any)?.type === MSG.EXECUTE_DELETE_PROGRESS) {
+    const m = msg as any;
+
+    // Adopt runId on first message
+    if (!execRunId) execRunId = m.runId;
+
+    // Ignore stale runs
+    if (execRunId !== m.runId) return;
+
+    const i = Number(m.i || 0);
+    const total = Number(m.total || execTotal);
+    const id = String(m.id || "");
+    const ok = !!m.ok;
+    const status = m.status as number | undefined;
+    const error = m.error as string | undefined;
+    const attempt = Number(m.attempt || 1);
+    const elapsedMs = Number(m.elapsedMs || 0);
+    const lastOpMs = Number(m.lastOpMs || 0);
+
+    execProgressEl.max = total;
+    execProgressEl.value = Math.min(i, total);
+
+    if (ok) execOk++;
+    else execFail++;
+
+    // Find title for logging (best effort)
+    const title = lastConvos.find((c) => c.id === id)?.title || id.slice(0, 8);
+
+    const line =
+      ok
+        ? `✓ ${title} (${id.slice(0, 8)}) — ${status ?? "OK"} — ${formatMs(lastOpMs)} — elapsed ${formatMs(elapsedMs)}`
+        : `✗ ${title} (${id.slice(0, 8)}) — ${status ?? "ERR"} — attempt ${attempt} — ${error || "failed"} — elapsed ${formatMs(elapsedMs)}`;
+
+    appendExecOut(line);
+
+    execProgressTextEl.textContent = `Deleting ${i}/${total} · ok ${execOk} · failed ${execFail} · last ${formatMs(lastOpMs)}`;
+
+    // NEW v0.0.7: remove successful deletes from list immediately
+    if (ok && execTargetIds.has(id)) {
+      removeConversationFromUI(id);
+      execTargetIds.delete(id);
+    }
+
+    return;
+  }
+
+  // Execute done
+  if ((msg as any)?.type === MSG.EXECUTE_DELETE_DONE) {
+    const m = msg as any;
+
+    if (!execRunId) execRunId = m.runId;
+    if (execRunId !== m.runId) return;
+
+    const total = Number(m.total || execTotal);
+    const okCount = Number(m.okCount || execOk);
+    const failCount = Number(m.failCount || execFail);
+    const elapsedMs = Number(m.elapsedMs || 0);
+
+    finishExecuteUI(`Done · ok ${okCount}/${total} · failed ${failCount} · elapsed ${formatMs(elapsedMs)}`);
+
+    appendExecOut("");
+    appendExecOut(`SUMMARY: ok ${okCount}/${total}, failed ${failCount}, elapsed ${formatMs(elapsedMs)}.`);
+    appendExecOut("Tip: refresh ChatGPT tab to see sidebar update.");
+
+    // Re-enable UI
+    setBusy(false);
+
+    // Reset run tracking (keep execTargetIds with failures)
+    // Remaining ids in execTargetIds are those not confirmed as ok by progress events.
+    execRunId = null;
+    return;
   }
 });
 
 /* -----------------------------------------------------------
- * LISTENERS
+ * Listeners
  * ----------------------------------------------------------- */
 
 cbToggleAll.addEventListener("change", () => {
@@ -476,7 +572,6 @@ btnScan.addEventListener("click", () => {
   });
 });
 
-// NEW v0.0.6
 btnDeepScan.addEventListener("click", () => {
   if (isBusy) return;
   deepScan().catch((e) => {
@@ -486,18 +581,15 @@ btnDeepScan.addEventListener("click", () => {
   });
 });
 
-// NEW v0.0.6
 btnCancelScan.addEventListener("click", () => {
   cancelDeepScan().catch(() => null);
 });
 
-// NEW v0.0.6
 btnExecuteDelete.addEventListener("click", () => {
   if (isBusy) return;
   openExecuteConfirm();
 });
 
-// NEW v0.0.6
 btnCancelExecute.addEventListener("click", () => {
   showConfirmBox(false);
 
@@ -507,14 +599,26 @@ btnCancelExecute.addEventListener("click", () => {
   for (const cb of cbs) cb.disabled = isBusy;
 });
 
-// NEW v0.0.6
 btnConfirmExecute.addEventListener("click", () => {
-  executeDeleteConfirmed().catch((e) => {
+  if (!cbConfirm.checked) {
+    writeExecOut("Blocked: tick the confirmation checkbox.");
+    return;
+  }
+
+  showConfirmBox(false);
+
+  // re-enable selection controls (busy will disable again during execute)
+  cbToggleAll.disabled = isBusy;
+  const cbs = Array.from(listEl.querySelectorAll<HTMLInputElement>("input.deleteCb"));
+  for (const cb of cbs) cb.disabled = isBusy;
+
+  executeDeleteStart().catch((e) => {
     console.error(e);
     setStatus("Error");
     writeExecOut("Execute crashed. See console.");
+    setBusy(false);
   });
 });
 
-// Auto-scan once when panel opens
+// Auto-scan on open
 scan().catch(() => setStatus("Idle"));

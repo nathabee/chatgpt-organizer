@@ -6,16 +6,20 @@ export const MSG = {
   PING: "CGO_PING",
   LIST_CONVERSATIONS: "CGO_LIST_CONVERSATIONS",
 
-  // Kept (even if UI hidden in v0.0.6)
+  // Kept (UI hidden in v0.0.6+)
   DRY_RUN_DELETE: "CGO_DRY_RUN_DELETE",
 
-  // NEW v0.0.6: real execute
+  // Execute delete
   EXECUTE_DELETE: "CGO_EXECUTE_DELETE",
 
-  // NEW v0.0.6: deep scan (auto-scroll)
+  // Deep scan (v0.0.6)
   DEEP_SCAN_START: "CGO_DEEP_SCAN_START",
   DEEP_SCAN_CANCEL: "CGO_DEEP_SCAN_CANCEL",
   DEEP_SCAN_PROGRESS: "CGO_DEEP_SCAN_PROGRESS",
+
+  // NEW v0.0.7: execute progress events
+  EXECUTE_DELETE_PROGRESS: "CGO_EXECUTE_DELETE_PROGRESS",
+  EXECUTE_DELETE_DONE: "CGO_EXECUTE_DELETE_DONE",
 } as const;
 
 /* -----------------------------------------------------------
@@ -36,7 +40,7 @@ export type ListConversationsResponse =
   | { ok: false; error: string };
 
 /* -----------------------------------------------------------
- * DEEP SCAN — NEW v0.0.6
+ * DEEP SCAN
  * ----------------------------------------------------------- */
 
 export type DeepScanStartRequest = {
@@ -52,15 +56,9 @@ export type DeepScanStartResponse =
   | { ok: true; conversations: ConversationItem[] }
   | { ok: false; error: string };
 
-export type DeepScanCancelRequest = {
-  type: typeof MSG.DEEP_SCAN_CANCEL;
-};
-
+export type DeepScanCancelRequest = { type: typeof MSG.DEEP_SCAN_CANCEL };
 export type DeepScanCancelResponse = { ok: true };
 
-// Progress is emitted from content script while deep scan is running.
-// Panel listens via chrome.runtime.onMessage.
-// No sendResponse expected.
 export type DeepScanProgressEvent = {
   type: typeof MSG.DEEP_SCAN_PROGRESS;
   found: number;
@@ -68,7 +66,7 @@ export type DeepScanProgressEvent = {
 };
 
 /* -----------------------------------------------------------
- * DRY RUN (kept for later)
+ * DRY RUN
  * ----------------------------------------------------------- */
 
 export type DryRunDeleteRequest = {
@@ -98,7 +96,7 @@ export type DryRunDeleteResponse =
 export type ExecuteDeleteRequest = {
   type: typeof MSG.EXECUTE_DELETE;
   ids: string[];
-  throttleMs?: number;
+  throttleMs?: number; // base delay (backend may enforce slower)
 };
 
 export type ExecuteDeleteResponse =
@@ -116,6 +114,34 @@ export type ExecuteDeleteResponse =
       }>;
     }
   | { ok: false; error: string };
+
+/* -----------------------------------------------------------
+ * NEW v0.0.7: Execute delete progress events (fire-and-forget)
+ * ----------------------------------------------------------- */
+
+export type ExecuteDeleteProgressEvent = {
+  type: typeof MSG.EXECUTE_DELETE_PROGRESS;
+  runId: string;
+  i: number; // 1-based index
+  total: number;
+  id: string;
+  ok: boolean;
+  status?: number;
+  error?: string;
+  attempt: number;
+  elapsedMs: number; // total run elapsed
+  lastOpMs: number;  // duration of this PATCH attempt (best effort)
+};
+
+export type ExecuteDeleteDoneEvent = {
+  type: typeof MSG.EXECUTE_DELETE_DONE;
+  runId: string;
+  total: number;
+  okCount: number;
+  failCount: number;
+  elapsedMs: number;
+  throttleMs: number;
+};
 
 /* -----------------------------------------------------------
  * Unions
@@ -136,3 +162,9 @@ export type AnyResponse =
   | DeepScanCancelResponse
   | DryRunDeleteResponse
   | ExecuteDeleteResponse;
+
+// Convenience union for panel listeners (events)
+export type AnyEvent =
+  | DeepScanProgressEvent
+  | ExecuteDeleteProgressEvent
+  | ExecuteDeleteDoneEvent;

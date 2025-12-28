@@ -17,7 +17,6 @@
             List conversations from the current ChatGPT tab (scraped).
         </p>
 
-        <!-- NEW v0.0.6: scan row now includes Deep Scan + Cancel + scan progress output -->
         <div class="row">
             <button id="btnScan" type="button">Scan conversations</button>
             <button id="btnDeepScan" type="button">Deep scan (auto-scroll)</button>
@@ -25,12 +24,10 @@
             <span id="status" class="status">Idle</span>
         </div>
 
-        <!-- NEW v0.0.6: show scan progress (deep scan) -->
         <div class="row">
             <div id="scanOut" class="status" aria-live="polite"></div>
         </div>
 
-        <!-- NEW v0.0.6: remove Select all / Select none. Keep Toggle all only. -->
         <div class="row row--select">
             <label class="toggleAll">
                 <input id="cbToggleAll" type="checkbox" />
@@ -38,20 +35,23 @@
             </label>
         </div>
 
-        <!-- NEW v0.0.6: minimum safe UX for execute delete -->
         <div class="row row--danger">
             <button id="btnExecuteDelete" type="button" class="danger">
                 Delete selected (execute)
             </button>
         </div>
 
-        <!-- NEW v0.0.6: exec output area (small note/output) -->
+        <!-- exec output / log -->
         <pre id="execOut" class="report" aria-live="polite"></pre>
 
-        <!-- NEW v0.0.6: confirmation UI block (inline), hidden by default -->
+        <!-- NEW v0.0.7: progress UI -->
+        <div id="execProgressWrap" class="execProgressWrap" hidden>
+            <progress id="execProgress" value="0" max="100"></progress>
+            <div id="execProgressText" class="status"></div>
+        </div>
+
         <div id="confirmBox" class="confirmBox" hidden>
             <div class="confirmTitle" id="confirmTitle"></div>
-
             <ul id="confirmPreview" class="confirmPreview"></ul>
 
             <label class="confirm">

@@ -4,6 +4,49 @@ This document tracks functional and architectural changes of the ChatGPT Organiz
 Chrome extension.
 
 Versions are listed with the **newest at the top**.
+---
+
+## v0.0.7 — Progression in delete
+
+### Key changes
+
+* **Live deletion progress (no more “stuck on deleting…”)**
+
+  * Adds a progress bar + live status line while deleting
+  * Shows current position (`i/N`), ok/failed counts, last operation duration, elapsed time
+
+* **Per-conversation delete log**
+
+  * Each conversation deletion is logged as it completes:
+
+    * success: title/id + HTTP status + duration
+    * failure: title/id + status + attempt count + error message
+
+* **Immediate UI update while deleting**
+
+  * Successfully deleted conversations are removed from the “Found” list immediately
+  * Selection/counts update live (no need to wait for a full re-scan)
+
+* **More reliable long runs under MV3**
+
+  * Panel no longer relies on a single long `sendResponse()` to finish
+  * Background emits progress and completion events (`EXECUTE_DELETE_PROGRESS`, `EXECUTE_DELETE_DONE`), so the UI keeps updating even when the final response is lost
+
+* **Retries + backoff for real-world rate limiting**
+
+  * Automatic retry policy for transient failures:
+
+    * 429: backoff (5–15s + jitter), retry up to 2 times
+    * 5xx: backoff (2–5s), retry once
+    * network errors: retry once
+  * Batch runs finish cleaner instead of leaving a big tail of failures
+
+* **Run identity**
+
+  * Each delete run gets a `runId`
+  * Progress messages are tied to that run to avoid mixing outputs between runs
+
+
 
 ---
 

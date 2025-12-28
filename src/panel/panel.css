@@ -201,3 +201,16 @@ input:disabled {
 .confirmBox .confirm {
   margin: 6px 0 10px;
 }
+
+
+/* NEW v0.0.7 — execute progress UI */
+.execProgressWrap {
+  margin: 8px 0 0;
+  display: grid;
+  gap: 6px;
+}
+
+.execProgressWrap progress {
+  width: 100%;
+  height: 12px;
+}
