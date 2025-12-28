@@ -7,11 +7,48 @@ Versions are listed with the **newest at the top**.
 
 
 ---
+ 
 
-## v0.0.9 - Read existing ChatGPT projects
+### v0.0.9 — Epic: Read ChatGPT Projects
 
+#### Goals
 
---
+* Show **all visible ChatGPT projects** in the extension
+* Remove the “only 5 projects” limitation
+* Allow browsing project → conversations comfortably
+
+#### Features
+
+**1. New Projects tab behavior**
+
+* If ChatGPT projects are detected:
+
+  * show them instead of the local-only projects list
+* If not detected:
+
+  * show a clear message:
+    “Open ChatGPT and expand Projects (click ‘See more’)”
+
+**2. Project list**
+
+* One card per project:
+
+  * project name
+  * number of conversations
+* Expand/collapse project in the panel
+
+**3. Conversation list per project**
+
+* Show all conversations in that project
+* Click opens the chat in a new tab
+* Optional checkbox (future use)
+
+**4. No language dependency**
+
+* Detection based on DOM structure
+* No string matching on “Projects”, “New Project”, etc.
+
+--- 
 
 ## v0.0.8 — Panel tabs  Projects  
 

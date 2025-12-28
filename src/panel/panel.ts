@@ -1,13 +1,14 @@
 // src/panel/panel.ts
 
+
 import { MSG, type AnyEvent } from "../shared/messages";
-import type { ConversationItem } from "../shared/types";
+import type { ProjectItem, ConversationItem } from "../shared/types";
 
 // NEW v0.0.8
 import {
   getActiveTab,
   setActiveTab,
-  listProjects,
+  listProjects as listLocalProjects,
   addProject,
   updateProject,
   deleteProject,
@@ -53,13 +54,17 @@ const execProgressWrapEl = document.getElementById("execProgressWrap") as HTMLDi
 const execProgressEl = document.getElementById("execProgress") as HTMLProgressElement;
 const execProgressTextEl = document.getElementById("execProgressText") as HTMLDivElement;
 
-// NEW v0.0.8: projects elements
+// Projects elements
 const projectNameEl = document.getElementById("projectName") as HTMLInputElement;
 const projectNotesEl = document.getElementById("projectNotes") as HTMLTextAreaElement;
 const btnAddProject = document.getElementById("btnAddProject") as HTMLButtonElement;
-const projectsStatusEl = document.getElementById("projectsStatus") as HTMLSpanElement;
-const projectsCountEl = document.getElementById("projectsCount") as HTMLSpanElement;
-const projectsListEl = document.getElementById("projectsList") as HTMLUListElement;
+
+// NEW v0.0.9 — Projects elements
+const btnLoadAllProjects = document.getElementById("btnLoadAllProjects") as HTMLButtonElement | null;
+const projectsListEl = document.getElementById("projectsList") as HTMLUListElement | null;
+// Status lines (split)
+const projectsStatusEl = document.getElementById("projectsStatus") as HTMLSpanElement | null;         // scrape status
+const projectsCrudStatusEl = document.getElementById("projectsCrudStatus") as HTMLSpanElement | null; // add/edit/delete status
 
 /* -----------------------------------------------------------
  * STATE
@@ -104,9 +109,12 @@ async function switchTab(tab: PanelTab) {
 
   // Lazy-load projects when switching to projects tab
   if (tab === "projects") {
-    await refreshProjects();
+    await refreshProjects(false);
   }
 }
+
+
+
 
 /* -----------------------------------------------------------
  * UI helpers
@@ -131,8 +139,14 @@ function appendExecOut(line: string) {
 }
 
 function setProjectsStatus(s: string) {
-  projectsStatusEl.textContent = s;
+  if (projectsStatusEl) projectsStatusEl.textContent = s;
 }
+
+function setProjectsCrudStatus(s: string) {
+  if (projectsCrudStatusEl) projectsCrudStatusEl.textContent = s;
+}
+
+
 
 function setBusy(next: boolean) {
   isBusy = next;
@@ -157,9 +171,12 @@ function setBusy(next: boolean) {
   projectNotesEl.disabled = next;
   btnAddProject.disabled = next;
 
-  const projButtons = Array.from(projectsListEl.querySelectorAll<HTMLButtonElement>("button"));
-  for (const b of projButtons) b.disabled = next;
+  if (projectsListEl) {
+    const projButtons = Array.from(projectsListEl.querySelectorAll<HTMLButtonElement>("button"));
+    for (const b of projButtons) b.disabled = next;
+  }
 }
+
 
 function showConfirmBox(show: boolean) {
   confirmBoxEl.hidden = !show;
@@ -522,101 +539,125 @@ async function executeDeleteStart() {
 }
 
 /* -----------------------------------------------------------
- * Projects view — NEW v0.0.8
+ * Projects view — NEW v0.0.8, modif v0.0.9
  * ----------------------------------------------------------- */
 
-function renderProjects(items: Project[]) {
-  projects = items;
-  projectsCountEl.textContent = String(items.length);
+function renderProjects(projects: ProjectItem[]) {
+  if (!projectsListEl) return;
   projectsListEl.innerHTML = "";
 
-  for (const p of items) {
+  for (const p of projects) {
     const li = document.createElement("li");
-    li.className = "item";
+    li.className = "projectcard";
 
-    const row = document.createElement("div");
-    row.className = "projectItem";
 
-    const left = document.createElement("div");
+    const header = document.createElement("div");
+    header.style.display = "grid";
+    header.style.gap = "6px";
 
     const title = document.createElement("div");
-    title.className = "projectTitle";
-    title.textContent = p.name;
+    title.className = "title";
+    title.textContent = `${p.title} (${p.conversations?.length || 0})`;
 
-    const meta = document.createElement("div");
-    meta.className = "projectMeta";
-    meta.textContent = p.notes ? p.notes : "—";
+    const link = document.createElement("a");
+    link.className = "link";
+    link.href = p.href;
+    link.target = "_blank";
+    link.rel = "noreferrer";
+    link.textContent = p.href;
 
-    left.appendChild(title);
-    left.appendChild(meta);
+    header.appendChild(title);
+    header.appendChild(link);
 
-    const actions = document.createElement("div");
-    actions.className = "projectActions";
+    // Expandable conversations list
+    const details = document.createElement("details");
+    details.style.marginTop = "6px";
 
-    const btnEdit = document.createElement("button");
-    btnEdit.className = "small";
-    btnEdit.type = "button";
-    btnEdit.textContent = "Edit";
-    btnEdit.addEventListener("click", async () => {
-      if (isBusy) return;
+    const summary = document.createElement("summary");
+    summary.textContent = "Show conversations";
+    summary.style.cursor = "pointer";
+    summary.style.userSelect = "none";
 
-      const nextName = prompt("Project name:", p.name) ?? "";
-      if (!nextName.trim()) return;
+    const ul = document.createElement("ul");
+    ul.className = "list";
+    ul.style.marginTop = "8px";
 
-      const nextNotes = prompt("Notes (optional):", p.notes || "") ?? "";
+    li.appendChild(header);
 
-      try {
-        setProjectsStatus("Saving…");
-        await updateProject(p.id, { name: nextName, notes: nextNotes });
-        await refreshProjects();
-        setProjectsStatus("Saved.");
-      } catch (e: any) {
-        setProjectsStatus(`Error: ${e?.message || "failed"}`);
+    const convos: ConversationItem[] = p.conversations || [];
+    if (!convos.length) {
+      const hint = document.createElement("div");
+      hint.className = "status";
+      hint.textContent = "Conversations not visible here (ChatGPT overlay only lists projects).";
+      li.appendChild(hint);
+    } else {
+      const details = document.createElement("details");
+      details.style.marginTop = "6px";
+
+      const summary = document.createElement("summary");
+      summary.textContent = "Show conversations";
+      summary.style.cursor = "pointer";
+      summary.style.userSelect = "none";
+
+      const ul = document.createElement("ul");
+      ul.className = "list";
+      ul.style.marginTop = "8px";
+
+      for (const c of convos) {
+        const cLi = document.createElement("li");
+        cLi.className = "item";
+        cLi.style.gridTemplateColumns = "1fr";
+        cLi.style.marginBottom = "6px";
+
+        const cTitle = document.createElement("div");
+        cTitle.className = "title";
+        cTitle.textContent = c.title || "Untitled";
+
+        const cLink = document.createElement("a");
+        cLink.className = "link";
+        cLink.href = c.href;
+        cLink.target = "_blank";
+        cLink.rel = "noreferrer";
+        cLink.textContent = c.href;
+
+        cLi.appendChild(cTitle);
+        cLi.appendChild(cLink);
+        ul.appendChild(cLi);
       }
-    });
 
-    const btnDel = document.createElement("button");
-    btnDel.className = "small danger";
-    btnDel.type = "button";
-    btnDel.textContent = "Delete";
-    btnDel.addEventListener("click", async () => {
-      if (isBusy) return;
-      if (!confirm(`Delete project "${p.name}"?`)) return;
+      details.appendChild(summary);
+      details.appendChild(ul);
+      li.appendChild(details);
+    }
 
-      try {
-        setProjectsStatus("Deleting…");
-        await deleteProject(p.id);
-        await refreshProjects();
-        setProjectsStatus("Deleted.");
-      } catch (e: any) {
-        setProjectsStatus(`Error: ${e?.message || "failed"}`);
-      }
-    });
-
-    actions.appendChild(btnEdit);
-    actions.appendChild(btnDel);
-
-    row.appendChild(left);
-    row.appendChild(actions);
-
-    li.innerHTML = "";
-    li.appendChild(row);
     projectsListEl.appendChild(li);
   }
-
-  setBusy(isBusy);
 }
 
-async function refreshProjects() {
+async function refreshProjects(openAll = false) {
   setProjectsStatus("Loading…");
-  try {
-    const items = await listProjects();
-    renderProjects(items);
-    setProjectsStatus("");
-  } catch (e: any) {
-    setProjectsStatus(`Error: ${e?.message || "failed"}`);
+
+  const res = await chrome.runtime
+    .sendMessage({ type: MSG.LIST_PROJECTS, openAll })
+    .catch(() => null);
+
+  if (!res) {
+    setProjectsStatus("Failed (no response).");
+    return;
   }
+
+  if (!res.ok) {
+    setProjectsStatus(`Failed: ${res.error}`);
+    return;
+  }
+
+  const projects: ProjectItem[] = res.projects || [];
+  renderProjects(projects);
+
+  const note = res.note ? ` (${res.note})` : "";
+  setProjectsStatus(`Done: ${projects.length} project(s)${note}`);
 }
+
 
 async function onAddProject() {
   const name = (projectNameEl.value || "").trim();
@@ -638,6 +679,9 @@ async function onAddProject() {
     setProjectsStatus(`Error: ${e?.message || "failed"}`);
   }
 }
+
+
+ 
 
 /* -----------------------------------------------------------
  * Message listener (progress events)
@@ -786,6 +830,15 @@ btnConfirmExecute.addEventListener("click", () => {
   });
 });
 
+
+btnLoadAllProjects?.addEventListener("click", () => {
+  refreshProjects(true).catch((e) => {
+    console.error(e);
+    setProjectsStatus("Error");
+  });
+});
+
+
 /* -----------------------------------------------------------
  * Boot
  * ----------------------------------------------------------- */
@@ -799,6 +852,6 @@ btnConfirmExecute.addEventListener("click", () => {
 
   // If landing on projects tab, load them
   if (tab === "projects") {
-    await refreshProjects();
+    await refreshProjects(false);
   }
 })();

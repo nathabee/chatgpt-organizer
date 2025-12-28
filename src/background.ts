@@ -345,6 +345,28 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       }
     }
 
+    // NEW v0.0.9 — LIST PROJECTS (route to content script)
+    if (msg?.type === MSG.LIST_PROJECTS) {
+      const tab = await getActiveChatGPTTab();
+      if (!tab?.id) {
+        sendResponse({ ok: false, error: "No active ChatGPT tab (chatgpt.com)." });
+        return;
+      }
+
+      try {
+        const res = await sendToTab(tab.id, msg);
+        sendResponse(res);
+      } catch {
+        sendResponse({
+          ok: false,
+          error: "Could not reach content script. Reload the ChatGPT tab, then try again.",
+        });
+      }
+      return;
+    }
+
+
+    // DEFAULT : ERROR 
     sendResponse({ ok: false, error: "Unknown message." } as any);
   })();
 

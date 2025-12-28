@@ -117,16 +117,24 @@
 
                 <div class="row">
                     <button id="btnAddProject" type="button">Add project</button>
-                    <span id="projectsStatus" class="status"></span>
+                    <span id="projectsCrudStatus" class="status"></span>
+
                 </div>
             </div>
 
             <!-- NEW v0.0.8: projects list -->
             <div class="summary">
                 Projects: <span id="projectsCount">0</span>
+            </div> 
+
+            <!-- NEW v0.0.9 — Projects scraping controls -->
+            <div class="row">
+            <button id="btnLoadAllProjects" type="button">Load all projects</button>
+            <span id="projectsStatus" class="status">Idle</span>
             </div>
 
             <ul id="projectsList" class="list"></ul>
+
         </section>
     </div>
 

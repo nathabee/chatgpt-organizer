@@ -1,6 +1,6 @@
 // src/shared/messages.ts
 
-import type { ConversationItem } from "./types";
+import type { ConversationItem, ProjectItem } from "./types";
 
 export const MSG = {
   PING: "CGO_PING",
@@ -20,6 +20,11 @@ export const MSG = {
   // NEW v0.0.7: execute progress events
   EXECUTE_DELETE_PROGRESS: "CGO_EXECUTE_DELETE_PROGRESS",
   EXECUTE_DELETE_DONE: "CGO_EXECUTE_DELETE_DONE",
+
+
+  // NEW v0.0.9
+  LIST_PROJECTS: "CGO_LIST_PROJECTS",
+
 } as const;
 
 /* -----------------------------------------------------------
@@ -143,6 +148,18 @@ export type ExecuteDeleteDoneEvent = {
   throttleMs: number;
 };
 
+
+// NEW v0.0.9
+export type ListProjectsRequest = {
+  type: typeof MSG.LIST_PROJECTS;
+  openAll?: boolean; // auto-open "See more" / full projects overlay
+};
+
+export type ListProjectsResponse =
+  | { ok: true; projects: ProjectItem[]; note?: string }
+  | { ok: false; error: string };
+
+ 
 /* -----------------------------------------------------------
  * Unions
  * ----------------------------------------------------------- */
@@ -153,7 +170,10 @@ export type AnyRequest =
   | DeepScanStartRequest
   | DeepScanCancelRequest
   | DryRunDeleteRequest
-  | ExecuteDeleteRequest;
+  | ExecuteDeleteRequest
+  // NEW v0.0.9
+  | ListProjectsRequest;
+;
 
 export type AnyResponse =
   | PingResponse
@@ -161,7 +181,10 @@ export type AnyResponse =
   | DeepScanStartResponse
   | DeepScanCancelResponse
   | DryRunDeleteResponse
-  | ExecuteDeleteResponse;
+  | ExecuteDeleteResponse
+  // NEW v0.0.9
+  | ListProjectsResponse;
+;
 
 // Convenience union for panel listeners (events)
 export type AnyEvent =

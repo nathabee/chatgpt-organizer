@@ -350,3 +350,26 @@ button.small.danger {
   border-color: rgba(180, 0, 0, 0.40);
   background: rgba(180, 0, 0, 0.07);
 }
+
+
+/* NEW v0.0.9 */
+#btnLoadAllProjects {
+  font-weight: 600;
+}
+
+details > summary {
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+
+.projectCard {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid rgba(0,0,0,0.12);
+  border-radius: 12px;
+  margin-bottom: 8px;
+  background: rgba(0,0,0,0.02);
+}
