@@ -8,6 +8,104 @@ Versions are listed with the **newest at the top**.
 ---
 
 
+### v0.0.15 — Epic: Dual Progress for Project Cleanup
+
+#### Goals
+
+* Make long cleanup runs readable at a glance
+* Show separate progress for:
+
+  * conversations deletion
+  * projects deletion
+
+#### Features
+
+**1. Conversations progress (Projects tab)**
+
+* Progress bar + live counts for deleted chats during project cleanup
+
+**2. Projects progress**
+
+* Separate progress bar + live counts while deleting selected projects
+
+**3. Event-driven updates**
+
+* New background progress events for project deletion:
+
+  * progress per project
+  * final summary
+
+**4. Resilient UX**
+
+* Progress keeps updating even if individual deletes fail
+* Clear summary: projects ok/failed + chats ok/failed
+
+
+---
+
+### v0.0.14 — Epic: Fix Project Delete Message Wiring
+
+#### Goals
+
+* Make “Delete selected projects” work end-to-end without regressions
+
+#### Fixes
+
+* Add missing `DELETE_PROJECTS` message contract in `shared/messages.ts`
+* Add background handler for project deletion:
+
+  * `DELETE /backend-api/gizmos/<gizmoId>`
+* Keep existing chat listing + project listing logic unchanged
+* Ensure panel receives structured per-project results (ok/status/error)
+---
+
+### v0.0.13 — Epic: New UX Structure + Project Delete Flow (Partial)
+
+#### Goals
+
+* Rename/Delete view evolution into a clearer structure:
+
+  * “Single chats” (non-project area)
+  * “Projects” (projects + their chats)
+* Add a “delete project” path (after deleting its conversations)
+
+#### Features
+
+* New panel UI with:
+
+  * Single chats tab (selection + delete)
+  * Projects tab (expand conversations)
+  * Project-level checkbox to select a whole project
+  * Conversation-level checkboxes inside a project
+* Execute delete for conversations remains soft-delete (`PATCH is_visible:false`) with retry/backoff + progress
+
+#### Known issue
+
+* Project deletion step fails with **“Unknown message.”**
+
+  * Conversations delete correctly
+  * Project delete request is not routed/handled in background
+
+---
+
+
+### v0.0.12 — Epic: Backend Listing (Stable)
+
+#### Goals
+
+* List **all chats** reliably without depending on sidebar DOM scraping
+* List **all Projects** and fetch **their conversations**
+
+#### Features
+
+* Backend session token fetch via `https://chatgpt.com/api/auth/session`
+* Chat listing via `GET /backend-api/conversations` (paged)
+* Project listing via `GET /backend-api/gizmos/snorlax/sidebar` (paged)
+* Project conversations via `GET /backend-api/gizmos/<gizmoId>/conversations` (paged)
+* Progress events for long scans (projects + chats)
+
+---
+
 ### v0.0.11 — Epic: Project Deep Scan (Loop Projects + Standalone Chats)
 
 #### Goals

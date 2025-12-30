@@ -122,7 +122,7 @@ Example:
 
 Releases are created manually using shell scripts : 
 
-```bash
+```bash 
 ./scripts/bump-version.sh patch
 git push 
 ./scripts/build-zip.sh 

@@ -2,6 +2,18 @@
 import { MSG, type AnyRequest } from "./shared/messages";
 import type { ConversationItem, ProjectItem } from "./shared/types";
 
+
+/* -----------------------------------------------------------
+ * open panel
+ * ----------------------------------------------------------- */
+// Open the side panel when the user clicks the extension icon
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch(() => {
+    // ignore if not supported (older Chrome)
+  });
+
+
 /* -----------------------------------------------------------
  * URL / time helpers
  * ----------------------------------------------------------- */
@@ -145,6 +157,30 @@ async function deleteWithRetry(
   }
 
   return { ok: false, error: "Retry loop exhausted", attempt: maxAttempts, lastOpMs: 0 };
+}
+
+async function deleteProject(
+  accessToken: string,
+  gizmoId: string
+): Promise<{ ok: boolean; status?: number; error?: string }> {
+  try {
+    const resp = await fetch(`https://chatgpt.com/backend-api/gizmos/${encodeURIComponent(gizmoId)}`, {
+      method: "DELETE",
+      credentials: "include",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+
+    if (!resp.ok) {
+      const txt = await resp.text().catch(() => "");
+      return { ok: false, status: resp.status, error: txt || `HTTP ${resp.status}` };
+    }
+
+    return { ok: true, status: resp.status };
+  } catch (e: any) {
+    return { ok: false, error: e?.message || "Network error" };
+  }
 }
 
 /* -----------------------------------------------------------
@@ -585,6 +621,42 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       }
     }
 
+    // DELETE PROJECTS
+    if (msg?.type === MSG.DELETE_PROJECTS) {
+      const gizmoIds: string[] = ((msg as any).gizmoIds || []).filter(Boolean);
+
+      if (!gizmoIds.length) {
+        sendResponse({ ok: false, error: "No gizmoIds provided." } as any);
+        return;
+      }
+
+      try {
+        const session = await fetchSession();
+        if (!session.loggedIn || !session.accessToken) {
+          sendResponse({ ok: false, error: "Not logged in (no access token)." } as any);
+          return;
+        }
+
+        const results: Array<{ gizmoId: string; ok: boolean; status?: number; error?: string }> = [];
+
+        for (let i = 0; i < gizmoIds.length; i++) {
+          const gizmoId = gizmoIds[i];
+
+          // small polite delay between deletes (avoid bursts)
+          if (i > 0) await sleep(250 + randInt(0, 250));
+
+          const r = await deleteProject(session.accessToken, gizmoId);
+          results.push({ gizmoId, ok: r.ok, status: r.status, error: r.error });
+        }
+
+        sendResponse({ ok: true, results } as any);
+        return;
+      } catch (e: any) {
+        sendResponse({ ok: false, error: e?.message || "Failed to delete projects." } as any);
+        return;
+      }
+    }
+
     // optional: still route to content script for anything else you kept
     const tab = await getActiveChatGPTTab();
     if (tab?.id) {
@@ -596,6 +668,7 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
         // fallthrough
       }
     }
+
 
     sendResponse({ ok: false, error: "Unknown message." } as any);
   })();
