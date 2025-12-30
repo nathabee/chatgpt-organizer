@@ -5,6 +5,130 @@ Chrome extension.
 
 Versions are listed with the **newest at the top**.
 
+---
+
+
+### v0.0.11 — Epic: Project Deep Scan (Loop Projects + Standalone Chats)
+
+#### Goals
+
+* Retrieve **project → conversations** beyond what is currently visible in the sidebar
+* Retrieve **standalone (non-project) chats** more completely
+* Add **limits + progress + cancel** so it never runs forever
+
+#### Features
+
+**1. Project Deep Scan (loop through projects)**
+
+* New scan mode that:
+
+  * opens “See more” overlay to get the full project list
+  * iterates projects up to a limit (default **50**)
+  * for each project:
+
+    * navigate/click into the project context
+    * expand the project (if needed)
+    * scrape visible nested conversations
+    * store results and continue
+* Output: a merged list of `ProjectItem { title, href, conversations[] }`
+
+**2. Standalone Chats Deep Scan (not in project context)**
+
+* New scan mode to better collect chats that are **not associated with a project**
+* Uses auto-scroll until:
+
+  * limit reached (default **50**, configurable)
+  * or “no new items” threshold is hit
+
+**3. Limits control (avoid hours-long runs)**
+
+* Add a control in the panel:
+
+  * default `50`
+  * options like `50 / 100 / 200 / 400`
+* Used by:
+
+  * Project Deep Scan
+  * Standalone Deep Scan
+
+**4. Progress + cancel for long scans**
+
+* Show progress while scanning:
+
+  * current project index / total projects
+  * conversations collected so far
+  * “step” for scrolling scans
+* Add cancel support for:
+
+  * project loop scan
+  * standalone deep scan
+
+**5. Button naming cleanup (UI clarity)**
+
+* Rename buttons so they describe what they really do:
+
+  * “List standalone chats (visible)”
+  * “List standalone chats (scroll)”
+  * “List projects (visible)”
+  * “Deep scan projects (loop)”
+* Delete actions remain unchanged.
+
+**6. Safety / stability rules**
+
+* Never run two long operations at once (scan lock)
+* Per-project delays + jitter
+* Timeouts per project navigation so a single broken project doesn’t stall the whole run
+* Always return partial results with a note if interrupted/canceled
+
+
+
+---
+
+### v0.0.10 — Epic: Reliable Scraping (Chats + Projects)
+
+#### Goals
+
+* Make “Projects” scraping **match the real sidebar DOM** (New project row + expandable projects + See more)
+* Extract **as much structured data as possible** without heavy navigation loops
+* Keep the delete workflow untouched (selection, confirm box, execute progress)
+
+#### Features
+
+**1. Projects sidebar support (new DOM)**
+
+* Detect the Projects expando section reliably
+* Ignore the **“New project”** pseudo-row (not an anchor)
+* Identify real projects via:
+
+  * `a[data-sidebar-item="true"][href^="/g/"][href$="/project"]`
+
+**2. Auto-expand visible projects (best-effort)**
+
+* Before scraping projects, click every collapsed chevron:
+
+  * `button.icon[data-state="closed"]`
+* This exposes the nested conversations for the visible projects in the sidebar
+
+**3. “See more” overlay handling (best-effort)**
+
+* Find and click the Projects “See more” row
+* Detect the overlay root (dialog/menu/radix wrapper fallback)
+* Scrape all overlay project links and merge them with sidebar projects
+
+  * Sidebar entries win (they contain conversations)
+
+**4. Report clarity**
+
+* Return a `note` when:
+
+  * overlay could not be opened
+  * overlay opened but conversations are not accessible there
+* Panel shows: `Done: X project(s) (note…)`
+
+**5. No UI refactor**
+
+* Panel layout stays the same in 0.0.10
+* Focus is scraper correctness + stability
 
 ---
  

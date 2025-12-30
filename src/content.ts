@@ -32,6 +32,37 @@ function sleep(ms: number): Promise<void> {
   return new Promise((res) => setTimeout(res, ms));
 }
 
+function fireTrustedClick(el: HTMLElement) {
+  el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, view: window }));
+  el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, view: window }));
+  el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
+}
+
+async function expandAllVisibleProjectsInSection(section: Element): Promise<number> {
+  // Expand chevron is "button.icon" inside the project anchor
+  const projectAnchors = Array.from(
+    section.querySelectorAll<HTMLAnchorElement>(
+      'a[data-sidebar-item="true"][href^="/g/"][href$="/project"]'
+    )
+  );
+
+  let clicked = 0;
+
+  for (const a of projectAnchors) {
+    const btn = a.querySelector<HTMLButtonElement>('button.icon[data-state]');
+    if (!btn) continue;
+
+    const state = btn.getAttribute("data-state");
+    if (state === "open") continue;
+
+    fireTrustedClick(btn);
+    clicked++;
+    await sleep(120 + Math.random() * 120);
+  }
+
+  return clicked;
+}
+
  
 /* -----------------------------------------------------------
  * Conversation scraping (single source of truth)
@@ -160,8 +191,11 @@ function parseProjectKeyFromHref(hrefAbs: string): string {
 }
 
 function scrapeProjectsInRoot(root: ParentNode): ProjectItem[] {
+  // Only real project rows are anchors, not the "New project" div
   const projectLinks = Array.from(
-    root.querySelectorAll<HTMLAnchorElement>('a[data-sidebar-item="true"][href$="/project"]')
+    root.querySelectorAll<HTMLAnchorElement>(
+      'a[data-sidebar-item="true"][href^="/g/"][href$="/project"]'
+    )
   );
 
   const projects: ProjectItem[] = [];
@@ -170,17 +204,22 @@ function scrapeProjectsInRoot(root: ParentNode): ProjectItem[] {
     const hrefAbs = normalizeHref(a.getAttribute("href") || "");
     if (!hrefAbs) continue;
 
-    const titleEl = a.querySelector(".truncate");
+    // Title is typically in ".truncate"
     const title =
-      (titleEl?.textContent || a.textContent || "")
+      (a.querySelector(".truncate")?.textContent || a.textContent || "")
         .trim()
         .replace(/\s+/g, " ")
         .slice(0, 140) || "Untitled";
 
-    // Conversations are often in the next sibling container
-    const next = a.nextElementSibling;
+    // Conversations live in next sibling container IF expanded
+    const next = a.nextElementSibling as HTMLElement | null;
+
     const convoAnchors = next
-      ? Array.from(next.querySelectorAll<HTMLAnchorElement>('a[data-sidebar-item="true"][href*="/c/"]'))
+      ? Array.from(
+          next.querySelectorAll<HTMLAnchorElement>(
+            'a[data-sidebar-item="true"][href^="/g/"][href*="/c/"]'
+          )
+        )
       : [];
 
     const conversations = uniqBy(
@@ -201,21 +240,41 @@ function scrapeProjectsInRoot(root: ParentNode): ProjectItem[] {
   return uniqBy(projects, (p) => p.href);
 }
 
-function getProjectsSectionContainer(): Element | null {
-  // Language-agnostic: find an expando section that contains /project links.
-  const candidates = Array.from(document.querySelectorAll<HTMLElement>('div.group\\/sidebar-expando-section'));
-  for (const c of candidates) {
-    if (c.querySelector('a[data-sidebar-item="true"][href$="/project"]')) return c;
+function getProjectsSectionContainer(): HTMLElement | null {
+  // In ChatGPT sidebar, Projects is one "expando section"
+  const sections = Array.from(
+    document.querySelectorAll<HTMLElement>('div.group\\/sidebar-expando-section')
+  );
+
+  for (const sec of sections) {
+    const label = sec.querySelector<HTMLElement>('h2.__menu-label');
+    const labelText = (label?.textContent || "").trim().toLowerCase();
+
+    // Prefer the real "Projects" section when possible
+    if (labelText === "projects") return sec;
+
+    // Fallback: any section that contains at least one /g/.../project anchor
+    if (sec.querySelector('a[data-sidebar-item="true"][href^="/g/"][href$="/project"]')) return sec;
   }
+
   return null;
 }
 
-function findSeeMoreLikeTrigger(section: Element): HTMLElement | null {
-  // Pick last closed menu trigger inside projects section.
-  const triggers = Array.from(section.querySelectorAll<HTMLElement>('[aria-haspopup="menu"][data-state="closed"]'));
-  if (!triggers.length) return null;
-  return triggers[triggers.length - 1];
+
+
+function findSeeMoreTrigger(section: Element): HTMLElement | null {
+  // "See more" is a div.__menu-item.hoverable with aria-haspopup="menu"
+  // and a nested ".truncate" containing the text.
+  const labels = Array.from(section.querySelectorAll<HTMLElement>('div.__menu-item .truncate'));
+
+  const seeMoreLabel = labels.find((el) => {
+    const t = (el.textContent || "").trim().toLowerCase();
+    return t === "see more";
+  });
+
+  return seeMoreLabel?.closest<HTMLElement>('div.__menu-item.hoverable[aria-haspopup="menu"]') || null;
 }
+
 
  
 
@@ -285,31 +344,25 @@ async function waitForOverlayOpen(timeoutMs: number): Promise<boolean> {
   });
 }
 
-function fireTrustedClick(el: HTMLElement) {
-  // Some UI libraries behave better with a pointer-style sequence.
-  el.dispatchEvent(new MouseEvent("mousedown", { bubbles: true, cancelable: true, view: window }));
-  el.dispatchEvent(new MouseEvent("mouseup", { bubbles: true, cancelable: true, view: window }));
-  el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
-}
+
 
 async function openAllProjectsOverlayBestEffort(): Promise<{ opened: boolean; note?: string }> {
-  // Already open? do nothing.
   if (overlayLooksOpen()) return { opened: true };
 
   const section = getProjectsSectionContainer();
   if (!section) return { opened: false, note: "Projects section not found in sidebar DOM." };
 
-  const trigger = findSeeMoreLikeTrigger(section);
-  if (!trigger) return { opened: false, note: "No 'See more' trigger detected (structure-based)." };
+  const trigger = findSeeMoreTrigger(section);
+  if (!trigger) return { opened: false, note: "No 'See more' item found in Projects section." };
 
-  // Click without focusing something else
   fireTrustedClick(trigger);
 
   const ok = await waitForOverlayOpen(8000);
-  if (!ok) return { opened: false, note: "Tried to open full project list, but no overlay detected (timeout)." };
+  if (!ok) return { opened: false, note: "Clicked 'See more' but no overlay detected (timeout)." };
 
   return { opened: true };
 }
+
 
 function scrapeProjectsFromOverlay(root: ParentNode): ProjectItem[] {
   // Overlay list items may not have data-sidebar-item.
@@ -349,27 +402,34 @@ function scrapeProjectsFromOverlay(root: ParentNode): ProjectItem[] {
 
  
 
- 
-
 async function scrapeProjects(openAll: boolean): Promise<{ projects: ProjectItem[]; note?: string }> {
   let note: string | undefined;
 
-  // Sidebar first (gives you nested conversations for the first 5)
+  const section = getProjectsSectionContainer();
+  if (section) {
+    // NEW: expand visible projects so we can scrape their nested conversations
+    const n = await expandAllVisibleProjectsInSection(section);
+    if (n > 0) await sleep(150);
+  }
+
+  // Sidebar scrape (now includes nested convos for expanded visible projects)
   const sidebar = scrapeProjectsInRoot(document);
 
   if (!openAll) return { projects: sidebar };
 
+  // Best-effort open overlay to get full project list (no nested convos there)
   const r = await openAllProjectsOverlayBestEffort();
   if (r.note) note = r.note;
 
   const overlayRoot = getProjectsOverlayRoot();
   const overlay = overlayRoot ? scrapeProjectsFromOverlay(overlayRoot) : [];
 
-  // Merge: prefer sidebar version (it includes conversations)
+  // Merge: prefer sidebar entries if same href (they include conversations)
   const merged = uniqBy([...sidebar, ...overlay], (p) => p.href);
 
   return { projects: merged, note };
 }
+
 
 
 /* -----------------------------------------------------------

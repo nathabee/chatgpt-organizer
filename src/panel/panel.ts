@@ -548,7 +548,7 @@ function renderProjects(projects: ProjectItem[]) {
 
   for (const p of projects) {
     const li = document.createElement("li");
-    li.className = "projectcard";
+    li.className = "projectCard";
 
 
     const header = document.createElement("div");

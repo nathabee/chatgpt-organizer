@@ -120,7 +120,15 @@ Example:
 
 ## Release workflow (GitHub)
 
-Releases are created manually using shell scripts.
+Releases are created manually using shell scripts : 
+
+```bash
+./scripts/bump-version.sh patch
+git push 
+./scripts/build-zip.sh 
+./scripts/publish-release-zip.sh
+```
+
 
 ### 1) Bump version
 
