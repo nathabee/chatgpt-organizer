@@ -5,17 +5,16 @@
   padding: 12px;
 }
 
+.muted {
+  opacity: 0.8;
+  margin-top: 0;
+}
+
 .row {
   display: flex;
   gap: 10px;
-  align-items: center;
+  align-items: end;
   margin-bottom: 10px;
-}
-
-/* v0.0.11 — make inline field label behave nicely in rows */
-.row .field {
-  width: auto;
-  min-width: 120px;
 }
 
 .status {
@@ -71,7 +70,6 @@
   word-break: break-all;
 }
 
-
 .row--select {
   margin-top: -2px;
 }
@@ -90,12 +88,14 @@
   height: 16px;
 }
 
-
 .row--danger {
   margin-top: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  background: rgba(180, 0, 0, 0.05);
+  border: 1px dashed rgba(180, 0, 0, 0.25);
 }
 
-/* Clearer destructive styling */
 button.danger {
   border: 1px solid rgba(180, 0, 0, 0.55);
   background: rgba(180, 0, 0, 0.08);
@@ -116,41 +116,12 @@ button.danger:focus-visible {
   outline-offset: 2px;
 }
 
-button:disabled {
+button:disabled,
+input:disabled,
+textarea:disabled {
   opacity: 0.55;
   cursor: not-allowed;
 }
-
-
-/* Optional: group the risky actions visually */
-.row--danger {
-  padding: 8px;
-  border-radius: 10px;
-  background: rgba(180, 0, 0, 0.05);
-  border: 1px dashed rgba(180, 0, 0, 0.25);
-}
-
-/* v0.0.11 — consistent cancel buttons */
-#btnCancelScan,
-#btnCancelProjectsScan {
-  border-radius: 999px;
-  padding: 6px 10px;
-  border: 1px solid rgba(0, 0, 0, 0.16);
-  background: rgba(0, 0, 0, 0.03);
-}
-
-#btnCancelScan:hover,
-#btnCancelProjectsScan:hover {
-  background: rgba(0, 0, 0, 0.06);
-}
-
-/* v0.0.11 — highlight project deep scan */
-#btnDeepScanProjects {
-  font-weight: 600;
-}
-
-
-
 
 .report {
   margin: 10px 0 0;
@@ -165,7 +136,6 @@ button:disabled {
   font-size: 12px;
 }
 
-
 .confirm {
   display: inline-flex;
   gap: 8px;
@@ -175,20 +145,11 @@ button:disabled {
   opacity: 0.9;
 }
 
-
-/* -----------------------------------------------------------
-   NEW v0.0.6 — Scan progress line
-   ----------------------------------------------------------- */
-
 #scanOut {
   margin-top: -4px;
   opacity: 0.85;
   font-size: 12px;
 }
-
-/* -----------------------------------------------------------
-   NEW v0.0.6 — Confirmation block (inline)
-   ----------------------------------------------------------- */
 
 .confirmBox {
   margin: 10px 0 0;
@@ -215,22 +176,6 @@ button:disabled {
   margin: 2px 0;
 }
 
-/* -----------------------------------------------------------
-   NEW v0.0.6 — Disabled controls clarity
-   ----------------------------------------------------------- */
-
-input:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
-
-/* Optional: keep confirm checkbox aligned nicely in confirm box */
-.confirmBox .confirm {
-  margin: 6px 0 10px;
-}
-
-
-/* NEW v0.0.7 — execute progress UI */
 .execProgressWrap {
   margin: 8px 0 0;
   display: grid;
@@ -242,16 +187,11 @@ input:disabled {
   height: 12px;
 }
 
-
-/* -----------------------------------------------------------
-   NEW v0.0.8 — Tabs
-   ----------------------------------------------------------- */
- 
+/* Tabs */
 .tabs {
   display: flex;
   gap: 0;
   margin: 10px 0 12px;
-
   border-bottom: 1px solid rgba(0, 0, 0, 0.18);
 }
 
@@ -261,7 +201,7 @@ input:disabled {
   border: 1px solid transparent;
 
   padding: 8px 12px;
-  margin: 0 6px -1px 0; /* sit on the border-bottom */
+  margin: 0 6px -1px 0;
 
   font: inherit;
   font-weight: 600;
@@ -288,39 +228,26 @@ input:disabled {
 .tab.is-active {
   color: rgba(0, 0, 0, 0.95);
   background: white;
-
   border-color: rgba(0, 0, 0, 0.18);
-  border-bottom-color: white; /* key: “connected” to content */
+  border-bottom-color: white;
 }
 
-/* Optional: content panel edge so it feels like a tabbed card */
 .view.is-active {
   padding-top: 8px;
 }
 
-
-
-/* views */
 .view[hidden] {
   display: none !important;
 }
- 
-/* -----------------------------------------------------------
-   NEW v0.0.8 — Projects UI
-   ----------------------------------------------------------- */
 
-.card {
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 12px;
-  padding: 10px;
-  margin: 10px 0;
-  background: rgba(0, 0, 0, 0.02);
-}
-
+/* Fields */
 .field {
   display: grid;
   gap: 6px;
-  width: 100%;
+}
+
+.field--inline {
+  width: 200px;
 }
 
 .field label {
@@ -328,8 +255,7 @@ input:disabled {
   opacity: 0.85;
 }
 
-.field input,
-.field textarea {
+.field input {
   width: 100%;
   font: inherit;
   padding: 8px 10px;
@@ -338,81 +264,21 @@ input:disabled {
   background: white;
 }
 
-/* v0.0.11 — scan limit select styling */
-.field select {
-  width: 100%;
-  font: inherit;
-  padding: 8px 10px;
-  border-radius: 10px;
-  border: 1px solid rgba(0, 0, 0, 0.16);
-  background: white;
-}
-
-.field select:focus-visible {
-  outline: 2px solid rgba(0, 0, 0, 0.45);
-  outline-offset: 2px;
-}
-
-
-.projectItem {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 10px;
-  align-items: start;
-}
-
-.projectTitle {
-  font-weight: 700;
-  margin-bottom: 4px;
-}
-
-.projectMeta {
-  font-size: 12px;
-  opacity: 0.8;
-  word-break: break-word;
-}
-
-.projectActions {
-  display: inline-flex;
-  gap: 8px;
-}
-
-button.small {
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(0, 0, 0, 0.16);
-  background: rgba(0, 0, 0, 0.03);
-  cursor: pointer;
-}
-
-button.small:hover {
-  background: rgba(0, 0, 0, 0.06);
-}
-
-button.small.danger {
-  border-color: rgba(180, 0, 0, 0.40);
-  background: rgba(180, 0, 0, 0.07);
-}
-
-
-/* NEW v0.0.9 */
-#btnLoadAllProjects {
-  font-weight: 600;
-}
-
-details > summary {
-  font-weight: 600;
-  opacity: 0.9;
-}
-
-
+/* Projects cards */
 .projectCard {
   display: grid;
   grid-template-columns: 1fr;
   gap: 8px;
   padding: 10px;
-  border: 1px solid rgba(0,0,0,0.12);
+  border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 12px;
   margin-bottom: 8px;
-  background: rgba(0,0,0,0.02);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+details > summary {
+  font-weight: 600;
+  opacity: 0.9;
+  cursor: pointer;
+  user-select: none;
 }

@@ -1,4 +1,5 @@
 // src/shared/types.ts
+ 
 
 export type ConversationItem = {
   id: string;
@@ -6,12 +7,9 @@ export type ConversationItem = {
   href: string;
 };
 
-// NEW v0.0.9
 export type ProjectItem = {
-  key: string; // stable-ish key derived from /g/<key>/project
+  key: string; // gizmo id (stable)
   title: string;
-  href: string; // absolute
+  href: string; // best-effort URL to open the project/gizmo
   conversations: ConversationItem[];
 };
-
-

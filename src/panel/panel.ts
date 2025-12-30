@@ -1,35 +1,20 @@
 // src/panel/panel.ts
-
-
 import { MSG, type AnyEvent } from "../shared/messages";
-import type { ProjectItem, ConversationItem } from "../shared/types";
+import type { ConversationItem, ProjectItem } from "../shared/types";
 
-// NEW v0.0.8
-import {
-  getActiveTab,
-  setActiveTab,
-  listProjects as listLocalProjects,
-  addProject,
-  updateProject,
-  deleteProject,
-  type PanelTab,
-  type Project,
-} from "../shared/storage";
+import { getActiveTab, setActiveTab, type PanelTab } from "../shared/storage";
 
 /* -----------------------------------------------------------
  * ELEMENTS
  * ----------------------------------------------------------- */
 
-// NEW v0.0.8: tabs + views
 const tabDelete = document.getElementById("tabDelete") as HTMLButtonElement;
 const tabProjects = document.getElementById("tabProjects") as HTMLButtonElement;
 const viewDelete = document.getElementById("viewDelete") as HTMLElement;
 const viewProjects = document.getElementById("viewProjects") as HTMLElement;
 
-// Delete view elements (existing)
-const btnScan = document.getElementById("btnScan") as HTMLButtonElement;
-const btnDeepScan = document.getElementById("btnDeepScan") as HTMLButtonElement;
-const btnCancelScan = document.getElementById("btnCancelScan") as HTMLButtonElement;
+const deleteLimitEl = document.getElementById("deleteLimit") as HTMLInputElement;
+const btnListAllChats = document.getElementById("btnListAllChats") as HTMLButtonElement;
 
 const statusEl = document.getElementById("status") as HTMLSpanElement;
 const scanOutEl = document.getElementById("scanOut") as HTMLDivElement;
@@ -37,7 +22,6 @@ const scanOutEl = document.getElementById("scanOut") as HTMLDivElement;
 const countEl = document.getElementById("count") as HTMLElement;
 const selectedCountEl = document.getElementById("selectedCount") as HTMLElement;
 const listEl = document.getElementById("list") as HTMLUListElement;
-
 const cbToggleAll = document.getElementById("cbToggleAll") as HTMLInputElement;
 
 const btnExecuteDelete = document.getElementById("btnExecuteDelete") as HTMLButtonElement;
@@ -54,77 +38,28 @@ const execProgressWrapEl = document.getElementById("execProgressWrap") as HTMLDi
 const execProgressEl = document.getElementById("execProgress") as HTMLProgressElement;
 const execProgressTextEl = document.getElementById("execProgressText") as HTMLDivElement;
 
-// Projects elements
-const projectNameEl = document.getElementById("projectName") as HTMLInputElement;
-const projectNotesEl = document.getElementById("projectNotes") as HTMLTextAreaElement;
-const btnAddProject = document.getElementById("btnAddProject") as HTMLButtonElement;
-
-// NEW v0.0.9 — Projects elements
-const btnLoadAllProjects = document.getElementById("btnLoadAllProjects") as HTMLButtonElement | null;
-const projectsListEl = document.getElementById("projectsList") as HTMLUListElement | null;
-// Status lines (split)
-const projectsStatusEl = document.getElementById("projectsStatus") as HTMLSpanElement | null;         // scrape status
-const projectsCrudStatusEl = document.getElementById("projectsCrudStatus") as HTMLSpanElement | null; // add/edit/delete status
-/* v0.0.11 */
-const scanLimitEl = document.getElementById("scanLimit") as HTMLSelectElement | null;
-
-// v0.0.11 — projects scan controls
-const btnListProjectsVisible = document.getElementById("btnListProjectsVisible") as HTMLButtonElement | null;
-const btnDeepScanProjects = document.getElementById("btnDeepScanProjects") as HTMLButtonElement | null;
-const btnCancelProjectsScan = document.getElementById("btnCancelProjectsScan") as HTMLButtonElement | null;
-
-// v0.0.11 — state
-let isProjectsDeepScanning = false;
+// Projects
+const projectsLimitEl = document.getElementById("projectsLimit") as HTMLInputElement;
+const btnListProjects = document.getElementById("btnListProjects") as HTMLButtonElement;
+const projectsStatusEl = document.getElementById("projectsStatus") as HTMLSpanElement;
+const projectsCountEl = document.getElementById("projectsCount") as HTMLSpanElement;
+const projectsListEl = document.getElementById("projectsList") as HTMLUListElement;
 
 /* -----------------------------------------------------------
  * STATE
  * ----------------------------------------------------------- */
 
+let isBusy = false;
+
 let lastConvos: ConversationItem[] = [];
 const selected = new Set<string>();
 
-let isBusy = false;
-let isDeepScanning = false;
-
-// Execute run tracking (v0.0.7)
+// Execute run tracking
 let execRunId: string | null = null;
 let execTotal = 0;
 let execOk = 0;
 let execFail = 0;
 let execTargetIds = new Set<string>();
-
-// NEW v0.0.8: projects cache
-let projects: Project[] = [];
-
-/* -----------------------------------------------------------
- * TAB ROUTER — NEW v0.0.8
- * ----------------------------------------------------------- */
-
-function setTabUI(tab: PanelTab) {
-  const isDelete = tab === "delete";
-
-  tabDelete.classList.toggle("is-active", isDelete);
-  tabDelete.setAttribute("aria-selected", String(isDelete));
-
-  tabProjects.classList.toggle("is-active", !isDelete);
-  tabProjects.setAttribute("aria-selected", String(!isDelete));
-
-  viewDelete.hidden = !isDelete;
-  viewProjects.hidden = isDelete;
-}
-
-async function switchTab(tab: PanelTab) {
-  setTabUI(tab);
-  await setActiveTab(tab);
-
-  // Lazy-load projects when switching to projects tab
-  if (tab === "projects") {
-    await refreshProjects(false);
-  }
-}
-
-
-
 
 /* -----------------------------------------------------------
  * UI helpers
@@ -138,6 +73,10 @@ function setScanOut(s: string) {
   scanOutEl.textContent = s;
 }
 
+function setProjectsStatus(s: string) {
+  projectsStatusEl.textContent = s;
+}
+
 function writeExecOut(text: string) {
   execOutEl.textContent = text;
 }
@@ -148,22 +87,12 @@ function appendExecOut(line: string) {
   execOutEl.scrollTop = execOutEl.scrollHeight;
 }
 
-function setProjectsStatus(s: string) {
-  if (projectsStatusEl) projectsStatusEl.textContent = s;
-}
-
-function setProjectsCrudStatus(s: string) {
-  if (projectsCrudStatusEl) projectsCrudStatusEl.textContent = s;
-}
-
-
-
 function setBusy(next: boolean) {
   isBusy = next;
 
-  // Delete view controls
-  btnScan.disabled = next;
-  btnDeepScan.disabled = next;
+  // Delete
+  deleteLimitEl.disabled = next;
+  btnListAllChats.disabled = next;
   btnExecuteDelete.disabled = next;
   cbToggleAll.disabled = next;
 
@@ -174,19 +103,10 @@ function setBusy(next: boolean) {
   btnConfirmExecute.disabled = next;
   btnCancelExecute.disabled = next;
 
-  btnCancelScan.disabled = !isDeepScanning || next;
-
-  // Projects view controls
-  projectNameEl.disabled = next;
-  projectNotesEl.disabled = next;
-  btnAddProject.disabled = next;
-
-  if (projectsListEl) {
-    const projButtons = Array.from(projectsListEl.querySelectorAll<HTMLButtonElement>("button"));
-    for (const b of projButtons) b.disabled = next;
-  }
+  // Projects
+  projectsLimitEl.disabled = next;
+  btnListProjects.disabled = next;
 }
-
 
 function showConfirmBox(show: boolean) {
   confirmBoxEl.hidden = !show;
@@ -211,6 +131,12 @@ function formatMs(ms: number): string {
   if (ms < 1000) return `${ms}ms`;
   const s = Math.round(ms / 100) / 10;
   return `${s}s`;
+}
+
+function readLimit(el: HTMLInputElement, fallback: number): number {
+  const v = Number((el.value || "").trim());
+  if (!Number.isFinite(v) || v <= 0) return fallback;
+  return Math.floor(v);
 }
 
 function updateSelectedCount() {
@@ -238,98 +164,26 @@ function updateToggleAllState() {
   }
 }
 
-
-/* v0.0.11 */
-function getScanLimit(): number {
-  const v = Number(scanLimitEl?.value ?? 50);
-  if (!Number.isFinite(v)) return 50;
-  return Math.max(10, Math.min(400, v));
-}
-
 /* -----------------------------------------------------------
- * Selection helpers
+ * Tabs
  * ----------------------------------------------------------- */
 
-function syncListSelectionStyles() {
-  const items = Array.from(listEl.querySelectorAll<HTMLLIElement>("li.item"));
-  for (const li of items) {
-    const id = li.dataset["id"];
-    if (!id) continue;
+function setTabUI(tab: PanelTab) {
+  const isDelete = tab === "delete";
 
-    const checked = selected.has(id);
-    li.classList.toggle("selected", checked);
+  tabDelete.classList.toggle("is-active", isDelete);
+  tabDelete.setAttribute("aria-selected", String(isDelete));
 
-    const cb = li.querySelector<HTMLInputElement>("input.deleteCb");
-    if (cb) cb.checked = checked;
-  }
+  tabProjects.classList.toggle("is-active", !isDelete);
+  tabProjects.setAttribute("aria-selected", String(!isDelete));
 
-  updateSelectedCount();
-  updateToggleAllState();
+  viewDelete.hidden = !isDelete;
+  viewProjects.hidden = isDelete;
 }
 
-function selectAllVisible() {
-  for (const c of lastConvos) selected.add(c.id);
-  syncListSelectionStyles();
-}
-
-function selectNoneVisible() {
-  for (const c of lastConvos) selected.delete(c.id);
-  syncListSelectionStyles();
-}
-
-function toggleAllVisible() {
-  const selectedInList = lastConvos.filter((c) => selected.has(c.id)).length;
-  if (selectedInList === lastConvos.length) selectNoneVisible();
-  else selectAllVisible();
-}
-
-function getSelectedItems(): ConversationItem[] {
-  return lastConvos.filter((c) => selected.has(c.id));
-}
-
-/* -----------------------------------------------------------
- * Confirm UI
- * ----------------------------------------------------------- */
-
-function renderConfirmPreview(items: ConversationItem[]) {
-  const n = items.length;
-  const preview = items.slice(0, 5);
-
-  confirmTitleEl.textContent = `You are about to delete: ${n} conversation${n === 1 ? "" : "s"}`;
-  confirmPreviewEl.innerHTML = "";
-
-  for (const c of preview) {
-    const li = document.createElement("li");
-    li.textContent = c.title || "Untitled";
-    confirmPreviewEl.appendChild(li);
-  }
-
-  const more = n - preview.length;
-  if (more > 0) {
-    const li = document.createElement("li");
-    li.textContent = `and ${more} more…`;
-    confirmPreviewEl.appendChild(li);
-  }
-
-  cbConfirm.checked = false;
-  btnConfirmExecute.textContent = `Yes, delete ${n}`;
-}
-
-function openExecuteConfirm() {
-  const items = getSelectedItems();
-
-  if (!items.length) {
-    writeExecOut("Nothing selected. Tick conversations first.");
-    showConfirmBox(false);
-    return;
-  }
-
-  cbToggleAll.disabled = true;
-  const cbs = Array.from(listEl.querySelectorAll<HTMLInputElement>("input.deleteCb"));
-  for (const cb of cbs) cb.disabled = true;
-
-  renderConfirmPreview(items);
-  showConfirmBox(true);
+async function switchTab(tab: PanelTab) {
+  setTabUI(tab);
+  await setActiveTab(tab);
 }
 
 /* -----------------------------------------------------------
@@ -390,6 +244,12 @@ function render(convos: ConversationItem[]) {
     listEl.appendChild(li);
   }
 
+  // prune selected ids not in list
+  const validIds = new Set(convos.map((c) => c.id));
+  for (const id of Array.from(selected)) {
+    if (!validIds.has(id)) selected.delete(id);
+  }
+
   updateSelectedCount();
   updateToggleAllState();
 
@@ -411,112 +271,92 @@ function removeConversationFromUI(id: string) {
 }
 
 /* -----------------------------------------------------------
- * Scanning
+ * Confirm UI
  * ----------------------------------------------------------- */
 
-async function scan() {
-  setStatus("Scanning…");
-  setScanOut("");
-  showConfirmBox(false);
+function renderConfirmPreview(items: ConversationItem[]) {
+  const n = items.length;
+  const preview = items.slice(0, 5);
 
-  setBusy(true);
+  confirmTitleEl.textContent = `You are about to delete: ${n} conversation${n === 1 ? "" : "s"}`;
+  confirmPreviewEl.innerHTML = "";
 
-  const res = await chrome.runtime.sendMessage({ type: MSG.LIST_CONVERSATIONS }).catch(() => null);
+  for (const c of preview) {
+    const li = document.createElement("li");
+    li.textContent = c.title || "Untitled";
+    confirmPreviewEl.appendChild(li);
+  }
 
-  setBusy(false);
+  const more = n - preview.length;
+  if (more > 0) {
+    const li = document.createElement("li");
+    li.textContent = `and ${more} more…`;
+    confirmPreviewEl.appendChild(li);
+  }
 
-  if (!res) {
-    setStatus("Scan failed (no response).");
-    render([]);
+  cbConfirm.checked = false;
+  btnConfirmExecute.textContent = `Yes, delete ${n}`;
+}
+
+function getSelectedItems(): ConversationItem[] {
+  return lastConvos.filter((c) => selected.has(c.id));
+}
+
+function openExecuteConfirm() {
+  const items = getSelectedItems();
+
+  if (!items.length) {
+    writeExecOut("Nothing selected. Tick conversations first.");
+    showConfirmBox(false);
     return;
   }
 
-  if (!res.ok) {
-    setStatus(`Scan failed: ${res.error}`);
-    render([]);
-    return;
-  }
+  cbToggleAll.disabled = true;
+  const cbs = Array.from(listEl.querySelectorAll<HTMLInputElement>("input.deleteCb"));
+  for (const cb of cbs) cb.disabled = true;
 
-  const convos: ConversationItem[] = res.conversations || [];
-  setStatus("Done");
-
-  const validIds = new Set(convos.map((c) => c.id));
-  for (const id of Array.from(selected)) {
-    if (!validIds.has(id)) selected.delete(id);
-  }
-
-  render(convos);
+  renderConfirmPreview(items);
+  showConfirmBox(true);
 }
 
 /* -----------------------------------------------------------
- * Deep scan
+ * List all chats (backend)
  * ----------------------------------------------------------- */
 
-function onDeepScanProgress(found: number, step: number) {
-  setScanOut(`Deep scan… collected ${found} · step ${step}`);
-}
-
-async function deepScan() {
+async function listAllChats() {
   showConfirmBox(false);
+  writeExecOut("");
   setScanOut("");
 
-  isDeepScanning = true;
-  btnCancelScan.hidden = false;
+  const limit = readLimit(deleteLimitEl, 50);
 
-  setStatus("Deep scanning…");
   setBusy(true);
-
-  /* v0.0.11 */
-  const limit = getScanLimit();
+  setStatus("Loading…");
 
   const res = await chrome.runtime
-    .sendMessage({
-      type: MSG.DEEP_SCAN_START,
-      options: {
-        // Keep your existing controls but scale with limit:
-        maxSteps: Math.min(900, Math.max(140, limit * 4)),
-        stepDelayMs: 350,
-        noNewLimit: 10,
-        limit, // new stop condition in content.ts
-      },
-    })
+    .sendMessage({ type: MSG.LIST_ALL_CHATS, limit, pageSize: 50 })
     .catch(() => null);
-
-
-  isDeepScanning = false;
-  btnCancelScan.hidden = true;
 
   setBusy(false);
 
   if (!res) {
-    setStatus("Deep scan failed (no response).");
-    setScanOut("No response from content script.");
+    setStatus("Failed (no response).");
+    setScanOut("No response from background.");
     render([]);
     return;
   }
 
   if (!res.ok) {
-    setStatus("Deep scan failed.");
+    setStatus("Failed.");
     setScanOut(String(res.error || "Unknown error"));
+    render([]);
     return;
   }
 
   const convos: ConversationItem[] = res.conversations || [];
   setStatus("Done");
-  setScanOut(`Deep scan done. Collected ${convos.length}.`);
-
-  const validIds = new Set(convos.map((c) => c.id));
-  for (const id of Array.from(selected)) {
-    if (!validIds.has(id)) selected.delete(id);
-  }
-
+  setScanOut(`Collected ${convos.length}.`);
   render(convos);
-}
-
-async function cancelDeepScan() {
-  if (!isDeepScanning) return;
-  await chrome.runtime.sendMessage({ type: MSG.DEEP_SCAN_CANCEL }).catch(() => null);
-  setScanOut("Cancel requested…");
 }
 
 /* -----------------------------------------------------------
@@ -566,67 +406,17 @@ async function executeDeleteStart() {
   chrome.runtime.sendMessage({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 }).catch(() => null);
 }
 
-/* v0.0.11 */
-async function deepScanProjectsLoop() {
-  showConfirmBox(false);
-
-  isProjectsDeepScanning = true;
-  btnCancelProjectsScan && (btnCancelProjectsScan.hidden = false);
-
-  setProjectsStatus("Deep scanning projects…");
-  setBusy(true);
-
-  const limit = getScanLimit();
-
-  const res = await chrome.runtime
-    .sendMessage({
-      type: MSG.PROJECT_DEEP_SCAN_START,
-      options: { limit, perProjectTimeoutMs: 12000, delayMs: 350 },
-    })
-    .catch(() => null);
-
-  isProjectsDeepScanning = false;
-  btnCancelProjectsScan && (btnCancelProjectsScan.hidden = true);
-
-  setBusy(false);
-
-  if (!res) {
-    setProjectsStatus("Deep scan failed (no response).");
-    return;
-  }
-
-  if (!res.ok) {
-    setProjectsStatus(`Deep scan failed: ${res.error}`);
-    return;
-  }
-
-  const projects: ProjectItem[] = res.projects || [];
-  renderProjects(projects);
-
-  const note = res.note ? ` (${res.note})` : "";
-  const partial = res.partial ? " (partial)" : "";
-  setProjectsStatus(`Done: ${projects.length} project(s)${partial}${note}`);
-}
-
-/* v0.0.11 */
-async function cancelProjectsDeepScan() {
-  if (!isProjectsDeepScanning) return;
-  await chrome.runtime.sendMessage({ type: MSG.PROJECT_DEEP_SCAN_CANCEL }).catch(() => null);
-  setProjectsStatus("Cancel requested…");
-}
-
 /* -----------------------------------------------------------
- * Projects view — NEW v0.0.8, modif v0.0.9
+ * Projects rendering + listing
  * ----------------------------------------------------------- */
 
 function renderProjects(projects: ProjectItem[]) {
-  if (!projectsListEl) return;
+  projectsCountEl.textContent = String(projects.length);
   projectsListEl.innerHTML = "";
 
   for (const p of projects) {
     const li = document.createElement("li");
     li.className = "projectCard";
-
 
     const header = document.createElement("div");
     header.style.display = "grid";
@@ -645,27 +435,13 @@ function renderProjects(projects: ProjectItem[]) {
 
     header.appendChild(title);
     header.appendChild(link);
-
-    // Expandable conversations list
-    const details = document.createElement("details");
-    details.style.marginTop = "6px";
-
-    const summary = document.createElement("summary");
-    summary.textContent = "Show conversations";
-    summary.style.cursor = "pointer";
-    summary.style.userSelect = "none";
-
-    const ul = document.createElement("ul");
-    ul.className = "list";
-    ul.style.marginTop = "8px";
-
     li.appendChild(header);
 
     const convos: ConversationItem[] = p.conversations || [];
     if (!convos.length) {
       const hint = document.createElement("div");
       hint.className = "status";
-      hint.textContent = "Conversations not visible here (ChatGPT overlay only lists projects).";
+      hint.textContent = "No conversations found for this project.";
       li.appendChild(hint);
     } else {
       const details = document.createElement("details");
@@ -673,8 +449,6 @@ function renderProjects(projects: ProjectItem[]) {
 
       const summary = document.createElement("summary");
       summary.textContent = "Show conversations";
-      summary.style.cursor = "pointer";
-      summary.style.userSelect = "none";
 
       const ul = document.createElement("ul");
       ul.className = "list";
@@ -711,18 +485,22 @@ function renderProjects(projects: ProjectItem[]) {
   }
 }
 
-async function refreshProjects(openAll = false) {
+async function listProjects() {
+  const limit = readLimit(projectsLimitEl, 50);
+
+  setBusy(true);
   setProjectsStatus("Loading…");
 
   const res = await chrome.runtime
-    .sendMessage({ type: MSG.LIST_PROJECTS, openAll })
+    .sendMessage({ type: MSG.LIST_GIZMO_PROJECTS, limit, conversationsPerGizmo: 5, ownedOnly: true })
     .catch(() => null);
+
+  setBusy(false);
 
   if (!res) {
     setProjectsStatus("Failed (no response).");
     return;
   }
-
   if (!res.ok) {
     setProjectsStatus(`Failed: ${res.error}`);
     return;
@@ -730,47 +508,81 @@ async function refreshProjects(openAll = false) {
 
   const projects: ProjectItem[] = res.projects || [];
   renderProjects(projects);
-
-  const note = res.note ? ` (${res.note})` : "";
-  setProjectsStatus(`Done: ${projects.length} project(s)${note}`);
+  setProjectsStatus(`Done: ${projects.length} project(s)`);
 }
-
-
-async function onAddProject() {
-  const name = (projectNameEl.value || "").trim();
-  const notes = (projectNotesEl.value || "").trim();
-
-  if (!name) {
-    setProjectsStatus("Project name is required.");
-    return;
-  }
-
-  try {
-    setProjectsStatus("Adding…");
-    await addProject({ name, notes });
-    projectNameEl.value = "";
-    projectNotesEl.value = "";
-    await refreshProjects();
-    setProjectsStatus("Added.");
-  } catch (e: any) {
-    setProjectsStatus(`Error: ${e?.message || "failed"}`);
-  }
-}
-
-
- 
 
 /* -----------------------------------------------------------
- * Message listener (progress events)
+ * Toggle all
+ * ----------------------------------------------------------- */
+
+function selectAllVisible() {
+  for (const c of lastConvos) selected.add(c.id);
+  updateSelectedCount();
+  updateToggleAllState();
+  syncListSelectionStyles();
+}
+
+function selectNoneVisible() {
+  for (const c of lastConvos) selected.delete(c.id);
+  updateSelectedCount();
+  updateToggleAllState();
+  syncListSelectionStyles();
+}
+
+function toggleAllVisible() {
+  const selectedInList = lastConvos.filter((c) => selected.has(c.id)).length;
+  if (selectedInList === lastConvos.length) selectNoneVisible();
+  else selectAllVisible();
+}
+
+function syncListSelectionStyles() {
+  const items = Array.from(listEl.querySelectorAll<HTMLLIElement>("li.item"));
+  for (const li of items) {
+    const id = li.dataset["id"];
+    if (!id) continue;
+
+    const checked = selected.has(id);
+    li.classList.toggle("selected", checked);
+
+    const cb = li.querySelector<HTMLInputElement>("input.deleteCb");
+    if (cb) cb.checked = checked;
+  }
+}
+
+/* -----------------------------------------------------------
+ * Message listener (events)
  * ----------------------------------------------------------- */
 
 chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
-  if ((msg as any)?.type === MSG.DEEP_SCAN_PROGRESS) {
+  // chats listing progress
+  if ((msg as any)?.type === MSG.LIST_ALL_CHATS_PROGRESS) {
     const m = msg as any;
-    onDeepScanProgress(Number(m.found || 0), Number(m.step || 0));
+    setScanOut(`Loading… ${Number(m.found || 0)} collected (offset ${Number(m.offset || 0)})`);
+    return;
+  }
+  if ((msg as any)?.type === MSG.LIST_ALL_CHATS_DONE) {
+    const m = msg as any;
+    setScanOut(`Done · ${Number(m.total || 0)} collected · elapsed ${formatMs(Number(m.elapsedMs || 0))}`);
     return;
   }
 
+  // projects progress
+  if ((msg as any)?.type === MSG.LIST_GIZMO_PROJECTS_PROGRESS) {
+    const m = msg as any;
+    setProjectsStatus(`Scanning… projects ${Number(m.foundProjects || 0)} · convos ${Number(m.foundConversations || 0)}`);
+    return;
+  }
+  if ((msg as any)?.type === MSG.LIST_GIZMO_PROJECTS_DONE) {
+    const m = msg as any;
+    setProjectsStatus(
+      `Done: ${Number(m.totalProjects || 0)} project(s) · ${Number(m.totalConversations || 0)} convos · elapsed ${formatMs(
+        Number(m.elapsedMs || 0)
+      )}`
+    );
+    return;
+  }
+
+  // execute delete progress
   if ((msg as any)?.type === MSG.EXECUTE_DELETE_PROGRESS) {
     const m = msg as any;
 
@@ -798,7 +610,9 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
     const line =
       ok
         ? `✓ ${title} (${id.slice(0, 8)}) — ${status ?? "OK"} — ${formatMs(lastOpMs)} — elapsed ${formatMs(elapsedMs)}`
-        : `✗ ${title} (${id.slice(0, 8)}) — ${status ?? "ERR"} — attempt ${attempt} — ${error || "failed"} — elapsed ${formatMs(elapsedMs)}`;
+        : `✗ ${title} (${id.slice(0, 8)}) — ${status ?? "ERR"} — attempt ${attempt} — ${error || "failed"} — elapsed ${formatMs(
+            elapsedMs
+          )}`;
 
     appendExecOut(line);
 
@@ -834,58 +648,38 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
     execRunId = null;
     return;
   }
-
-
-    /* v0.0.11 — project scan progress */
-  if ((msg as any)?.type === MSG.PROJECT_DEEP_SCAN_PROGRESS) {
-    const m = msg as any;
-    const idx = Number(m.projectIndex || 0);
-    const total = Number(m.projectTotal || 0);
-    const found = Number(m.conversationsFound || 0);
-    const step = String(m.step || "");
-
-    setProjectsStatus(`${step} · ${idx}/${total} · chats ${found}`);
-    return;
-  }
-
 });
 
 /* -----------------------------------------------------------
  * Listeners
  * ----------------------------------------------------------- */
 
-// Tabs — NEW v0.0.8
 tabDelete.addEventListener("click", () => switchTab("delete"));
 tabProjects.addEventListener("click", () => switchTab("projects"));
 
-// Projects — NEW v0.0.8
-btnAddProject.addEventListener("click", () => onAddProject().catch(() => null));
+btnListAllChats.addEventListener("click", () => {
+  if (isBusy) return;
+  setStatus("Idle");
+  listAllChats().catch((e) => {
+    console.error(e);
+    setStatus("Error");
+    setScanOut("List crashed. See console.");
+    setBusy(false);
+  });
+});
 
-// Delete view existing listeners
+btnListProjects.addEventListener("click", () => {
+  if (isBusy) return;
+  listProjects().catch((e) => {
+    console.error(e);
+    setProjectsStatus("Error");
+    setBusy(false);
+  });
+});
+
 cbToggleAll.addEventListener("change", () => {
   if (isBusy) return;
   toggleAllVisible();
-});
-
-btnScan.addEventListener("click", () => {
-  if (isBusy) return;
-  scan().catch((e) => {
-    console.error(e);
-    setStatus("Error");
-  });
-});
-
-btnDeepScan.addEventListener("click", () => {
-  if (isBusy) return;
-  deepScan().catch((e) => {
-    console.error(e);
-    setStatus("Error");
-    setScanOut("Deep scan crashed. See console.");
-  });
-});
-
-btnCancelScan.addEventListener("click", () => {
-  cancelDeepScan().catch(() => null);
 });
 
 btnExecuteDelete.addEventListener("click", () => {
@@ -899,28 +693,6 @@ btnCancelExecute.addEventListener("click", () => {
   cbToggleAll.disabled = isBusy;
   const cbs = Array.from(listEl.querySelectorAll<HTMLInputElement>("input.deleteCb"));
   for (const cb of cbs) cb.disabled = isBusy;
-});
-
-/* v0.0.11 */
-btnListProjectsVisible?.addEventListener("click", () => {
-  refreshProjects(false).catch((e) => {
-    console.error(e);
-    setProjectsStatus("Error");
-  });
-});
-
-/* v0.0.11 */
-btnDeepScanProjects?.addEventListener("click", () => {
-  if (isBusy) return;
-  deepScanProjectsLoop().catch((e) => {
-    console.error(e);
-    setProjectsStatus("Error");
-  });
-});
-
-/* v0.0.11 */
-btnCancelProjectsScan?.addEventListener("click", () => {
-  cancelProjectsDeepScan().catch(() => null);
 });
 
 btnConfirmExecute.addEventListener("click", () => {
@@ -943,15 +715,6 @@ btnConfirmExecute.addEventListener("click", () => {
   });
 });
 
-
-btnLoadAllProjects?.addEventListener("click", () => {
-  refreshProjects(true).catch((e) => {
-    console.error(e);
-    setProjectsStatus("Error");
-  });
-});
-
-
 /* -----------------------------------------------------------
  * Boot
  * ----------------------------------------------------------- */
@@ -960,11 +723,6 @@ btnLoadAllProjects?.addEventListener("click", () => {
   const tab = await getActiveTab();
   setTabUI(tab);
 
-  // Always scan on open (delete tab feels “alive”)
-  scan().catch(() => setStatus("Idle"));
-
-  // If landing on projects tab, load them
-  if (tab === "projects") {
-    await refreshProjects(false);
-  }
+  // optional: auto-load chats on open
+  setStatus("Idle");
 })();

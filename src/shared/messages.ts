@@ -1,141 +1,59 @@
 // src/shared/messages.ts
-
 import type { ConversationItem, ProjectItem } from "./types";
 
 export const MSG = {
   PING: "CGO_PING",
-  LIST_CONVERSATIONS: "CGO_LIST_CONVERSATIONS",
 
-  // Kept (UI hidden in v0.0.6+)
-  DRY_RUN_DELETE: "CGO_DRY_RUN_DELETE",
+  // v0.0.12 — list all chats via backend-api/conversations
+  LIST_ALL_CHATS: "CGO_LIST_ALL_CHATS",
+  LIST_ALL_CHATS_PROGRESS: "CGO_LIST_ALL_CHATS_PROGRESS",
+  LIST_ALL_CHATS_DONE: "CGO_LIST_ALL_CHATS_DONE",
 
   // Execute delete
   EXECUTE_DELETE: "CGO_EXECUTE_DELETE",
 
-  // Deep scan (v0.0.6)
-  DEEP_SCAN_START: "CGO_DEEP_SCAN_START",
-  DEEP_SCAN_CANCEL: "CGO_DEEP_SCAN_CANCEL",
-  DEEP_SCAN_PROGRESS: "CGO_DEEP_SCAN_PROGRESS",
-
-  // NEW v0.0.7: execute progress events
+  // Execute delete progress events
   EXECUTE_DELETE_PROGRESS: "CGO_EXECUTE_DELETE_PROGRESS",
   EXECUTE_DELETE_DONE: "CGO_EXECUTE_DELETE_DONE",
 
-
-  // NEW v0.0.9
-  LIST_PROJECTS: "CGO_LIST_PROJECTS",
-
-    /* v0.0.11 */
-  PROJECT_DEEP_SCAN_START: "CGO_PROJECT_DEEP_SCAN_START",
-  PROJECT_DEEP_SCAN_CANCEL: "CGO_PROJECT_DEEP_SCAN_CANCEL",
-  PROJECT_DEEP_SCAN_PROGRESS: "CGO_PROJECT_DEEP_SCAN_PROGRESS",
-
-
+  // v0.0.12 — projects via gizmos/snorlax backend
+  LIST_GIZMO_PROJECTS: "CGO_LIST_GIZMO_PROJECTS",
+  LIST_GIZMO_PROJECTS_PROGRESS: "CGO_LIST_GIZMO_PROJECTS_PROGRESS",
+  LIST_GIZMO_PROJECTS_DONE: "CGO_LIST_GIZMO_PROJECTS_DONE",
 } as const;
 
-/* -----------------------------------------------------------
- * PING
- * ----------------------------------------------------------- */
-
+/* PING */
 export type PingRequest = { type: typeof MSG.PING };
 export type PingResponse = { ok: true };
 
-/* -----------------------------------------------------------
- * LIST (quick scan)
- * ----------------------------------------------------------- */
-
-export type ListConversationsRequest = { type: typeof MSG.LIST_CONVERSATIONS };
-
-export type ListConversationsResponse =
-  | { ok: true; conversations: ConversationItem[] }
-  | { ok: false; error: string };
-
-/* -----------------------------------------------------------
- * DEEP SCAN
- * ----------------------------------------------------------- */
-
-export type DeepScanStartRequest = {
-  type: typeof MSG.DEEP_SCAN_START;
-  options?: {
-    maxSteps?: number;
-    stepDelayMs?: number;
-    noNewLimit?: number;
-  };
+/* v0.0.12 — LIST ALL CHATS */
+export type ListAllChatsRequest = {
+  type: typeof MSG.LIST_ALL_CHATS;
+  limit?: number; // default 50
+  pageSize?: number; // default 50
 };
 
-export type DeepScanStartResponse =
-  | { ok: true; conversations: ConversationItem[] }
+export type ListAllChatsResponse =
+  | { ok: true; conversations: ConversationItem[]; total?: number }
   | { ok: false; error: string };
 
-export type DeepScanCancelRequest = { type: typeof MSG.DEEP_SCAN_CANCEL };
-export type DeepScanCancelResponse = { ok: true };
-
-export type DeepScanProgressEvent = {
-  type: typeof MSG.DEEP_SCAN_PROGRESS;
+export type ListAllChatsProgressEvent = {
+  type: typeof MSG.LIST_ALL_CHATS_PROGRESS;
   found: number;
-  step: number;
+  offset: number;
 };
 
-/* -----------------------------------------------------------
- * v0.0.11 — PROJECT DEEP SCAN (loop)
- * ----------------------------------------------------------- */
-
-export type ProjectDeepScanStartRequest = {
-  type: typeof MSG.PROJECT_DEEP_SCAN_START;
-  options?: {
-    limit?: number;        // default 50
-    perProjectTimeoutMs?: number; // default 12000
-    delayMs?: number;      // default 350
-  };
+export type ListAllChatsDoneEvent = {
+  type: typeof MSG.LIST_ALL_CHATS_DONE;
+  total: number;
+  elapsedMs: number;
 };
 
-export type ProjectDeepScanStartResponse =
-  | { ok: true; projects: ProjectItem[]; note?: string; partial?: boolean }
-  | { ok: false; error: string };
-
-export type ProjectDeepScanCancelRequest = { type: typeof MSG.PROJECT_DEEP_SCAN_CANCEL };
-export type ProjectDeepScanCancelResponse = { ok: true };
-
-export type ProjectDeepScanProgressEvent = {
-  type: typeof MSG.PROJECT_DEEP_SCAN_PROGRESS;
-  projectIndex: number;   // 1-based
-  projectTotal: number;
-  conversationsFound: number;
-  step: string;           // human readable
-};
-
-/* -----------------------------------------------------------
- * DRY RUN
- * ----------------------------------------------------------- */
-
-export type DryRunDeleteRequest = {
-  type: typeof MSG.DRY_RUN_DELETE;
-  ids: string[];
-};
-
-export type DryRunDeleteResponse =
-  | {
-      ok: true;
-      loggedIn: boolean;
-      meHint?: string;
-      note: string;
-      requests: Array<{
-        method: "PATCH";
-        url: string;
-        headers: Record<string, string>;
-        body: unknown;
-      }>;
-    }
-  | { ok: false; error: string };
-
-/* -----------------------------------------------------------
- * EXECUTE DELETE
- * ----------------------------------------------------------- */
-
+/* EXECUTE DELETE */
 export type ExecuteDeleteRequest = {
   type: typeof MSG.EXECUTE_DELETE;
   ids: string[];
-  throttleMs?: number; // base delay (backend may enforce slower)
+  throttleMs?: number;
 };
 
 export type ExecuteDeleteResponse =
@@ -154,22 +72,18 @@ export type ExecuteDeleteResponse =
     }
   | { ok: false; error: string };
 
-/* -----------------------------------------------------------
- * NEW v0.0.7: Execute delete progress events (fire-and-forget)
- * ----------------------------------------------------------- */
-
 export type ExecuteDeleteProgressEvent = {
   type: typeof MSG.EXECUTE_DELETE_PROGRESS;
   runId: string;
-  i: number; // 1-based index
+  i: number;
   total: number;
   id: string;
   ok: boolean;
   status?: number;
   error?: string;
   attempt: number;
-  elapsedMs: number; // total run elapsed
-  lastOpMs: number;  // duration of this PATCH attempt (best effort)
+  elapsedMs: number;
+  lastOpMs: number;
 };
 
 export type ExecuteDeleteDoneEvent = {
@@ -182,55 +96,48 @@ export type ExecuteDeleteDoneEvent = {
   throttleMs: number;
 };
 
-
-// NEW v0.0.9
-export type ListProjectsRequest = {
-  type: typeof MSG.LIST_PROJECTS;
-  openAll?: boolean; // auto-open "See more" / full projects overlay
+/* v0.0.12 — LIST PROJECTS (GIZMOS) */
+export type ListGizmoProjectsRequest = {
+  type: typeof MSG.LIST_GIZMO_PROJECTS;
+  limit?: number; // default 50
+  conversationsPerGizmo?: number; // default 5 (seed)
+  ownedOnly?: boolean; // default true
 };
 
-export type ListProjectsResponse =
-  | { ok: true; projects: ProjectItem[]; note?: string }
+export type ListGizmoProjectsResponse =
+  | { ok: true; projects: ProjectItem[] }
   | { ok: false; error: string };
 
- 
-/* v0.0.11 */ 
-/* -----------------------------------------------------------
- * Unions
- * ----------------------------------------------------------- */
+export type ListGizmoProjectsProgressEvent = {
+  type: typeof MSG.LIST_GIZMO_PROJECTS_PROGRESS;
+  foundProjects: number;
+  foundConversations: number;
+};
 
+export type ListGizmoProjectsDoneEvent = {
+  type: typeof MSG.LIST_GIZMO_PROJECTS_DONE;
+  totalProjects: number;
+  totalConversations: number;
+  elapsedMs: number;
+};
+
+/* Unions */
 export type AnyRequest =
   | PingRequest
-  | ListConversationsRequest
-  | DeepScanStartRequest
-  | DeepScanCancelRequest
-  | DryRunDeleteRequest
+  | ListAllChatsRequest
   | ExecuteDeleteRequest
-  // NEW v0.0.9
-  | ListProjectsRequest
-  /* v0.0.11 */
-  | ProjectDeepScanStartRequest
-  | ProjectDeepScanCancelRequest;
-;
+  | ListGizmoProjectsRequest;
 
 export type AnyResponse =
   | PingResponse
-  | ListConversationsResponse
-  | DeepScanStartResponse
-  | DeepScanCancelResponse
-  | DryRunDeleteResponse
+  | ListAllChatsResponse
   | ExecuteDeleteResponse
-  // NEW v0.0.9
-  | ListProjectsResponse
-  /* v0.0.11 */
-  | ProjectDeepScanStartResponse
-  | ProjectDeepScanCancelResponse;
-;
+  | ListGizmoProjectsResponse;
 
-// Convenience union for panel listeners (events)
 export type AnyEvent =
-  | DeepScanProgressEvent
+  | ListAllChatsProgressEvent
+  | ListAllChatsDoneEvent
   | ExecuteDeleteProgressEvent
   | ExecuteDeleteDoneEvent
-  /* v0.0.11 */
-  | ProjectDeepScanProgressEvent;
+  | ListGizmoProjectsProgressEvent
+  | ListGizmoProjectsDoneEvent;

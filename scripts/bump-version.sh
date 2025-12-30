@@ -47,7 +47,19 @@ if [[ -f dist/manifest.json ]]; then
   '
 fi
 
-git add VERSION manifest.json dist/manifest.json 2>/dev/null || true
+# Update package.json 
+if [[ -f package.json ]]; then
+  node -e '
+    const fs = require("fs");
+    const v = fs.readFileSync("VERSION","utf8").trim();
+    const p = "package.json";
+    const j = JSON.parse(fs.readFileSync(p,"utf8"));
+    j.version = v;
+    fs.writeFileSync(p, JSON.stringify(j, null, 2) + "\n");
+  '
+fi
+
+git add VERSION manifest.json dist/manifest.json package.json 2>/dev/null || true
 git commit -m "chore(version): bump to ${new}"
 
 echo "Bumped: $old -> $new"

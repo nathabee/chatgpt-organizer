@@ -1,13 +1,12 @@
 // src/background.ts
-
 import { MSG, type AnyRequest, type AnyResponse } from "./shared/messages";
+import type { ConversationItem, ProjectItem } from "./shared/types";
 
 /* -----------------------------------------------------------
  * URL / tab helpers
  * ----------------------------------------------------------- */
 
 function isChatGPTUrl(url?: string): boolean {
-  // Keep strict to manifest (host_permissions only chatgpt.com)
   return !!url && url.startsWith("https://chatgpt.com/");
 }
 
@@ -15,13 +14,6 @@ async function getActiveChatGPTTab(): Promise<chrome.tabs.Tab | null> {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (!tab || !isChatGPTUrl(tab.url)) return null;
   return tab;
-}
-
-async function sendToTab<TReq extends AnyRequest, TRes extends AnyResponse>(
-  tabId: number,
-  msg: TReq
-): Promise<TRes> {
-  return (await chrome.tabs.sendMessage(tabId, msg)) as TRes;
 }
 
 function sleep(ms: number) {
@@ -89,7 +81,7 @@ async function deleteConversation(
 }
 
 /* -----------------------------------------------------------
- * NEW v0.0.7: retry/backoff wrapper for delete
+ * v0.0.7 retry/backoff wrapper for delete
  * ----------------------------------------------------------- */
 
 async function deleteWithRetry(
@@ -97,7 +89,7 @@ async function deleteWithRetry(
   id: string,
   throttleMs: number
 ): Promise<{ ok: boolean; status?: number; error?: string; attempt: number; lastOpMs: number }> {
-  const maxAttempts = 3; // attempt 1 + retries
+  const maxAttempts = 3;
   let attempt = 1;
 
   while (attempt <= maxAttempts) {
@@ -108,35 +100,267 @@ async function deleteWithRetry(
     if (r.ok) return { ...r, attempt, lastOpMs };
 
     const status = r.status;
-
-    // Decide whether to retry
     const is429 = status === 429;
     const is5xx = typeof status === "number" && status >= 500 && status <= 599;
     const isNetworkish = !status && !!r.error;
 
     const canRetry =
       (is429 && attempt < maxAttempts) ||
-      (is5xx && attempt < 2) || // retry once for 5xx
-      (isNetworkish && attempt < 2); // retry once for network error
+      (is5xx && attempt < 2) ||
+      (isNetworkish && attempt < 2);
 
     if (!canRetry) return { ...r, attempt, lastOpMs };
 
-    // Backoff strategy
     let backoffMs = throttleMs;
-
     if (is429) backoffMs = randInt(5000, 15000);
     else if (is5xx) backoffMs = randInt(2000, 5000);
     else if (isNetworkish) backoffMs = randInt(1000, 3000);
 
-    // Add some jitter always
     backoffMs += randInt(0, 400);
 
     await sleep(backoffMs);
     attempt++;
   }
 
-  // Shouldn't reach
   return { ok: false, error: "Retry loop exhausted", attempt: maxAttempts, lastOpMs: 0 };
+}
+
+/* -----------------------------------------------------------
+ * v0.0.12 backend helpers (list chats + projects)
+ * ----------------------------------------------------------- */
+
+async function fetchJsonAuthed<T>(url: string, accessToken: string): Promise<T> {
+  const resp = await fetch(url, {
+    method: "GET",
+    credentials: "include",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!resp.ok) {
+    const txt = await resp.text().catch(() => "");
+    throw new Error(txt || `HTTP ${resp.status}`);
+  }
+
+  return (await resp.json()) as T;
+}
+
+function convoToItem(c: any): ConversationItem | null {
+  const id = String(c?.id || "");
+  if (!id) return null;
+  const title = String(c?.title || "").trim() || "Untitled";
+  return { id, title, href: `https://chatgpt.com/c/${id}` };
+}
+
+async function listAllChatsBackend(args: {
+  accessToken: string;
+  limit: number;
+  pageSize: number;
+}): Promise<{ conversations: ConversationItem[]; total?: number }> {
+  const { accessToken, limit, pageSize } = args;
+
+  const collected = new Map<string, ConversationItem>();
+  let offset = 0;
+  let total: number | undefined;
+
+  const t0 = nowMs();
+  let safety = 0;
+
+  while (collected.size < limit && safety < 200) {
+    safety++;
+
+    const pageLimit = Math.max(1, Math.min(100, pageSize));
+    const url =
+      `https://chatgpt.com/backend-api/conversations` +
+      `?offset=${offset}` +
+      `&limit=${pageLimit}` +
+      `&order=updated` +
+      `&is_archived=false` +
+      `&is_starred=false`;
+
+    const data = await fetchJsonAuthed<any>(url, accessToken);
+
+    if (typeof data?.total === "number") total = data.total;
+
+    const items = Array.isArray(data?.items) ? data.items : [];
+    if (!items.length) break;
+
+    for (const c of items) {
+      const it = convoToItem(c);
+      if (!it) continue;
+      collected.set(it.id, it);
+      if (collected.size >= limit) break;
+    }
+
+    offset += items.length;
+
+    chrome.runtime.sendMessage({
+      type: MSG.LIST_ALL_CHATS_PROGRESS,
+      found: collected.size,
+      offset,
+    });
+
+    // If server returns less than requested, no more pages.
+    if (items.length < pageLimit) break;
+
+    // polite delay
+    await sleep(90 + randInt(0, 120));
+  }
+
+  chrome.runtime.sendMessage({
+    type: MSG.LIST_ALL_CHATS_DONE,
+    total: collected.size,
+    elapsedMs: nowMs() - t0,
+  });
+
+  return { conversations: Array.from(collected.values()), total };
+}
+
+async function fetchGizmosSnorlaxSidebarPaged(args: {
+  accessToken: string;
+  limitProjects: number;
+  conversationsPerGizmo: number;
+  ownedOnly: boolean;
+}): Promise<
+  Array<{
+    gizmoId: string;
+    title: string;
+    href: string;
+  }>
+> {
+  const { accessToken, limitProjects, conversationsPerGizmo, ownedOnly } = args;
+
+  const out: Array<{ gizmoId: string; title: string; href: string }> = [];
+
+  let cursor: string | null = null;
+  let safety = 0;
+
+  while (out.length < limitProjects && safety < 80) {
+    safety++;
+
+    const url =
+      `https://chatgpt.com/backend-api/gizmos/snorlax/sidebar` +
+      `?conversations_per_gizmo=${encodeURIComponent(String(conversationsPerGizmo))}` +
+      `&owned_only=${ownedOnly ? "true" : "false"}` +
+      (cursor ? `&cursor=${encodeURIComponent(cursor)}` : "");
+
+    const data = await fetchJsonAuthed<any>(url, accessToken);
+
+    const items = Array.isArray(data?.items) ? data.items : [];
+    for (const it of items) {
+      const gizmo = it?.gizmo?.gizmo;
+      const gizmoId = String(gizmo?.id || "");
+      if (!gizmoId) continue;
+
+      const title =
+        String(gizmo?.display?.name || gizmo?.short_url || gizmoId).trim() || "Untitled";
+
+      const shortUrl = String(gizmo?.short_url || "").trim();
+      const href = shortUrl ? `https://chatgpt.com/g/${shortUrl}` : `https://chatgpt.com/`;
+
+      out.push({ gizmoId, title, href });
+      if (out.length >= limitProjects) break;
+    }
+
+    const nextCursor = typeof data?.cursor === "string" ? data.cursor : null;
+    if (!nextCursor) break;
+    cursor = nextCursor;
+  }
+
+  return out.slice(0, limitProjects);
+}
+
+async function fetchGizmoConversationsPaged(args: {
+  accessToken: string;
+  gizmoId: string;
+  limitConversations: number;
+}): Promise<ConversationItem[]> {
+  const { accessToken, gizmoId, limitConversations } = args;
+
+  const convos = new Map<string, ConversationItem>();
+  let cursor: string | null = null;
+  let safety = 0;
+
+  while (convos.size < limitConversations && safety < 120) {
+    safety++;
+
+    const url =
+      `https://chatgpt.com/backend-api/gizmos/${encodeURIComponent(gizmoId)}/conversations` +
+      (cursor ? `?cursor=${encodeURIComponent(cursor)}` : "");
+
+    const data = await fetchJsonAuthed<any>(url, accessToken);
+
+    const items = Array.isArray(data?.items) ? data.items : [];
+    for (const c of items) {
+      const it = convoToItem(c);
+      if (!it) continue;
+      if (it) convos.set(it.id, it);
+      if (convos.size >= limitConversations) break;
+    }
+
+    const next = typeof data?.cursor === "string" ? data.cursor : null;
+    if (!next || next === cursor) break;
+    cursor = next;
+
+    if (!items.length) break;
+
+    await sleep(90 + randInt(0, 120));
+  }
+
+  return Array.from(convos.values());
+}
+
+async function listGizmoProjectsWithConversations(args: {
+  accessToken: string;
+  limitProjects: number;
+  conversationsPerGizmo: number;
+}): Promise<ProjectItem[]> {
+  const { accessToken, limitProjects, conversationsPerGizmo } = args;
+
+  const gizmos = await fetchGizmosSnorlaxSidebarPaged({
+    accessToken,
+    limitProjects,
+    conversationsPerGizmo,
+    ownedOnly: true,
+  });
+
+  const projects: ProjectItem[] = [];
+  let totalConversations = 0;
+  const t0 = nowMs();
+
+  for (let i = 0; i < gizmos.length; i++) {
+    const g = gizmos[i];
+    const conversations = await fetchGizmoConversationsPaged({
+      accessToken,
+      gizmoId: g.gizmoId,
+      limitConversations: 5000, // safety cap per project
+    });
+
+    totalConversations += conversations.length;
+
+    projects.push({
+      key: g.gizmoId,
+      title: g.title,
+      href: g.href,
+      conversations,
+    });
+
+    chrome.runtime.sendMessage({
+      type: MSG.LIST_GIZMO_PROJECTS_PROGRESS,
+      foundProjects: i + 1,
+      foundConversations: totalConversations,
+    });
+
+    await sleep(120 + randInt(0, 180));
+  }
+
+  chrome.runtime.sendMessage({
+    type: MSG.LIST_GIZMO_PROJECTS_DONE,
+    totalProjects: projects.length,
+    totalConversations,
+    elapsedMs: nowMs() - t0,
+  });
+
+  return projects;
 }
 
 /* -----------------------------------------------------------
@@ -144,6 +368,8 @@ async function deleteWithRetry(
  * ----------------------------------------------------------- */
 
 let executeRunning = false;
+let listChatsRunning = false;
+let listProjectsRunning = false;
 
 /* -----------------------------------------------------------
  * Message handler
@@ -156,89 +382,41 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       return;
     }
 
-    if (msg?.type === MSG.LIST_CONVERSATIONS) {
-      const tab = await getActiveChatGPTTab();
-      if (!tab?.id) {
-        sendResponse({ ok: false, error: "No active ChatGPT tab (chatgpt.com)." });
+    /* v0.0.12 — LIST ALL CHATS (backend) */
+    if (msg?.type === MSG.LIST_ALL_CHATS) {
+      if (listChatsRunning) {
+        sendResponse({ ok: false, error: "A chat listing is already running." } as any);
         return;
       }
+      listChatsRunning = true;
 
       try {
-        const res = await sendToTab(tab.id, msg);
-        sendResponse(res);
-      } catch {
-        sendResponse({
-          ok: false,
-          error: "Could not reach content script. Reload the ChatGPT tab, then try again.",
+        const session = await fetchSession();
+        if (!session.loggedIn || !session.accessToken) {
+          sendResponse({ ok: false, error: "Not logged in (no access token)." } as any);
+          return;
+        }
+
+        const limit = Math.max(1, Math.min(50000, Number((msg as any).limit ?? 50)));
+        const pageSize = Math.max(1, Math.min(100, Number((msg as any).pageSize ?? 50)));
+
+        const { conversations, total } = await listAllChatsBackend({
+          accessToken: session.accessToken,
+          limit,
+          pageSize,
         });
+
+        sendResponse({ ok: true, conversations, total } as any);
+        return;
+      } catch (e: any) {
+        sendResponse({ ok: false, error: e?.message || "Failed to list chats." } as any);
+        return;
+      } finally {
+        listChatsRunning = false;
       }
-      return;
     }
 
-    if (msg?.type === MSG.DEEP_SCAN_START || msg?.type === MSG.DEEP_SCAN_CANCEL) {
-      const tab = await getActiveChatGPTTab();
-      if (!tab?.id) {
-        sendResponse({ ok: false, error: "No active ChatGPT tab (chatgpt.com)." });
-        return;
-      }
-
-      try {
-        const res = await sendToTab(tab.id, msg as any);
-        sendResponse(res);
-      } catch {
-        // Deep scan cancel is best-effort
-        if (msg?.type === MSG.DEEP_SCAN_CANCEL) sendResponse({ ok: true } as any);
-        else
-          sendResponse({
-            ok: false,
-            error: "Could not reach content script. Reload the ChatGPT tab, then try again.",
-          } as any);
-      }
-      return;
-    }
-
-    if (msg?.type === MSG.DRY_RUN_DELETE) {
-      const ids = (msg.ids || []).filter(Boolean);
-      if (!ids.length) {
-        sendResponse({ ok: false, error: "No ids provided." } as any);
-        return;
-      }
-
-      const session = await fetchSession();
-      if (!session.loggedIn || !session.accessToken) {
-        sendResponse({
-          ok: true,
-          loggedIn: false,
-          meHint: session.meHint,
-          note: "Not logged in (or access token not available). Open chatgpt.com, ensure you are logged in, then retry.",
-          requests: [],
-        } as any);
-        return;
-      }
-
-      const requests = ids.map((id) => ({
-        method: "PATCH" as const,
-        url: `https://chatgpt.com/backend-api/conversation/${id}`,
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer <redacted>",
-        },
-        body: { is_visible: false },
-      }));
-
-      sendResponse({
-        ok: true,
-        loggedIn: true,
-        meHint: session.meHint,
-        note: "Dry-run only. Requests are prepared but NOT sent.",
-        requests,
-      } as any);
-      return;
-    }
-
-    /* -----------------------------------------------------------
-     * EXECUTE DELETE (real) — NEW v0.0.7 progress events + retry/backoff
-     * ----------------------------------------------------------- */
+    /* EXECUTE DELETE (unchanged logic) */
     if (msg?.type === MSG.EXECUTE_DELETE) {
       const ids = (msg.ids || []).filter(Boolean);
       if (!ids.length) {
@@ -252,7 +430,7 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       }
       executeRunning = true;
 
-      const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`; // NEW v0.0.7
+      const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
       const startedAt = nowMs();
 
       try {
@@ -260,7 +438,6 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
 
         const session = await fetchSession();
         if (!session.loggedIn || !session.accessToken) {
-          // Emit DONE so UI can settle even if panel relies on events
           chrome.runtime.sendMessage({
             type: MSG.EXECUTE_DELETE_DONE,
             runId,
@@ -283,14 +460,12 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
         }
 
         const results: Array<{ id: string; ok: boolean; status?: number; error?: string }> = [];
-
         let okCount = 0;
         let failCount = 0;
 
         for (let idx = 0; idx < ids.length; idx++) {
           const id = ids[idx];
 
-          // Base throttle between operations (backend may still force slower)
           if (idx > 0) {
             const jitter = randInt(0, 300);
             await sleep(throttleMs + jitter);
@@ -303,7 +478,6 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
           if (r.ok) okCount++;
           else failCount++;
 
-          // NEW v0.0.7: progress event after each id
           chrome.runtime.sendMessage({
             type: MSG.EXECUTE_DELETE_PROGRESS,
             runId,
@@ -319,7 +493,6 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
           });
         }
 
-        // NEW v0.0.7: done event
         chrome.runtime.sendMessage({
           type: MSG.EXECUTE_DELETE_DONE,
           runId,
@@ -330,7 +503,6 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
           throttleMs,
         });
 
-        // Keep final response (panel may ignore it, but useful for debugging)
         sendResponse({
           ok: true,
           loggedIn: true,
@@ -345,49 +517,43 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       }
     }
 
-    // NEW v0.0.9 — LIST PROJECTS (route to content script)
-    if (msg?.type === MSG.LIST_PROJECTS) {
-      const tab = await getActiveChatGPTTab();
-      if (!tab?.id) {
-        sendResponse({ ok: false, error: "No active ChatGPT tab (chatgpt.com)." });
+    /* v0.0.12 — LIST PROJECTS via gizmos/snorlax backend */
+    if (msg?.type === MSG.LIST_GIZMO_PROJECTS) {
+      if (listProjectsRunning) {
+        sendResponse({ ok: false, error: "A projects listing is already running." } as any);
         return;
       }
+      listProjectsRunning = true;
 
       try {
-        const res = await sendToTab(tab.id, msg);
-        sendResponse(res);
-      } catch {
-        sendResponse({
-          ok: false,
-          error: "Could not reach content script. Reload the ChatGPT tab, then try again.",
+        const session = await fetchSession();
+        if (!session.loggedIn || !session.accessToken) {
+          sendResponse({ ok: false, error: "Not logged in (no access token)." } as any);
+          return;
+        }
+
+        const limitProjects = Math.max(1, Math.min(5000, Number((msg as any).limit ?? 50)));
+        const conversationsPerGizmo = Math.max(
+          1,
+          Math.min(50, Number((msg as any).conversationsPerGizmo ?? 5))
+        );
+
+        const projects = await listGizmoProjectsWithConversations({
+          accessToken: session.accessToken,
+          limitProjects,
+          conversationsPerGizmo,
         });
-      }
-      return;
-    }
 
-    /* v0.0.11 — PROJECT DEEP SCAN */
-    if (msg?.type === MSG.PROJECT_DEEP_SCAN_START || msg?.type === MSG.PROJECT_DEEP_SCAN_CANCEL) {
-      const tab = await getActiveChatGPTTab();
-      if (!tab?.id) {
-        sendResponse({ ok: false, error: "No active ChatGPT tab (chatgpt.com)." } as any);
+        sendResponse({ ok: true, projects } as any);
         return;
+      } catch (e: any) {
+        sendResponse({ ok: false, error: e?.message || "Failed to list projects." } as any);
+        return;
+      } finally {
+        listProjectsRunning = false;
       }
-
-      try {
-        const res = await sendToTab(tab.id, msg as any);
-        sendResponse(res);
-      } catch {
-        if (msg?.type === MSG.PROJECT_DEEP_SCAN_CANCEL) sendResponse({ ok: true } as any);
-        else
-          sendResponse({
-            ok: false,
-            error: "Could not reach content script. Reload the ChatGPT tab, then try again.",
-          } as any);
-      }
-      return;
     }
 
-    // DEFAULT : ERROR 
     sendResponse({ ok: false, error: "Unknown message." } as any);
   })();
 

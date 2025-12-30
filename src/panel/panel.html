@@ -1,165 +1,115 @@
 <!-- src/panel/panel.html -->
 <!doctype html>
 <html>
-
-<head>
+  <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <link rel="stylesheet" href="./panel.css" />
     <title>ChatGPT Organizer</title>
-</head>
+  </head>
 
-<body>
+  <body>
     <div class="wrap">
-        <h1>ChatGPT Organizer</h1>
+      <h1>ChatGPT Organizer</h1>
 
-        <!-- NEW v0.0.8: tab bar -->
-        <div class="tabs" role="tablist" aria-label="CGO Tabs">
-            <button id="tabDelete" class="tab is-active" role="tab" aria-selected="true" type="button">
-                Delete
-            </button>
-            <button id="tabProjects" class="tab" role="tab" aria-selected="false" type="button">
-                Projects
-            </button>
+      <div class="tabs" role="tablist" aria-label="CGO Tabs">
+        <button id="tabDelete" class="tab is-active" role="tab" aria-selected="true" type="button">
+          Delete
+        </button>
+        <button id="tabProjects" class="tab" role="tab" aria-selected="false" type="button">
+          Projects
+        </button>
+      </div>
+
+      <!-- =========================
+           DELETE VIEW
+           ========================= -->
+      <section id="viewDelete" class="view is-active" role="tabpanel" aria-labelledby="tabDelete">
+        <p class="muted">List all chats via backend API (not the sidebar).</p>
+
+        <div class="row">
+          <div class="field field--inline">
+            <label for="deleteLimit">Limit</label>
+            <input id="deleteLimit" type="number" min="1" step="1" value="50" />
+          </div>
+
+          <button id="btnListAllChats" type="button">List all chats</button>
+          <span id="status" class="status">Idle</span>
         </div>
 
-        <!-- =========================
-             DELETE VIEW
-             ========================= -->
-        <section id="viewDelete" class="view is-active" role="tabpanel" aria-labelledby="tabDelete">
-            <p class="muted">
-                List conversations from the current ChatGPT tab (scraped).
-            </p>
+        <div class="row">
+          <div id="scanOut" class="status" aria-live="polite"></div>
+        </div>
 
-            <div class="row">
-                <!-- v0.0.11 -->
-                <label class="field" style="max-width:160px;">
-                    <span class="muted" style="display:block;margin-bottom:4px;">Limit</span>
-                    <select id="scanLimit">
-                        <option value="50" selected>50</option>
-                        <option value="100">100</option>
-                        <option value="200">200</option>
-                        <option value="400">400</option>
-                    </select>
-                </label>
+        <div class="row row--select">
+          <label class="toggleAll">
+            <input id="cbToggleAll" type="checkbox" />
+            Toggle all
+          </label>
+        </div>
 
-                <!-- v0.0.11 button naming cleanup -->
-                <button id="btnScan" type="button">List standalone chats (visible)</button>
-                <button id="btnDeepScan" type="button">List standalone chats (scroll)</button>
+        <div class="row row--danger">
+          <button id="btnExecuteDelete" type="button" class="danger">
+            Delete selected (execute)
+          </button>
+        </div>
 
-                <button id="btnCancelScan" type="button" hidden>Cancel</button>
-                <span id="status" class="status">Idle</span>
-            </div>
+        <pre id="execOut" class="report" aria-live="polite"></pre>
 
+        <div id="execProgressWrap" class="execProgressWrap" hidden>
+          <progress id="execProgress" value="0" max="100"></progress>
+          <div id="execProgressText" class="status"></div>
+        </div>
 
-            <div class="row">
-                <div id="scanOut" class="status" aria-live="polite"></div>
-            </div>
+        <div id="confirmBox" class="confirmBox" hidden>
+          <div class="confirmTitle" id="confirmTitle"></div>
+          <ul id="confirmPreview" class="confirmPreview"></ul>
 
-            <div class="row row--select">
-                <label class="toggleAll">
-                    <input id="cbToggleAll" type="checkbox" />
-                    Toggle all
-                </label>
-            </div>
+          <label class="confirm">
+            <input id="cbConfirm" type="checkbox" />
+            I understand this can’t be undone here.
+          </label>
 
-            <div class="row row--danger">
-                <button id="btnExecuteDelete" type="button" class="danger">
-                    Delete selected (execute)
-                </button>
-            </div>
+          <div class="row">
+            <button id="btnConfirmExecute" type="button" class="danger">Yes, delete</button>
+            <button id="btnCancelExecute" type="button">Cancel</button>
+          </div>
+        </div>
 
-            <!-- exec output / log -->
-            <pre id="execOut" class="report" aria-live="polite"></pre>
+        <div class="summary">
+          Found <span id="count">0</span> conversations · Selected for delete:
+          <span id="selectedCount">0</span>
+        </div>
 
-            <!-- execute progress UI -->
-            <div id="execProgressWrap" class="execProgressWrap" hidden>
-                <progress id="execProgress" value="0" max="100"></progress>
-                <div id="execProgressText" class="status"></div>
-            </div>
+        <ul id="list" class="list"></ul>
+      </section>
 
-            <div id="confirmBox" class="confirmBox" hidden>
-                <div class="confirmTitle" id="confirmTitle"></div>
-                <ul id="confirmPreview" class="confirmPreview"></ul>
+      <!-- =========================
+           PROJECTS VIEW
+           ========================= -->
+      <section id="viewProjects" class="view" role="tabpanel" aria-labelledby="tabProjects" hidden>
+        <p class="muted">
+          Projects are fetched via backend “gizmos/snorlax” APIs (no sidebar scraping).
+        </p>
 
-                <label class="confirm">
-                    <input id="cbConfirm" type="checkbox" />
-                    I understand this can’t be undone here.
-                </label>
+        <div class="row">
+          <div class="field field--inline">
+            <label for="projectsLimit">Projects limit</label>
+            <input id="projectsLimit" type="number" min="1" step="1" value="50" />
+          </div>
 
-                <div class="row">
-                    <button id="btnConfirmExecute" type="button" class="danger">
-                        Yes, delete
-                    </button>
-                    <button id="btnCancelExecute" type="button">
-                        Cancel
-                    </button>
-                </div>
-            </div>
+          <button id="btnListProjects" type="button">List projects</button>
+          <span id="projectsStatus" class="status">Idle</span>
+        </div>
 
-            <div class="summary">
-                Found <span id="count">0</span> conversations ·
-                Selected for delete: <span id="selectedCount">0</span>
-            </div>
+        <div class="summary">
+          Projects: <span id="projectsCount">0</span>
+        </div>
 
-            <ul id="list" class="list"></ul>
-        </section>
-
-        <!-- =========================
-             PROJECTS VIEW
-             ========================= -->
-        <section id="viewProjects" class="view" role="tabpanel" aria-labelledby="tabProjects" hidden>
-            <p class="muted">
-                Projects are stored locally in your browser (chrome.storage.local).
-            </p>
-
-            <!-- NEW v0.0.8: add project form -->
-            <div class="card">
-                <div class="row">
-                    <div class="field">
-                        <label for="projectName">Project name</label>
-                        <input id="projectName" type="text" placeholder="e.g. BeeLab" />
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="field">
-                        <label for="projectNotes">Notes (optional)</label>
-                        <textarea id="projectNotes" rows="3" placeholder="Short description…"></textarea>
-                    </div>
-                </div>
-
-                <div class="row">
-                    <button id="btnAddProject" type="button">Add project</button>
-                    <span id="projectsCrudStatus" class="status"></span>
-
-                </div>
-            </div>
-
-            <!-- NEW v0.0.8: projects list -->
-            <div class="summary">
-                Projects: <span id="projectsCount">0</span>
-            </div>
-
-            <div class="row">
-                <!-- v0.0.11 button naming cleanup -->
-                <button id="btnListProjectsVisible" type="button">List projects (visible)</button>
-                <button id="btnLoadAllProjects" type="button">List projects (overlay)</button>
-
-                <!-- v0.0.11 new -->
-                <button id="btnDeepScanProjects" type="button">Deep scan projects (loop)</button>
-                <button id="btnCancelProjectsScan" type="button" hidden>Cancel</button>
-
-                <span id="projectsStatus" class="status">Idle</span>
-            </div>
-
-
-            <ul id="projectsList" class="list"></ul>
-
-        </section>
+        <ul id="projectsList" class="list"></ul>
+      </section>
     </div>
 
     <script type="module" src="../panel.js"></script>
-</body>
-
+  </body>
 </html>
