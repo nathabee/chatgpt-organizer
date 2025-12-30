@@ -365,6 +365,27 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       return;
     }
 
+    /* v0.0.11 — PROJECT DEEP SCAN */
+    if (msg?.type === MSG.PROJECT_DEEP_SCAN_START || msg?.type === MSG.PROJECT_DEEP_SCAN_CANCEL) {
+      const tab = await getActiveChatGPTTab();
+      if (!tab?.id) {
+        sendResponse({ ok: false, error: "No active ChatGPT tab (chatgpt.com)." } as any);
+        return;
+      }
+
+      try {
+        const res = await sendToTab(tab.id, msg as any);
+        sendResponse(res);
+      } catch {
+        if (msg?.type === MSG.PROJECT_DEEP_SCAN_CANCEL) sendResponse({ ok: true } as any);
+        else
+          sendResponse({
+            ok: false,
+            error: "Could not reach content script. Reload the ChatGPT tab, then try again.",
+          } as any);
+      }
+      return;
+    }
 
     // DEFAULT : ERROR 
     sendResponse({ ok: false, error: "Unknown message." } as any);

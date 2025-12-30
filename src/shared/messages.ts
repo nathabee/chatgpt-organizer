@@ -25,6 +25,12 @@ export const MSG = {
   // NEW v0.0.9
   LIST_PROJECTS: "CGO_LIST_PROJECTS",
 
+    /* v0.0.11 */
+  PROJECT_DEEP_SCAN_START: "CGO_PROJECT_DEEP_SCAN_START",
+  PROJECT_DEEP_SCAN_CANCEL: "CGO_PROJECT_DEEP_SCAN_CANCEL",
+  PROJECT_DEEP_SCAN_PROGRESS: "CGO_PROJECT_DEEP_SCAN_PROGRESS",
+
+
 } as const;
 
 /* -----------------------------------------------------------
@@ -68,6 +74,34 @@ export type DeepScanProgressEvent = {
   type: typeof MSG.DEEP_SCAN_PROGRESS;
   found: number;
   step: number;
+};
+
+/* -----------------------------------------------------------
+ * v0.0.11 — PROJECT DEEP SCAN (loop)
+ * ----------------------------------------------------------- */
+
+export type ProjectDeepScanStartRequest = {
+  type: typeof MSG.PROJECT_DEEP_SCAN_START;
+  options?: {
+    limit?: number;        // default 50
+    perProjectTimeoutMs?: number; // default 12000
+    delayMs?: number;      // default 350
+  };
+};
+
+export type ProjectDeepScanStartResponse =
+  | { ok: true; projects: ProjectItem[]; note?: string; partial?: boolean }
+  | { ok: false; error: string };
+
+export type ProjectDeepScanCancelRequest = { type: typeof MSG.PROJECT_DEEP_SCAN_CANCEL };
+export type ProjectDeepScanCancelResponse = { ok: true };
+
+export type ProjectDeepScanProgressEvent = {
+  type: typeof MSG.PROJECT_DEEP_SCAN_PROGRESS;
+  projectIndex: number;   // 1-based
+  projectTotal: number;
+  conversationsFound: number;
+  step: string;           // human readable
 };
 
 /* -----------------------------------------------------------
@@ -160,6 +194,7 @@ export type ListProjectsResponse =
   | { ok: false; error: string };
 
  
+/* v0.0.11 */ 
 /* -----------------------------------------------------------
  * Unions
  * ----------------------------------------------------------- */
@@ -172,7 +207,10 @@ export type AnyRequest =
   | DryRunDeleteRequest
   | ExecuteDeleteRequest
   // NEW v0.0.9
-  | ListProjectsRequest;
+  | ListProjectsRequest
+  /* v0.0.11 */
+  | ProjectDeepScanStartRequest
+  | ProjectDeepScanCancelRequest;
 ;
 
 export type AnyResponse =
@@ -183,11 +221,16 @@ export type AnyResponse =
   | DryRunDeleteResponse
   | ExecuteDeleteResponse
   // NEW v0.0.9
-  | ListProjectsResponse;
+  | ListProjectsResponse
+  /* v0.0.11 */
+  | ProjectDeepScanStartResponse
+  | ProjectDeepScanCancelResponse;
 ;
 
 // Convenience union for panel listeners (events)
 export type AnyEvent =
   | DeepScanProgressEvent
   | ExecuteDeleteProgressEvent
-  | ExecuteDeleteDoneEvent;
+  | ExecuteDeleteDoneEvent
+  /* v0.0.11 */
+  | ProjectDeepScanProgressEvent;

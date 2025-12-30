@@ -38,6 +38,49 @@ function fireTrustedClick(el: HTMLElement) {
   el.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true, view: window }));
 }
 
+/* v0.0.11 */
+async function withTimeout<T>(ms: number, work: Promise<T>): Promise<T> {
+  let t: number | undefined;
+  const timeout = new Promise<never>((_, rej) => {
+    t = window.setTimeout(() => rej(new Error("timeout")), ms);
+  });
+  try {
+    return await Promise.race([work, timeout]);
+  } finally {
+    if (t) window.clearTimeout(t);
+  }
+}
+
+/* v0.0.11 */
+function jitter(ms: number, spread = 180): number {
+  return ms + Math.floor(Math.random() * spread);
+}
+
+/* v0.0.11 */
+function findProjectAnchorByHref(hrefAbs: string): HTMLAnchorElement | null {
+  const rel = (() => {
+    try {
+      const u = new URL(hrefAbs);
+      return u.pathname;
+    } catch {
+      return null;
+    }
+  })();
+
+  const anchors = Array.from(
+    document.querySelectorAll<HTMLAnchorElement>('a[data-sidebar-item="true"][href^="/g/"][href$="/project"]')
+  );
+
+  // Prefer absolute match (rare in DOM), then relative path match
+  for (const a of anchors) {
+    const h = a.getAttribute("href") || "";
+    if (normalizeHref(h) === hrefAbs) return a;
+    if (rel && h === rel) return a;
+  }
+
+  return null;
+}
+
 async function expandAllVisibleProjectsInSection(section: Element): Promise<number> {
   // Expand chevron is "button.icon" inside the project anchor
   const projectAnchors = Array.from(
@@ -63,7 +106,7 @@ async function expandAllVisibleProjectsInSection(section: Element): Promise<numb
   return clicked;
 }
 
- 
+
 /* -----------------------------------------------------------
  * Conversation scraping (single source of truth)
  * ----------------------------------------------------------- */
@@ -98,6 +141,8 @@ function scrapeConversations(): ConversationItem[] {
  * ----------------------------------------------------------- */
 
 let deepScanCancelRequested = false;
+/* v0.0.11 */
+let projectDeepScanCancelRequested = false;
 
 /**
  * Heuristic: locate a scrollable container that contains /c/ links.
@@ -118,10 +163,12 @@ function findSidebarScrollContainer(): HTMLElement | null {
   return null;
 }
 
+/* v0.0.11 */
 async function deepScanConversations(options?: {
   maxSteps?: number;
   stepDelayMs?: number;
   noNewLimit?: number;
+  limit?: number; // stop once collected >= limit
 }): Promise<ConversationItem[]> {
   const { maxSteps = 120, stepDelayMs = 350, noNewLimit = 10 } = options || {};
 
@@ -135,20 +182,24 @@ async function deepScanConversations(options?: {
   let noNewCounter = 0;
 
   const initialScrollTop = container.scrollTop;
+  /* v0.0.11 */
+  const limit = Number.isFinite((options as any)?.limit) ? Number((options as any).limit) : 0;
+
 
   for (let step = 0; step < maxSteps; step++) {
     if (deepScanCancelRequested) break;
 
-    // Scrape current DOM slice
     const items = scrapeConversations();
     for (const it of items) collected.set(it.id, it);
 
-    // Progress event back to panel (best-effort)
-    chrome.runtime.sendMessage({
-      type: MSG.DEEP_SCAN_PROGRESS,
-      found: collected.size,
-      step,
-    });
+    /* v0.0.11 */
+    if (limit > 0 && collected.size >= limit) {
+      chrome.runtime.sendMessage({ type: MSG.DEEP_SCAN_PROGRESS, found: collected.size, step });
+      break;
+    }
+
+    chrome.runtime.sendMessage({ type: MSG.DEEP_SCAN_PROGRESS, found: collected.size, step });
+
 
     if (collected.size === lastCount) {
       noNewCounter++;
@@ -175,20 +226,124 @@ async function deepScanConversations(options?: {
   return Array.from(collected.values());
 }
 
+/* v0.0.11 */
+async function scanOneProjectConversations(projectHrefAbs: string): Promise<ConversationItem[]> {
+  const section = getProjectsSectionContainer();
+  if (!section) return [];
+
+  // Ensure visible projects expanded so nested lists exist where possible
+  await expandAllVisibleProjectsInSection(section);
+
+  const a = findProjectAnchorByHref(projectHrefAbs);
+  if (!a) return [];
+
+  // Click the project row to bring its context into view (best-effort)
+  fireTrustedClick(a);
+
+  // Give UI time to render / swap context
+  await sleep(jitter(420));
+
+  // Try expanding again after navigation
+  await expandAllVisibleProjectsInSection(section);
+  await sleep(120);
+
+  // Re-scrape sidebar projects (now more likely to include nested convos)
+  const sidebarProjects = scrapeProjectsInRoot(document);
+  const found = sidebarProjects.find((p) => p.href === projectHrefAbs);
+
+  return found?.conversations || [];
+}
+
+
+/* v0.0.11 */
+async function deepScanProjectsLoop(options?: {
+  limit?: number;
+  perProjectTimeoutMs?: number;
+  delayMs?: number;
+}): Promise<{ projects: ProjectItem[]; note?: string; partial?: boolean }> {
+  const limit = Math.max(1, Math.min(400, Number(options?.limit ?? 50)));
+  const perProjectTimeoutMs = Math.max(3000, Math.min(60000, Number(options?.perProjectTimeoutMs ?? 12000)));
+  const delayMs = Math.max(80, Math.min(5000, Number(options?.delayMs ?? 350)));
+
+  projectDeepScanCancelRequested = false;
+
+  // Step 1: get full project list from overlay
+  const opened = await openAllProjectsOverlayBestEffort();
+  const overlayRoot = getProjectsOverlayRoot();
+  const overlayList = overlayRoot ? scrapeProjectsFromOverlay(overlayRoot) : [];
+
+  const projectsToScan = overlayList.slice(0, limit);
+
+  const out: ProjectItem[] = [];
+  let convTotal = 0;
+
+  for (let i = 0; i < projectsToScan.length; i++) {
+    if (projectDeepScanCancelRequested) break;
+
+    const p = projectsToScan[i];
+
+    chrome.runtime.sendMessage({
+      type: MSG.PROJECT_DEEP_SCAN_PROGRESS,
+      projectIndex: i + 1,
+      projectTotal: projectsToScan.length,
+      conversationsFound: convTotal,
+      step: `Scanning: ${p.title}`,
+    });
+
+    // Step 2: try to click/enter the project context and scrape nested convos (timeout protected)
+    let conversations: ConversationItem[] = [];
+    try {
+      conversations = await withTimeout(
+        perProjectTimeoutMs,
+        scanOneProjectConversations(p.href)
+      );
+    } catch {
+      conversations = [];
+    }
+
+    const merged: ProjectItem = {
+      ...p,
+      conversations: uniqBy(conversations, (c) => c.id),
+    };
+
+    out.push(merged);
+    convTotal += merged.conversations.length;
+
+    chrome.runtime.sendMessage({
+      type: MSG.PROJECT_DEEP_SCAN_PROGRESS,
+      projectIndex: i + 1,
+      projectTotal: projectsToScan.length,
+      conversationsFound: convTotal,
+      step: `Done: ${p.title} (+${merged.conversations.length})`,
+    });
+
+    await sleep(jitter(delayMs));
+  }
+
+  const partial = projectDeepScanCancelRequested;
+
+  return {
+    projects: out,
+    note: opened.note,
+    partial,
+  };
+}
+
 /* -----------------------------------------------------------
  * NEW v0.0.9 — Projects scraping + auto-open "See more"
  * ----------------------------------------------------------- */
-
+/* v0.0.11 */
 function parseProjectKeyFromHref(hrefAbs: string): string {
   try {
     const u = new URL(hrefAbs);
-    const m = u.pathname.match(/\/g\/([^/]+)\/project$/);
+    const m = u.pathname.match(/\/g\/([^/]+)\/project/);
     if (m) return m[1];
     return u.pathname.replace(/\W+/g, "_").slice(-80) || hrefAbs;
   } catch {
     return hrefAbs;
   }
 }
+
 
 function scrapeProjectsInRoot(root: ParentNode): ProjectItem[] {
   // Only real project rows are anchors, not the "New project" div
@@ -216,10 +371,10 @@ function scrapeProjectsInRoot(root: ParentNode): ProjectItem[] {
 
     const convoAnchors = next
       ? Array.from(
-          next.querySelectorAll<HTMLAnchorElement>(
-            'a[data-sidebar-item="true"][href^="/g/"][href*="/c/"]'
-          )
+        next.querySelectorAll<HTMLAnchorElement>(
+          'a[data-sidebar-item="true"][href^="/g/"][href*="/c/"]'
         )
+      )
       : [];
 
     const conversations = uniqBy(
@@ -276,45 +431,69 @@ function findSeeMoreTrigger(section: Element): HTMLElement | null {
 }
 
 
- 
 
+
+/* v0.0.11 — robust overlay root detection (no role assumptions) */
 function getProjectsOverlayRoot(): HTMLElement | null {
-  // Prefer explicit overlay roles first
-  const dialog = document.querySelector<HTMLElement>('[role="dialog"]');
-  if (dialog) return dialog;
+  const links = Array.from(document.querySelectorAll<HTMLAnchorElement>('a[href*="/g/"]')).filter((a) => {
+    const href = a.getAttribute("href") || "";
+    return href.includes("/project");
+  });
 
-  const menu = document.querySelector<HTMLElement>('[role="menu"]');
-  if (menu) return menu;
+  if (links.length < 6) return null;
 
-  // Radix popper wrapper (common)
-  const radix = document.querySelector<HTMLElement>('[data-radix-popper-content-wrapper]');
-  if (radix) return radix;
-
-  // Fallback: find a "top-layer looking" element with many /project links.
-  // Avoid scanning "body *" (too expensive). We look at direct children of body.
-  const bodyKids = Array.from(document.body.children) as HTMLElement[];
-  const rich = bodyKids
-    .map((el) => ({
-      el,
-      n: el.querySelectorAll?.('a[href$="/project"]').length ?? 0,
-    }))
-    .filter((x) => x.n >= 6)
-    .sort((a, b) => b.n - a.n);
-
-  if (rich[0]?.el) return rich[0].el;
-
-  // Last resort: nothing obvious
-  return null;
+  return bestOverlayContainerFromLinks(links);
 }
 
+/* v0.0.11 */
+function bestOverlayContainerFromLinks(links: HTMLAnchorElement[]): HTMLElement | null {
+  const scores = new Map<HTMLElement, number>();
+
+  for (const a of links) {
+    let el: HTMLElement | null = a;
+    for (let i = 0; i < 12 && el; i++) {
+      scores.set(el, (scores.get(el) || 0) + 1);
+      el = el.parentElement;
+    }
+  }
+
+  const candidates = Array.from(scores.entries())
+    .map(([el, n]) => {
+      const style = getComputedStyle(el);
+      const pos = style.position;
+      const z = Number(style.zIndex || 0);
+      const rect = el.getBoundingClientRect();
+      const area = Math.max(0, rect.width * rect.height);
+
+      const overlayish = pos === "fixed" || pos === "absolute";
+      return { el, n, overlayish, z, area };
+    })
+    .filter((x) => x.n >= 6)
+    .sort((a, b) => {
+      // prefer overlay-ish positioned containers
+      if (a.overlayish !== b.overlayish) return a.overlayish ? -1 : 1;
+      // then higher z-index if present
+      if (b.z !== a.z) return b.z - a.z;
+      // then more links
+      if (b.n !== a.n) return b.n - a.n;
+      // then larger area
+      return b.area - a.area;
+    });
+
+  return candidates[0]?.el || null;
+}
+
+
+
+/* v0.0.11 */
 function overlayLooksOpen(): boolean {
   const root = getProjectsOverlayRoot();
   if (!root) return false;
-
-  // If overlay is open, it usually contains a project list > 5.
-  const n = root.querySelectorAll('a[href$="/project"]').length;
+  const n = root.querySelectorAll('a[href*="/g/"]').length;
   return n >= 6;
 }
+
+
 
 async function waitForOverlayOpen(timeoutMs: number): Promise<boolean> {
   if (overlayLooksOpen()) return true;
@@ -346,6 +525,7 @@ async function waitForOverlayOpen(timeoutMs: number): Promise<boolean> {
 
 
 
+/* v0.0.11 */
 async function openAllProjectsOverlayBestEffort(): Promise<{ opened: boolean; note?: string }> {
   if (overlayLooksOpen()) return { opened: true };
 
@@ -357,6 +537,13 @@ async function openAllProjectsOverlayBestEffort(): Promise<{ opened: boolean; no
 
   fireTrustedClick(trigger);
 
+  // Try quickly a few times (overlay may be ephemeral)
+  for (let i = 0; i < 6; i++) {
+    if (overlayLooksOpen()) return { opened: true };
+    await sleep(120);
+  }
+
+  // Fallback to observer wait
   const ok = await waitForOverlayOpen(8000);
   if (!ok) return { opened: false, note: "Clicked 'See more' but no overlay detected (timeout)." };
 
@@ -366,11 +553,12 @@ async function openAllProjectsOverlayBestEffort(): Promise<{ opened: boolean; no
 
 function scrapeProjectsFromOverlay(root: ParentNode): ProjectItem[] {
   // Overlay list items may not have data-sidebar-item.
-  // We accept any /g/.../project link.
-  const links = Array.from(root.querySelectorAll<HTMLAnchorElement>('a[href$="/project"]')).filter((a) => {
+  /* v0.0.11 — overlay can have query params / not end with /project */
+  const links = Array.from(root.querySelectorAll<HTMLAnchorElement>('a[href*="/g/"]')).filter((a) => {
     const href = a.getAttribute("href") || "";
-    return href.includes("/g/") && href.endsWith("/project");
+    return href.includes("/project");
   });
+
 
   const projects: ProjectItem[] = [];
 
@@ -400,7 +588,7 @@ function scrapeProjectsFromOverlay(root: ParentNode): ProjectItem[] {
   return uniqBy(projects, (p) => p.href);
 }
 
- 
+
 
 async function scrapeProjects(openAll: boolean): Promise<{ projects: ProjectItem[]; note?: string }> {
   let note: string | undefined;
@@ -474,6 +662,25 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       }
       return;
     }
+
+    /* v0.0.11 — Project deep scan start */
+    if (msg?.type === MSG.PROJECT_DEEP_SCAN_START) {
+      try {
+        const r = await deepScanProjectsLoop((msg as any).options);
+        sendResponse({ ok: true, projects: r.projects, note: r.note, partial: r.partial });
+      } catch (err) {
+        sendResponse({ ok: false, error: String(err) });
+      }
+      return;
+    }
+
+    /* v0.0.11 — Project deep scan cancel */
+    if (msg?.type === MSG.PROJECT_DEEP_SCAN_CANCEL) {
+      projectDeepScanCancelRequested = true;
+      sendResponse({ ok: true });
+      return;
+    }
+
 
     sendResponse({ ok: false, error: "Unknown message (content)." });
   })();

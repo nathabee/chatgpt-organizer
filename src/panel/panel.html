@@ -32,11 +32,25 @@
             </p>
 
             <div class="row">
-                <button id="btnScan" type="button">List chats (visible)</button>
-                <button id="btnDeepScan" type="button">List all chats (scroll)</button>
+                <!-- v0.0.11 -->
+                <label class="field" style="max-width:160px;">
+                    <span class="muted" style="display:block;margin-bottom:4px;">Limit</span>
+                    <select id="scanLimit">
+                        <option value="50" selected>50</option>
+                        <option value="100">100</option>
+                        <option value="200">200</option>
+                        <option value="400">400</option>
+                    </select>
+                </label>
+
+                <!-- v0.0.11 button naming cleanup -->
+                <button id="btnScan" type="button">List standalone chats (visible)</button>
+                <button id="btnDeepScan" type="button">List standalone chats (scroll)</button>
+
                 <button id="btnCancelScan" type="button" hidden>Cancel</button>
                 <span id="status" class="status">Idle</span>
             </div>
+
 
             <div class="row">
                 <div id="scanOut" class="status" aria-live="polite"></div>
@@ -125,13 +139,20 @@
             <!-- NEW v0.0.8: projects list -->
             <div class="summary">
                 Projects: <span id="projectsCount">0</span>
-            </div> 
-
-            <!-- NEW v0.0.9 — Projects scraping controls -->
-            <div class="row">
-            <button id="btnLoadAllProjects" type="button">Load all projects</button>
-            <span id="projectsStatus" class="status">Idle</span>
             </div>
+
+            <div class="row">
+                <!-- v0.0.11 button naming cleanup -->
+                <button id="btnListProjectsVisible" type="button">List projects (visible)</button>
+                <button id="btnLoadAllProjects" type="button">List projects (overlay)</button>
+
+                <!-- v0.0.11 new -->
+                <button id="btnDeepScanProjects" type="button">Deep scan projects (loop)</button>
+                <button id="btnCancelProjectsScan" type="button" hidden>Cancel</button>
+
+                <span id="projectsStatus" class="status">Idle</span>
+            </div>
+
 
             <ul id="projectsList" class="list"></ul>
 

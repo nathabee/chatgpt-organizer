@@ -65,6 +65,16 @@ const projectsListEl = document.getElementById("projectsList") as HTMLUListEleme
 // Status lines (split)
 const projectsStatusEl = document.getElementById("projectsStatus") as HTMLSpanElement | null;         // scrape status
 const projectsCrudStatusEl = document.getElementById("projectsCrudStatus") as HTMLSpanElement | null; // add/edit/delete status
+/* v0.0.11 */
+const scanLimitEl = document.getElementById("scanLimit") as HTMLSelectElement | null;
+
+// v0.0.11 — projects scan controls
+const btnListProjectsVisible = document.getElementById("btnListProjectsVisible") as HTMLButtonElement | null;
+const btnDeepScanProjects = document.getElementById("btnDeepScanProjects") as HTMLButtonElement | null;
+const btnCancelProjectsScan = document.getElementById("btnCancelProjectsScan") as HTMLButtonElement | null;
+
+// v0.0.11 — state
+let isProjectsDeepScanning = false;
 
 /* -----------------------------------------------------------
  * STATE
@@ -226,6 +236,14 @@ function updateToggleAllState() {
     cbToggleAll.checked = false;
     cbToggleAll.indeterminate = true;
   }
+}
+
+
+/* v0.0.11 */
+function getScanLimit(): number {
+  const v = Number(scanLimitEl?.value ?? 50);
+  if (!Number.isFinite(v)) return 50;
+  return Math.max(10, Math.min(400, v));
 }
 
 /* -----------------------------------------------------------
@@ -448,12 +466,22 @@ async function deepScan() {
   setStatus("Deep scanning…");
   setBusy(true);
 
+  /* v0.0.11 */
+  const limit = getScanLimit();
+
   const res = await chrome.runtime
     .sendMessage({
       type: MSG.DEEP_SCAN_START,
-      options: { maxSteps: 140, stepDelayMs: 350, noNewLimit: 10 },
+      options: {
+        // Keep your existing controls but scale with limit:
+        maxSteps: Math.min(900, Math.max(140, limit * 4)),
+        stepDelayMs: 350,
+        noNewLimit: 10,
+        limit, // new stop condition in content.ts
+      },
     })
     .catch(() => null);
+
 
   isDeepScanning = false;
   btnCancelScan.hidden = true;
@@ -536,6 +564,55 @@ async function executeDeleteStart() {
   setBusy(true);
 
   chrome.runtime.sendMessage({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 }).catch(() => null);
+}
+
+/* v0.0.11 */
+async function deepScanProjectsLoop() {
+  showConfirmBox(false);
+
+  isProjectsDeepScanning = true;
+  btnCancelProjectsScan && (btnCancelProjectsScan.hidden = false);
+
+  setProjectsStatus("Deep scanning projects…");
+  setBusy(true);
+
+  const limit = getScanLimit();
+
+  const res = await chrome.runtime
+    .sendMessage({
+      type: MSG.PROJECT_DEEP_SCAN_START,
+      options: { limit, perProjectTimeoutMs: 12000, delayMs: 350 },
+    })
+    .catch(() => null);
+
+  isProjectsDeepScanning = false;
+  btnCancelProjectsScan && (btnCancelProjectsScan.hidden = true);
+
+  setBusy(false);
+
+  if (!res) {
+    setProjectsStatus("Deep scan failed (no response).");
+    return;
+  }
+
+  if (!res.ok) {
+    setProjectsStatus(`Deep scan failed: ${res.error}`);
+    return;
+  }
+
+  const projects: ProjectItem[] = res.projects || [];
+  renderProjects(projects);
+
+  const note = res.note ? ` (${res.note})` : "";
+  const partial = res.partial ? " (partial)" : "";
+  setProjectsStatus(`Done: ${projects.length} project(s)${partial}${note}`);
+}
+
+/* v0.0.11 */
+async function cancelProjectsDeepScan() {
+  if (!isProjectsDeepScanning) return;
+  await chrome.runtime.sendMessage({ type: MSG.PROJECT_DEEP_SCAN_CANCEL }).catch(() => null);
+  setProjectsStatus("Cancel requested…");
 }
 
 /* -----------------------------------------------------------
@@ -757,6 +834,20 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
     execRunId = null;
     return;
   }
+
+
+    /* v0.0.11 — project scan progress */
+  if ((msg as any)?.type === MSG.PROJECT_DEEP_SCAN_PROGRESS) {
+    const m = msg as any;
+    const idx = Number(m.projectIndex || 0);
+    const total = Number(m.projectTotal || 0);
+    const found = Number(m.conversationsFound || 0);
+    const step = String(m.step || "");
+
+    setProjectsStatus(`${step} · ${idx}/${total} · chats ${found}`);
+    return;
+  }
+
 });
 
 /* -----------------------------------------------------------
@@ -808,6 +899,28 @@ btnCancelExecute.addEventListener("click", () => {
   cbToggleAll.disabled = isBusy;
   const cbs = Array.from(listEl.querySelectorAll<HTMLInputElement>("input.deleteCb"));
   for (const cb of cbs) cb.disabled = isBusy;
+});
+
+/* v0.0.11 */
+btnListProjectsVisible?.addEventListener("click", () => {
+  refreshProjects(false).catch((e) => {
+    console.error(e);
+    setProjectsStatus("Error");
+  });
+});
+
+/* v0.0.11 */
+btnDeepScanProjects?.addEventListener("click", () => {
+  if (isBusy) return;
+  deepScanProjectsLoop().catch((e) => {
+    console.error(e);
+    setProjectsStatus("Error");
+  });
+});
+
+/* v0.0.11 */
+btnCancelProjectsScan?.addEventListener("click", () => {
+  cancelProjectsDeepScan().catch(() => null);
 });
 
 btnConfirmExecute.addEventListener("click", () => {
