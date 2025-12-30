@@ -7,6 +7,124 @@ Versions are listed with the **newest at the top**.
 
 ---
 
+## MINOR VERSION
+
+### v0.1 — Focus: Organization, Visibility, Control *(planned)*
+
+This minor version marks the end of the experimental 0.0.x phase and shifts the
+extension from **cleanup tooling** to **long-term chat organization**.
+
+#### Vision
+
+ChatGPT Organizer becomes a **curation tool**, not just a deletion helper.
+
+The focus is on:
+
+* structuring chats into projects,
+* understanding what exists,
+* and keeping long histories manageable over time.
+
+#### Planned Epics
+
+##### 1. Organize Tab (Drag & Drop Project Filing)
+
+A new dedicated tab to **move chats into projects**.
+
+* Select one or multiple chats
+* Assign them to an existing project
+* Optional drag & drop for single-chat moves
+* Clear separation between:
+
+  * selection
+  * destination
+  * execution
+
+No destructive actions in this tab.
+
+---
+
+##### 2. Search & Bulk Actions
+
+Power-user oriented discovery tools.
+
+* Search chats by title
+* Filter by project / unassigned
+* Bulk move search results into a project
+* Designed for handling **hundreds of chats at once**
+
+---
+
+##### 3. Logs Tab (Action Archive)
+
+Since deletions and moves cannot be undone via the ChatGPT API,
+the extension provides **full traceability instead of fake safety**.
+
+* Append-only action log:
+
+  * deletions
+  * project removals
+  * bulk moves
+* Timestamped
+* Shows chat titles, ids, project names
+* Log is:
+
+  * stored locally
+  * trimmed only on user demand
+
+This becomes the user’s **audit trail**.
+
+---
+
+##### 4. Stats & Overview Tab
+
+High-level visibility into the account.
+
+* Total chats
+* Total projects
+* Chats per project
+* Empty / small projects
+* Large projects (cleanup candidates)
+
+Read-only, zero risk.
+
+---
+
+##### Deferred (not in v0.1.0)
+
+These are explicitly postponed to avoid scope creep:
+
+* Project merge
+* Automatic rules / smart filing
+* Undo simulation
+* Cross-account sync
+
+---
+
+## v0.0 — Experimental / Cleanup Phase *(current & completed)*
+
+
+### What 0.0.x Can Do
+
+* Scrape visible and full ChatGPT chat lists
+* Deep scan long histories
+* Select chats manually or in bulk
+* Execute ChatGPT REST delete requests
+* Show:
+
+  * live scan progress
+  * execution progress
+  * confirmation previews
+* Discover ChatGPT projects
+* Show project → conversation counts
+* Delete empty or selected projects
+* Local project notes (browser storage)
+  
+
+
+
+---
+
+## PATCHES
 
 ### v0.0.15 — Epic: Dual Progress for Project Cleanup
 

@@ -3,15 +3,6 @@ import { MSG, type AnyRequest } from "./shared/messages";
 import type { ConversationItem, ProjectItem } from "./shared/types";
 
 
-/* -----------------------------------------------------------
- * open panel
- * ----------------------------------------------------------- */
-// Open the side panel when the user clicks the extension icon
-chrome.sidePanel
-  .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch(() => {
-    // ignore if not supported (older Chrome)
-  });
 
 
 /* -----------------------------------------------------------
@@ -436,9 +427,24 @@ let listChatsRunning = false;
 let listProjectsRunning = false;
 
 /* -----------------------------------------------------------
+ * open panel
+ * ----------------------------------------------------------- */
+// Open the side panel when the user clicks the extension icon
+// src/background.ts
+
+// Set side panel behavior once (MV3 service worker wakes often)
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.sidePanel
+    ?.setPanelBehavior?.({ openPanelOnActionClick: true })
+    .catch(() => {
+      // ignore if not supported (older Chrome)
+    });
+});
+
+
+/* -----------------------------------------------------------
  * Message handler
  * ----------------------------------------------------------- */
-
 chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) => {
   (async () => {
     if (msg?.type === MSG.PING) {
@@ -622,6 +628,7 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
     }
 
     // DELETE PROJECTS
+    // DELETE PROJECTS (v0.0.15: now emits progress events)
     if (msg?.type === MSG.DELETE_PROJECTS) {
       const gizmoIds: string[] = ((msg as any).gizmoIds || []).filter(Boolean);
 
@@ -630,6 +637,9 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
         return;
       }
 
+      const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+      const startedAt = nowMs();
+
       try {
         const session = await fetchSession();
         if (!session.loggedIn || !session.accessToken) {
@@ -637,25 +647,71 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
           return;
         }
 
-        const results: Array<{ gizmoId: string; ok: boolean; status?: number; error?: string }> = [];
+        // We answer immediately so the panel isn't blocked;
+        // progress will be delivered via runtime messages.
+        sendResponse({ ok: true } as any);
+
+        let okCount = 0;
+        let failCount = 0;
 
         for (let i = 0; i < gizmoIds.length; i++) {
           const gizmoId = gizmoIds[i];
 
-          // small polite delay between deletes (avoid bursts)
           if (i > 0) await sleep(250 + randInt(0, 250));
 
+          const t0 = nowMs();
           const r = await deleteProject(session.accessToken, gizmoId);
-          results.push({ gizmoId, ok: r.ok, status: r.status, error: r.error });
+          const lastOpMs = nowMs() - t0;
+
+          if (r.ok) okCount++;
+          else failCount++;
+
+          chrome.runtime.sendMessage({
+            type: MSG.DELETE_PROJECTS_PROGRESS,
+            runId,
+            i: i + 1,
+            total: gizmoIds.length,
+            gizmoId,
+            ok: r.ok,
+            status: r.status,
+            error: r.error,
+            elapsedMs: nowMs() - startedAt,
+            lastOpMs,
+          });
         }
 
-        sendResponse({ ok: true, results } as any);
+        chrome.runtime.sendMessage({
+          type: MSG.DELETE_PROJECTS_DONE,
+          runId,
+          total: gizmoIds.length,
+          okCount,
+          failCount,
+          elapsedMs: nowMs() - startedAt,
+        });
+
         return;
       } catch (e: any) {
-        sendResponse({ ok: false, error: e?.message || "Failed to delete projects." } as any);
+        // If something catastrophic happens, still try to send a DONE event.
+        chrome.runtime.sendMessage({
+          type: MSG.DELETE_PROJECTS_DONE,
+          runId,
+          total: gizmoIds.length,
+          okCount: 0,
+          failCount: gizmoIds.length,
+          elapsedMs: nowMs() - startedAt,
+        });
+
+        // We already responded ok:true above in the happy-path.
+        // Here, best effort: return a failure if we haven't responded yet.
+        try {
+          sendResponse({ ok: false, error: e?.message || "Failed to delete projects." } as any);
+        } catch {
+          // ignore
+        }
         return;
       }
     }
+
 
     // optional: still route to content script for anything else you kept
     const tab = await getActiveChatGPTTab();

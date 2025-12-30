@@ -21,6 +21,10 @@ export const MSG = {
 
   // NEW: delete projects (DELETE /backend-api/gizmos/<gizmoId>)
   DELETE_PROJECTS: "CGO_DELETE_PROJECTS",
+    // Project delete progress (v0.0.15)
+  DELETE_PROJECTS_PROGRESS: "CGO_DELETE_PROJECTS_PROGRESS",
+  DELETE_PROJECTS_DONE: "CGO_DELETE_PROJECTS_DONE",
+
 } as const;
 
 /* PING */
@@ -139,6 +143,30 @@ export type DeleteProjectsResponse =
     }
   | { ok: false; error: string };
 
+
+  /* DELETE PROJECTS progress events (v0.0.15) */
+export type DeleteProjectsProgressEvent = {
+  type: typeof MSG.DELETE_PROJECTS_PROGRESS;
+  runId: string;
+  i: number;
+  total: number;
+  gizmoId: string;
+  ok: boolean;
+  status?: number;
+  error?: string;
+  elapsedMs: number;
+  lastOpMs: number;
+};
+
+export type DeleteProjectsDoneEvent = {
+  type: typeof MSG.DELETE_PROJECTS_DONE;
+  runId: string;
+  total: number;
+  okCount: number;
+  failCount: number;
+  elapsedMs: number;
+};
+
 /* Unions */
 export type AnyRequest =
   | PingRequest
@@ -160,4 +188,7 @@ export type AnyEvent =
   | ListGizmoProjectsProgressEvent
   | ListGizmoProjectsDoneEvent
   | ExecuteDeleteProgressEvent
-  | ExecuteDeleteDoneEvent;
+  | ExecuteDeleteDoneEvent
+  | DeleteProjectsProgressEvent
+  | DeleteProjectsDoneEvent;
+

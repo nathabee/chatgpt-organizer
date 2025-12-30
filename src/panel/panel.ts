@@ -1,6 +1,4 @@
 // src/panel/panel.ts
-
-// src/panel/panel.ts
 import { MSG, type AnyEvent } from "../shared/messages";
 import type { ConversationItem, ProjectItem } from "../shared/types";
 
@@ -62,9 +60,16 @@ function setBusy(next: boolean) {
   btnProjectsDelete.disabled = next;
 
   // disable all checkboxes inside lists
-  for (const cb of document.querySelectorAll<HTMLInputElement>("input[type='checkbox']")) {
+  //for (const cb of document.querySelectorAll<HTMLInputElement>("input[type='checkbox']")) {
+  //  cb.disabled = next;
+  //}
+  // disable all checkboxes inside lists
+  Array.from(
+    document.querySelectorAll<HTMLInputElement>("input[type='checkbox']")
+  ).forEach((cb) => {
     cb.disabled = next;
-  }
+  });
+
 }
 
 /* -----------------------------------------------------------
@@ -242,7 +247,6 @@ async function listSingleChats() {
 
   const limit = clampInt(singleLimitEl.value, 1, 50000, 50);
 
-  // IMPORTANT: v0.0.12 message type
   const res = await chrome.runtime
     .sendMessage({ type: MSG.LIST_ALL_CHATS, limit, pageSize: 50 })
     .catch(() => null);
@@ -259,12 +263,8 @@ async function listSingleChats() {
   }
 
   const items = (res.conversations || []) as ConversationItem[];
-
-  // In your UI, "single chats" = chats with no project.
-  // If backend returns only global chats already, this filter is harmless.
   singleChats = items.filter((c) => !c.gizmoId);
 
-  // prune selections not in list anymore
   const valid = new Set(singleChats.map((c) => c.id));
   for (const id of Array.from(singleSelected)) {
     if (!valid.has(id)) singleSelected.delete(id);
@@ -289,9 +289,16 @@ const projectsStatusEl = document.getElementById("projectsStatus") as HTMLSpanEl
 const btnProjectsDelete = document.getElementById("btnProjectsDelete") as HTMLButtonElement;
 
 const projectsExecOutEl = document.getElementById("projectsExecOut") as HTMLPreElement;
-const projectsExecProgressWrapEl = document.getElementById("projectsExecProgressWrap") as HTMLDivElement;
-const projectsExecProgressEl = document.getElementById("projectsExecProgress") as HTMLProgressElement;
-const projectsExecProgressTextEl = document.getElementById("projectsExecProgressText") as HTMLDivElement;
+
+// chat delete progress (projects tab)
+const projectsChatsExecProgressWrapEl = document.getElementById("projectsChatsExecProgressWrap") as HTMLDivElement;
+const projectsChatsExecProgressEl = document.getElementById("projectsChatsExecProgress") as HTMLProgressElement;
+const projectsChatsExecProgressTextEl = document.getElementById("projectsChatsExecProgressText") as HTMLDivElement;
+
+// project delete progress (projects tab)
+const projectsProjectsExecProgressWrapEl = document.getElementById("projectsProjectsExecProgressWrap") as HTMLDivElement;
+const projectsProjectsExecProgressEl = document.getElementById("projectsProjectsExecProgress") as HTMLProgressElement;
+const projectsProjectsExecProgressTextEl = document.getElementById("projectsProjectsExecProgressText") as HTMLDivElement;
 
 const projectsConfirmBoxEl = document.getElementById("projectsConfirmBox") as HTMLDivElement;
 const projectsConfirmTitleEl = document.getElementById("projectsConfirmTitle") as HTMLDivElement;
@@ -301,6 +308,7 @@ const projectsBtnConfirmExecute = document.getElementById("projectsBtnConfirmExe
 const projectsBtnCancelExecute = document.getElementById("projectsBtnCancelExecute") as HTMLButtonElement;
 
 const projectsCountEl = document.getElementById("projectsCount") as HTMLElement;
+const projectsChatsCountEl = document.getElementById("projectsChatsCount") as HTMLElement; 
 const projectsSelectedChatsCountEl = document.getElementById("projectsSelectedChatsCount") as HTMLElement;
 const projectsSelectedProjectsCountEl = document.getElementById("projectsSelectedProjectsCount") as HTMLElement;
 
@@ -328,12 +336,21 @@ function projectsAppendExecOut(line: string) {
   projectsExecOutEl.scrollTop = projectsExecOutEl.scrollHeight;
 }
 
-function projectsShowExecProgress(show: boolean) {
-  projectsExecProgressWrapEl.hidden = !show;
+function projectsShowChatsExecProgress(show: boolean) {
+  projectsChatsExecProgressWrapEl.hidden = !show;
   if (!show) {
-    projectsExecProgressEl.value = 0;
-    projectsExecProgressEl.max = 100;
-    projectsExecProgressTextEl.textContent = "";
+    projectsChatsExecProgressEl.value = 0;
+    projectsChatsExecProgressEl.max = 100;
+    projectsChatsExecProgressTextEl.textContent = "";
+  }
+}
+
+function projectsShowProjectsExecProgress(show: boolean) {
+  projectsProjectsExecProgressWrapEl.hidden = !show;
+  if (!show) {
+    projectsProjectsExecProgressEl.value = 0;
+    projectsProjectsExecProgressEl.max = 100;
+    projectsProjectsExecProgressTextEl.textContent = "";
   }
 }
 
@@ -347,10 +364,15 @@ function projectsShowConfirm(show: boolean) {
 }
 
 function projectsUpdateCounts() {
+  const totalChats = projects.reduce((sum, p) => sum + ((p.conversations || []).length), 0);
+
   projectsCountEl.textContent = String(projects.length);
+  projectsChatsCountEl.textContent = String(totalChats);
+
   projectsSelectedChatsCountEl.textContent = String(selectedProjectChatIds.size);
   projectsSelectedProjectsCountEl.textContent = String(selectedProjectIds.size);
 }
+
 
 function projectAllChatIds(p: ProjectItem): string[] {
   return (p.conversations || []).map((c) => c.id);
@@ -492,16 +514,13 @@ async function listProjects() {
   projectsShowConfirm(false);
   projectsWriteExecOut("");
 
-  setProjectsStatus("Loading…");
+  setProjectsStatus("Loading… 0 project(s), 0 chat(s)");
+
   setBusy(true);
 
   const limitProjects = clampInt(projectsLimitEl.value, 1, 5000, 50);
-
-  // This is only used by the UI selection model.
-  // Background may fetch more; we cap in panel to keep UI light.
   const uiMaxChatsPerProject = clampInt(projectsChatsLimitEl.value, 1, 5000, 200);
 
-  // IMPORTANT: v0.0.12 message type
   const res = await chrome.runtime
     .sendMessage({ type: MSG.LIST_GIZMO_PROJECTS, limit: limitProjects, conversationsPerGizmo: 5 })
     .catch(() => null);
@@ -519,13 +538,11 @@ async function listProjects() {
 
   const raw = (res.projects || []) as ProjectItem[];
 
-  // UI cap
   projects = raw.map((p) => ({
     ...p,
     conversations: (p.conversations || []).slice(0, uiMaxChatsPerProject),
   }));
 
-  // prune selections
   const projectIds = new Set(projects.map((p) => p.gizmoId));
   for (const pid of Array.from(selectedProjectIds)) {
     if (!projectIds.has(pid)) selectedProjectIds.delete(pid);
@@ -541,14 +558,18 @@ async function listProjects() {
 }
 
 /* -----------------------------------------------------------
- * EXECUTE (shared engine, but two UIs)
+ * EXECUTE: chat deletion progress state
  * ----------------------------------------------------------- */
 let execRunId: string | null = null;
 let execOk = 0;
 let execFail = 0;
 let execTotal = 0;
 
+// IMPORTANT: do NOT route progress by active tab; pin it at start.
+let execWhere: "single" | "projects" | null = null;
+
 function startProgressUI(where: "single" | "projects", total: number) {
+  execWhere = where;
   execRunId = null;
   execOk = 0;
   execFail = 0;
@@ -561,23 +582,32 @@ function startProgressUI(where: "single" | "projects", total: number) {
     singleExecProgressTextEl.textContent = `Starting… 0/${total}`;
     setSingleStatus("Deleting…");
   } else {
-    projectsShowExecProgress(true);
-    projectsExecProgressEl.max = total;
-    projectsExecProgressEl.value = 0;
-    projectsExecProgressTextEl.textContent = `Starting… 0/${total}`;
-    setProjectsStatus("Deleting…");
+    projectsShowChatsExecProgress(true);
+    projectsChatsExecProgressEl.max = total;
+    projectsChatsExecProgressEl.value = 0;
+    projectsChatsExecProgressTextEl.textContent = `Deleting chats… 0/${total}`;
+    setProjectsStatus("Deleting chats…");
   }
 }
 
-function updateProgressUI(where: "single" | "projects", i: number, total: number, okCount: number, failCount: number, lastOpMs: number) {
+function updateProgressUI(
+  where: "single" | "projects",
+  i: number,
+  total: number,
+  okCount: number,
+  failCount: number,
+  lastOpMs: number
+) {
   if (where === "single") {
     singleExecProgressEl.max = total;
     singleExecProgressEl.value = Math.min(i, total);
-    singleExecProgressTextEl.textContent = `Deleting ${i}/${total} · ok ${okCount} · failed ${failCount} · last ${formatMs(lastOpMs)}`;
+    singleExecProgressTextEl.textContent =
+      `Deleting ${i}/${total} · ok ${okCount} · failed ${failCount} · last ${formatMs(lastOpMs)}`;
   } else {
-    projectsExecProgressEl.max = total;
-    projectsExecProgressEl.value = Math.min(i, total);
-    projectsExecProgressTextEl.textContent = `Deleting ${i}/${total} · ok ${okCount} · failed ${failCount} · last ${formatMs(lastOpMs)}`;
+    projectsChatsExecProgressEl.max = total;
+    projectsChatsExecProgressEl.value = Math.min(i, total);
+    projectsChatsExecProgressTextEl.textContent =
+      `Deleting chats ${i}/${total} · ok ${okCount} · failed ${failCount} · last ${formatMs(lastOpMs)}`;
   }
 }
 
@@ -586,8 +616,8 @@ function finishProgressUI(where: "single" | "projects", summary: string) {
     setSingleStatus("Done");
     singleExecProgressTextEl.textContent = summary;
   } else {
-    setProjectsStatus("Done");
-    projectsExecProgressTextEl.textContent = summary;
+    setProjectsStatus("Chats delete done");
+    projectsChatsExecProgressTextEl.textContent = summary;
   }
 }
 
@@ -598,24 +628,32 @@ async function executeDeleteConversationIds(where: "single" | "projects", ids: s
   chrome.runtime.sendMessage({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 }).catch(() => null);
 }
 
+/* -----------------------------------------------------------
+ * EXECUTE: project deletion progress state
+ * ----------------------------------------------------------- */
+let projectRunId: string | null = null;
+let projOk = 0;
+let projFail = 0;
+let projTotal = 0;
+
+function startProjectDeleteProgress(total: number) {
+  projectRunId = null;
+  projOk = 0;
+  projFail = 0;
+  projTotal = total;
+
+  projectsShowProjectsExecProgress(true);
+  projectsProjectsExecProgressEl.max = total;
+  projectsProjectsExecProgressEl.value = 0;
+  projectsProjectsExecProgressTextEl.textContent = `Deleting projects… 0/${total}`;
+}
+
 async function executeDeleteProjects(gizmoIds: string[]) {
-  if (!gizmoIds.length) return { results: [] as Array<{ gizmoId: string; ok: boolean; status?: number; error?: string }> };
+  if (!gizmoIds.length) return;
 
-  const res = await chrome.runtime
-    .sendMessage({ type: MSG.DELETE_PROJECTS, gizmoIds })
-    .catch(() => null);
+  startProjectDeleteProgress(gizmoIds.length);
 
-  if (!res || !res.ok) {
-    return {
-      results: gizmoIds.map((gizmoId) => ({
-        gizmoId,
-        ok: false,
-        error: (res as any)?.error || "Project delete failed",
-      })),
-    };
-  }
-
-  return { results: res.results || [] };
+  chrome.runtime.sendMessage({ type: MSG.DELETE_PROJECTS, gizmoIds }).catch(() => null);
 }
 
 /* -----------------------------------------------------------
@@ -720,6 +758,7 @@ async function runSingleExecute() {
  * Progress events listener
  * ----------------------------------------------------------- */
 chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
+  // Chat delete progress
   if ((msg as any)?.type === MSG.EXECUTE_DELETE_PROGRESS) {
     const m = msg as any;
 
@@ -739,7 +778,9 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
     if (ok) execOk++;
     else execFail++;
 
-    const where: "single" | "projects" = activeTab === "single" ? "single" : "projects";
+    // IMPORTANT: route by execWhere, not activeTab
+    const where: "single" | "projects" = execWhere || "single";
+
     updateProgressUI(where, i, total, execOk, execFail, lastOpMs);
 
     const title =
@@ -773,6 +814,7 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
     return;
   }
 
+  // Chat delete done
   if ((msg as any)?.type === MSG.EXECUTE_DELETE_DONE) {
     const m = msg as any;
 
@@ -784,20 +826,24 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
     const failCount = Number(m.failCount || execFail);
     const elapsedMs = Number(m.elapsedMs || 0);
 
-    const where: "single" | "projects" = activeTab === "single" ? "single" : "projects";
+    const where: "single" | "projects" = execWhere || "single";
+    execWhere = null;
+
     finishProgressUI(where, `Done · ok ${okCount}/${total} · failed ${failCount} · elapsed ${formatMs(elapsedMs)}`);
     setBusy(false);
 
+    // If this was a projects run, attempt project deletions now
     if (where === "projects") {
       const plan = (window as any).__cgo_projectsDeletePlan as { selectedProjects: string[] } | undefined;
       (window as any).__cgo_projectsDeletePlan = undefined;
 
       if (plan?.selectedProjects?.length) {
-        // delete only projects that are now empty in our model
         const deletable: string[] = [];
+
         for (const pid of plan.selectedProjects) {
           const p = projects.find((x) => x.gizmoId === pid);
           if (!p) continue;
+
           const remaining = (p.conversations || []).length;
           if (remaining === 0) deletable.push(pid);
           else projectsAppendExecOut(`SKIP PROJECT: ${p.title} — ${remaining} chat(s) still present.`);
@@ -807,20 +853,15 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
           projectsAppendExecOut("");
           projectsAppendExecOut(`Deleting ${deletable.length} project(s)…`);
 
-          executeDeleteProjects(deletable).then(({ results }) => {
-            for (const r of results) {
-              const p = projects.find((x) => x.gizmoId === r.gizmoId);
-              const name = p?.title || r.gizmoId;
-              if (r.ok) {
-                projectsAppendExecOut(`✓ PROJECT DELETED: ${name} (${r.gizmoId})`);
-                selectedProjectIds.delete(r.gizmoId);
-                projects = projects.filter((x) => x.gizmoId !== r.gizmoId);
-              } else {
-                projectsAppendExecOut(`✗ PROJECT FAILED: ${name} (${r.gizmoId}) — ${r.status ?? ""} — ${r.error || "failed"}`);
-              }
-            }
-            renderProjectsList();
-          });
+          // save name map for progress messages
+          (window as any).__cgo_projectNameById = Object.fromEntries(
+            deletable.map((pid) => {
+              const p = projects.find((x) => x.gizmoId === pid);
+              return [pid, p?.title || pid];
+            })
+          );
+
+          executeDeleteProjects(deletable);
         }
       }
     }
@@ -828,6 +869,93 @@ chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
     execRunId = null;
     return;
   }
+
+  // Project delete progress
+  if ((msg as any)?.type === MSG.DELETE_PROJECTS_PROGRESS) {
+    const m = msg as any;
+
+    if (!projectRunId) projectRunId = m.runId;
+    if (projectRunId !== m.runId) return;
+
+    const i = Number(m.i || 0);
+    const total = Number(m.total || projTotal);
+    const gizmoId = String(m.gizmoId || "");
+    const ok = !!m.ok;
+    const status = m.status as number | undefined;
+    const error = m.error as string | undefined;
+    const elapsedMs = Number(m.elapsedMs || 0);
+    const lastOpMs = Number(m.lastOpMs || 0);
+
+    if (ok) projOk++;
+    else projFail++;
+
+    projectsProjectsExecProgressEl.max = total;
+    projectsProjectsExecProgressEl.value = Math.min(i, total);
+    projectsProjectsExecProgressTextEl.textContent =
+      `Deleting projects ${i}/${total} · ok ${projOk} · failed ${projFail} · last ${formatMs(lastOpMs)}`;
+
+    const nameMap = (window as any).__cgo_projectNameById as Record<string, string> | undefined;
+    const name = nameMap?.[gizmoId] || projects.find((p) => p.gizmoId === gizmoId)?.title || gizmoId;
+
+    if (ok) {
+      projectsAppendExecOut(
+        `✓ PROJECT DELETED: ${name} (${gizmoId}) — ${status ?? "OK"} — ${formatMs(lastOpMs)} — elapsed ${formatMs(elapsedMs)}`
+      );
+      selectedProjectIds.delete(gizmoId);
+      projects = projects.filter((x) => x.gizmoId !== gizmoId);
+      renderProjectsList();
+    } else {
+      projectsAppendExecOut(
+        `✗ PROJECT FAILED: ${name} (${gizmoId}) — ${status ?? ""} — ${error || "failed"} — elapsed ${formatMs(elapsedMs)}`
+      );
+    }
+
+    return;
+  }
+
+  // Project delete done
+  if ((msg as any)?.type === MSG.DELETE_PROJECTS_DONE) {
+    const m = msg as any;
+
+    if (!projectRunId) projectRunId = m.runId;
+    if (projectRunId !== m.runId) return;
+
+    const total = Number(m.total || projTotal);
+    const okCount = Number(m.okCount || projOk);
+    const failCount = Number(m.failCount || projFail);
+    const elapsedMs = Number(m.elapsedMs || 0);
+
+    projectsProjectsExecProgressTextEl.textContent =
+      `Done · ok ${okCount}/${total} · failed ${failCount} · elapsed ${formatMs(elapsedMs)}`;
+
+    projectRunId = null;
+    (window as any).__cgo_projectNameById = undefined;
+    return;
+  }
+
+
+  if ((msg as any)?.type === MSG.LIST_GIZMO_PROJECTS_PROGRESS) {
+    const m = msg as any;
+
+    // show live counters while loading
+    const foundProjects = Number(m.foundProjects || 0);
+    const foundConversations = Number(m.foundConversations || 0);
+
+    setProjectsStatus(`Loading… ${foundProjects} project(s), ${foundConversations} chat(s)`);
+    return;
+  }
+
+  if ((msg as any)?.type === MSG.LIST_GIZMO_PROJECTS_DONE) {
+    const m = msg as any;
+
+    const totalProjects = Number(m.totalProjects || 0);
+    const totalConversations = Number(m.totalConversations || 0);
+    const elapsedMs = Number(m.elapsedMs || 0);
+
+    setProjectsStatus(`Done: ${totalProjects} project(s), ${totalConversations} chat(s) in ${formatMs(elapsedMs)}`);
+    return;
+  }
+
 });
 
 /* -----------------------------------------------------------
@@ -837,6 +965,7 @@ tabSingle.addEventListener("click", () => {
   activeTab = "single";
   setTabUI("single");
 });
+
 tabProjects.addEventListener("click", () => {
   activeTab = "projects";
   setTabUI("projects");
