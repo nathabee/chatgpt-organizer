@@ -1,80 +1,195 @@
-# DEVELOPPER TIPPS : UNIT TESTS
+# Developer Guide
 
+This document is for contributors and developers working on **ChatGPT Organizer**.
+It is not required for end users.
 
-## 1) Confirm your `dist/` contains everything the extension needs
+---
 
-After `npm run build`, you should have:
+## Local Development Setup
 
+### Prerequisites
+
+- Node.js (LTS recommended)
+- npm
+- Chrome or Chromium-based browser
+
+---
+
+## Build the extension
+
+From the project root:
+
+```bash
+npm install
+npm run build
+````
+
+This produces the packaged extension in:
+
+```text
+dist/
+```
+
+---
+
+## Verify build output
+
+After `npm run build`, the following must exist:
+
+* `dist/manifest.json`
 * `dist/background.js`
 * `dist/content.js`
 * `dist/panel.js`
-* `manifest.json` (either in project root or copied into dist—depends on how we set it up)
-* `src/panel/panel.html` (or `dist/panel.html` if your build copies it)
-* icons (optional but nice)
+* `dist/assets/` (icons)
+* `dist/panel/` (HTML/CSS)
 
-If your manifest points to `dist/*.js`, the browser must load from the folder that contains `manifest.json`.
+The folder that contains `manifest.json` is the folder Chrome will load.
 
-## 2) Load the extension in Chrome/Chromium (recommended first)
+---
 
-Chrome is the easiest for Manifest V3 + side panel.
+## Load the extension (unpacked)
 
-1. Open: `chrome://extensions`
-2. Enable **Developer mode** (top right)
+1. Open:
+
+```text
+chrome://extensions
+```
+
+2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select your extension folder that contains `manifest.json`
- 
-   * select `chatgpt-organizer/dist/`
+4. Select:
 
-After loading: you should see “ChatGPT Organizer” in the list.
+```text
+chatgpt-organizer/dist
+```
 
-## 3) Open the side panel
+The extension should now appear.
 
-1. Go to `https://chatgpt.com/`
-2. Click the Extensions “puzzle” icon in the toolbar
-3. Pin “ChatGPT Organizer” (optional)
-4. Open the extension’s side panel:
+---
 
-   * Either click the extension icon (if we wired it to open the panel), or
-   * Use the browser’s side panel dropdown (Chrome has a side panel icon on the toolbar), then choose your extension.
+## Open the side panel
 
-If it opens: you should see your panel UI with something like **“Found N conversations”** (even if N is stubbed).
+1. Go to:
 
-## 4) If the panel opens but shows N=0 or “not on chatgpt.com”
+```
+https://chatgpt.com/
+```
 
-That’s expected until content script scraping works reliably. Do this quick check:
+2. Open the browser **Side Panel**
+3. Select **ChatGPT Organizer**
 
-* Make sure you are on **`https://chatgpt.com/`** (not another domain)
-* Refresh the page once after installing the extension
-* Open DevTools:
+You should see the panel UI.
 
-  * **Extensions page** → “service worker” → Inspect (background logs)
-  * **chatgpt.com tab** → Console (content script logs)
-  * **side panel** → right-click inside panel → Inspect (panel logs)
+---
 
-If you paste me the console logs from:
+## Debugging
 
-* background service worker
-* content script (chatgpt.com tab)
-* panel
+Use Chrome DevTools:
 
-…I can tell you exactly which part isn’t talking to which.
+* **Background**:
+  `chrome://extensions` → extension → Service Worker → Inspect
+* **Content script**:
+  DevTools on `chatgpt.com`
+* **Panel**:
+  Right-click inside panel → Inspect
 
-## 5) Firefox note (important)
+If something does not work, logs from these three contexts usually explain why.
 
-Firefox currently does **not** fully support Chrome’s Side Panel API the same way. So:
+---
 
-* **Test in Chrome/Chromium first** to validate everything end-to-end.
-* Later we can add a Firefox fallback UI (popup or in-page overlay) so you can still use Firefox.
+## Firefox note
 
-## 6) Normal dev loop
+Firefox does not fully support Chrome’s Side Panel API.
 
-When you change code:
+Development and testing should be done in **Chrome/Chromium first**.
+A Firefox-compatible UI may be added later.
 
-1. `npm run build`
-2. `chrome://extensions` → your extension → click **Reload**
-3. Refresh `https://chatgpt.com/`
-4. Re-open the side panel
+---
 
-That’s it.
+## Versioning
 
-If you want the fastest next step: open the panel and tell me **what you see** (and if it’s blank, paste the 3 console outputs).
+The project uses a root `VERSION` file as the single source of truth.
+
+Example:
+
+```text
+0.0.9
+```
+
+---
+
+## Release workflow (GitHub)
+
+Releases are created manually using shell scripts.
+
+### 1) Bump version
+
+```bash
+./scripts/bump-version.sh patch
+git push
+```
+
+This updates:
+
+* `VERSION`
+* `manifest.json`
+* commits the change
+
+No tag or release is created yet.
+
+---
+
+### 2) Build release ZIP
+
+```bash
+./scripts/build-zip.sh
+```
+
+This:
+
+* builds the extension
+* creates a versioned ZIP in `release/`
+* example:
+
+  ```
+  release/chatgpt-organizer-0.0.9.zip
+  ```
+
+---
+
+### 3) Publish GitHub Release
+
+```bash
+./scripts/publish-release-zip.sh
+```
+
+This:
+
+* ensures the tag `vX.Y.Z` exists and matches HEAD
+* creates a GitHub Release if missing
+* uploads the ZIP as a release asset
+* overwrites assets safely if re-run
+
+Re-running the script does **not** create duplicate releases.
+
+---
+
+## Development loop
+
+Typical workflow:
+
+```text
+edit code
+↓
+npm run build
+↓
+chrome://extensions → Reload
+↓
+refresh chatgpt.com
+```
+
+---
+
+## License
+
+MIT. See `LICENSE`.

@@ -1,172 +1,124 @@
-# Packaging and Installation
+# Installation
 
-This document explains how **ChatGPT Organizer** is built, packaged, tested, and eventually distributed.
+**ChatGPT Organizer** is currently distributed as a downloadable extension package and installed manually in Chrome.
 
-At the moment, the project is in **early development** and is distributed as an unpacked browser extension for testing and development.
-
----
-
-## Packaging and Availability
-
-### Current status
-
-- The extension is packaged locally using:
-  - TypeScript
-  - esbuild
-- Build output is generated in the `dist/` directory.
-- There is **no public store release yet**.
-
-The project is currently distributed via:
-- **Source code (GitHub)**
-- **Local build + unpacked installation**
-
-This allows rapid iteration, debugging, and validation before any store submission.
+> ⚠️ The extension is **not yet available** on the Chrome Web Store.
 
 ---
 
-## Build (local packaging)
+## Supported Browsers
 
-From the project root:
+* Google Chrome
+* Chromium-based browsers:
 
-```bash
-npm install
-npm run build
-````
+  * Brave
+  * Microsoft Edge
+  * Vivaldi
 
-This produces:
+Firefox is not supported yet.
 
-```text
-dist/
+---
+
+## Installation (current method)
+
+### Step 1 — Download the extension
+
+1. Go to the **GitHub Releases** page
+2. Download the latest file named:
+
+```
+chatgpt-organizer-X.Y.Z.zip
+```
+
+(X.Y.Z is the version number)
+
+---
+
+### Step 2 — Extract the ZIP
+
+Extract the downloaded ZIP file to a folder on your computer.
+
+After extraction, the folder **must contain a file named `manifest.json`**.
+
+Example:
+
+```
+chatgpt-organizer/
 ├─ manifest.json
 ├─ background.js
 ├─ content.js
 ├─ panel.js
-├─ panel/
-│  ├─ panel.html
-│  └─ panel.css
 └─ assets/
-   └─ icons…
 ```
 
-The `dist/` directory is the **packaged extension**.
-
 ---
 
-## Installation on Production (planned)
+### Step 3 — Install in Chrome
 
-### Target platforms
+1. Open Chrome and go to:
 
-The intended distribution platforms are:
+```
+chrome://extensions
+```
 
-* **Chrome Web Store** (primary target)
-* **Chromium-based browsers**
-
-  * Chrome
-  * Brave
-  * Edge
-  * Vivaldi
-
-Firefox support is planned later and will require a small UI adaptation (Firefox does not fully support Chrome’s Side Panel API).
-
-### Planned production packaging
-
-For store distribution:
-
-1. Build the extension:
-
-   ```bash
-   npm run build
-   ```
-2. Zip the contents of the `dist/` directory:
-
-   ```bash
-   cd dist
-   zip -r chatgpt-organizer.zip .
-   ```
-3. Upload the ZIP to:
-
-   * Chrome Web Store Developer Dashboard
-
-**Important:**
-Store publication will only happen once:
-
-* the deletion workflow is implemented safely
-* permissions are final
-* UI and behavior are stable
-
-No auto-updates or remote code loading are planned.
-
----
-
-## Test Mode (current)
-
-During development and testing, the extension is installed in **unpacked mode**.
-
-### Step-by-step installation (Chrome / Chromium)
-
-1. Open:
-
-   ```
-   chrome://extensions
-   ```
 2. Enable **Developer mode** (top-right corner)
-3. Click **Load unpacked**
-4. Select:
 
-   ```
-   chatgpt-organizer/dist
-   ```
-5. The extension should appear in the list
+3. Click **Load unpacked**
+
+4. Select the extracted folder (`chatgpt-organizer/`)
+
+The extension should now appear in the list.
 
 ---
 
-## Using the extension (test mode)
+## Using the extension
 
 1. Open:
 
-   ```
-   https://chatgpt.com
-   ```
+```
+https://chatgpt.com
+```
+
 2. Open any conversation
+
 3. Open the browser **Side Panel**
+
 4. Select **ChatGPT Organizer**
 
-The panel should open and display the current test UI.
+The panel should open on the right side of the browser.
 
 ---
 
-## Notes and Security
+## Updates
 
-* This is a **client-side only** tool
-* No server is involved
-* No analytics or tracking
-* No passwords are requested or stored
-* The extension works only because:
+There are no automatic updates at this time.
 
-  * you are already logged into ChatGPT in your browser
-  * the extension runs in that same browser context
+To update the extension:
 
-Conversation deletion is **not yet implemented**.
-When it is, it will include:
-
-* dry-run mode
-* explicit confirmation
-* throttling
-* visible progress and error handling
+1. Download the newer ZIP version
+2. Extract it
+3. Reload or re-install it via `chrome://extensions`
 
 ---
 
-## Troubleshooting
+## Chrome Web Store (planned)
 
-* After code changes:
+A Chrome Web Store release is planned once:
 
-  * run `npm run build`
-  * reload the extension in `chrome://extensions`
-  * refresh the ChatGPT page
-* If the side panel does not open:
+* features are complete
+* permissions are final
+* deletion workflows are fully safe
 
-  * ensure you are using a Chromium-based browser
-  * check extension errors in `chrome://extensions`
+Until then, manual installation is required.
+
+---
+
+## Security & Privacy
+
+* Runs entirely in your browser
+* No server, no cloud, no tracking
+* No passwords collected or stored
+* Works only in the browser where you are logged into ChatGPT
 
 ---
 
@@ -174,5 +126,4 @@ When it is, it will include:
 
 MIT. See `LICENSE`.
 
-````
  
