@@ -1,9 +1,9 @@
 // src/background.ts
-import { MSG, type AnyRequest, type AnyResponse } from "./shared/messages";
+import { MSG, type AnyRequest } from "./shared/messages";
 import type { ConversationItem, ProjectItem } from "./shared/types";
 
 /* -----------------------------------------------------------
- * URL / tab helpers
+ * URL / time helpers
  * ----------------------------------------------------------- */
 
 function isChatGPTUrl(url?: string): boolean {
@@ -14,6 +14,13 @@ async function getActiveChatGPTTab(): Promise<chrome.tabs.Tab | null> {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
   if (!tab || !isChatGPTUrl(tab.url)) return null;
   return tab;
+}
+
+async function sendToTab<TReq extends AnyRequest, TRes>(
+  tabId: number,
+  msg: TReq
+): Promise<TRes> {
+  return (await chrome.tabs.sendMessage(tabId, msg)) as TRes;
 }
 
 function sleep(ms: number) {
@@ -29,7 +36,7 @@ function nowMs(): number {
 }
 
 /* -----------------------------------------------------------
- * Session + delete helpers
+ * Session
  * ----------------------------------------------------------- */
 
 async function fetchSession(): Promise<{ loggedIn: boolean; accessToken?: string; meHint?: string }> {
@@ -53,6 +60,25 @@ async function fetchSession(): Promise<{ loggedIn: boolean; accessToken?: string
     return { loggedIn: false };
   }
 }
+
+async function fetchJsonAuthed<T>(url: string, accessToken: string): Promise<T> {
+  const resp = await fetch(url, {
+    method: "GET",
+    credentials: "include",
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+
+  if (!resp.ok) {
+    const txt = await resp.text().catch(() => "");
+    throw new Error(txt || `HTTP ${resp.status}`);
+  }
+
+  return (await resp.json()) as T;
+}
+
+/* -----------------------------------------------------------
+ * Delete helpers (kept)
+ * ----------------------------------------------------------- */
 
 async function deleteConversation(
   accessToken: string,
@@ -79,10 +105,6 @@ async function deleteConversation(
     return { ok: false, error: e?.message || "Network error" };
   }
 }
-
-/* -----------------------------------------------------------
- * v0.0.7 retry/backoff wrapper for delete
- * ----------------------------------------------------------- */
 
 async function deleteWithRetry(
   accessToken: string,
@@ -126,30 +148,34 @@ async function deleteWithRetry(
 }
 
 /* -----------------------------------------------------------
- * v0.0.12 backend helpers (list chats + projects)
+ * Mapping helpers
  * ----------------------------------------------------------- */
 
-async function fetchJsonAuthed<T>(url: string, accessToken: string): Promise<T> {
-  const resp = await fetch(url, {
-    method: "GET",
-    credentials: "include",
-    headers: { Authorization: `Bearer ${accessToken}` },
-  });
-
-  if (!resp.ok) {
-    const txt = await resp.text().catch(() => "");
-    throw new Error(txt || `HTTP ${resp.status}`);
-  }
-
-  return (await resp.json()) as T;
+function normalizeChatHref(id: string): string {
+  return `https://chatgpt.com/c/${id}`;
 }
 
-function convoToItem(c: any): ConversationItem | null {
-  const id = String(c?.id || "");
+function convoFromApiRow(row: any, gizmoId: string | null): ConversationItem | null {
+  const id = String(row?.id || "");
   if (!id) return null;
-  const title = String(c?.title || "").trim() || "Untitled";
-  return { id, title, href: `https://chatgpt.com/c/${id}` };
+
+  const title = String(row?.title || "").trim() || "Untitled";
+  const createTime = row?.create_time ? String(row.create_time) : undefined;
+  const updateTime = row?.update_time ? String(row.update_time) : undefined;
+
+  return {
+    id,
+    title,
+    href: normalizeChatHref(id),
+    gizmoId,
+    createTime,
+    updateTime,
+  };
 }
+
+/* -----------------------------------------------------------
+ * API: list all chats (includes project chats too, but we keep gizmoId=null here)
+ * ----------------------------------------------------------- */
 
 async function listAllChatsBackend(args: {
   accessToken: string;
@@ -184,8 +210,8 @@ async function listAllChatsBackend(args: {
     const items = Array.isArray(data?.items) ? data.items : [];
     if (!items.length) break;
 
-    for (const c of items) {
-      const it = convoToItem(c);
+    for (const row of items) {
+      const it = convoFromApiRow(row, null);
       if (!it) continue;
       collected.set(it.id, it);
       if (collected.size >= limit) break;
@@ -199,10 +225,8 @@ async function listAllChatsBackend(args: {
       offset,
     });
 
-    // If server returns less than requested, no more pages.
     if (items.length < pageLimit) break;
 
-    // polite delay
     await sleep(90 + randInt(0, 120));
   }
 
@@ -215,22 +239,19 @@ async function listAllChatsBackend(args: {
   return { conversations: Array.from(collected.values()), total };
 }
 
+/* -----------------------------------------------------------
+ * API: list gizmo/projects from snorlax sidebar (paged)
+ * ----------------------------------------------------------- */
+
 async function fetchGizmosSnorlaxSidebarPaged(args: {
   accessToken: string;
   limitProjects: number;
   conversationsPerGizmo: number;
   ownedOnly: boolean;
-}): Promise<
-  Array<{
-    gizmoId: string;
-    title: string;
-    href: string;
-  }>
-> {
+}): Promise<Array<{ gizmoId: string; title: string; href: string }>> {
   const { accessToken, limitProjects, conversationsPerGizmo, ownedOnly } = args;
 
   const out: Array<{ gizmoId: string; title: string; href: string }> = [];
-
   let cursor: string | null = null;
   let safety = 0;
 
@@ -255,6 +276,8 @@ async function fetchGizmosSnorlaxSidebarPaged(args: {
         String(gizmo?.display?.name || gizmo?.short_url || gizmoId).trim() || "Untitled";
 
       const shortUrl = String(gizmo?.short_url || "").trim();
+      // Correct: /g/<short_url> is what chatgpt uses in the URL bar.
+      // We do NOT pretend /g/<gizmoId>/project exists.
       const href = shortUrl ? `https://chatgpt.com/g/${shortUrl}` : `https://chatgpt.com/`;
 
       out.push({ gizmoId, title, href });
@@ -266,7 +289,9 @@ async function fetchGizmosSnorlaxSidebarPaged(args: {
     cursor = nextCursor;
   }
 
-  return out.slice(0, limitProjects);
+  // de-dupe by gizmoId
+  const seen = new Set<string>();
+  return out.filter((p) => (seen.has(p.gizmoId) ? false : (seen.add(p.gizmoId), true)));
 }
 
 async function fetchGizmoConversationsPaged(args: {
@@ -290,10 +315,10 @@ async function fetchGizmoConversationsPaged(args: {
     const data = await fetchJsonAuthed<any>(url, accessToken);
 
     const items = Array.isArray(data?.items) ? data.items : [];
-    for (const c of items) {
-      const it = convoToItem(c);
+    for (const row of items) {
+      const it = convoFromApiRow(row, gizmoId);
       if (!it) continue;
-      if (it) convos.set(it.id, it);
+      convos.set(it.id, it);
       if (convos.size >= limitConversations) break;
     }
 
@@ -313,8 +338,9 @@ async function listGizmoProjectsWithConversations(args: {
   accessToken: string;
   limitProjects: number;
   conversationsPerGizmo: number;
+  perProjectLimit: number;
 }): Promise<ProjectItem[]> {
-  const { accessToken, limitProjects, conversationsPerGizmo } = args;
+  const { accessToken, limitProjects, conversationsPerGizmo, perProjectLimit } = args;
 
   const gizmos = await fetchGizmosSnorlaxSidebarPaged({
     accessToken,
@@ -329,16 +355,17 @@ async function listGizmoProjectsWithConversations(args: {
 
   for (let i = 0; i < gizmos.length; i++) {
     const g = gizmos[i];
+
     const conversations = await fetchGizmoConversationsPaged({
       accessToken,
       gizmoId: g.gizmoId,
-      limitConversations: 5000, // safety cap per project
+      limitConversations: perProjectLimit,
     });
 
     totalConversations += conversations.length;
 
     projects.push({
-      key: g.gizmoId,
+      gizmoId: g.gizmoId,
       title: g.title,
       href: g.href,
       conversations,
@@ -347,6 +374,7 @@ async function listGizmoProjectsWithConversations(args: {
     chrome.runtime.sendMessage({
       type: MSG.LIST_GIZMO_PROJECTS_PROGRESS,
       foundProjects: i + 1,
+      totalProjects: gizmos.length,
       foundConversations: totalConversations,
     });
 
@@ -382,7 +410,7 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       return;
     }
 
-    /* v0.0.12 — LIST ALL CHATS (backend) */
+    // LIST ALL CHATS (backend)
     if (msg?.type === MSG.LIST_ALL_CHATS) {
       if (listChatsRunning) {
         sendResponse({ ok: false, error: "A chat listing is already running." } as any);
@@ -416,10 +444,51 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       }
     }
 
-    /* EXECUTE DELETE (unchanged logic) */
+    // LIST PROJECTS (backend)
+    if (msg?.type === MSG.LIST_GIZMO_PROJECTS) {
+      if (listProjectsRunning) {
+        sendResponse({ ok: false, error: "A projects listing is already running." } as any);
+        return;
+      }
+      listProjectsRunning = true;
+
+      try {
+        const session = await fetchSession();
+        if (!session.loggedIn || !session.accessToken) {
+          sendResponse({ ok: false, error: "Not logged in (no access token)." } as any);
+          return;
+        }
+
+        const limitProjects = Math.max(1, Math.min(5000, Number((msg as any).limit ?? 50)));
+        const conversationsPerGizmo = Math.max(
+          1,
+          Math.min(50, Number((msg as any).conversationsPerGizmo ?? 5))
+        );
+        const perProjectLimit = Math.max(1, Math.min(50000, Number((msg as any).perProjectLimit ?? 5000)));
+
+        const projects = await listGizmoProjectsWithConversations({
+          accessToken: session.accessToken,
+          limitProjects,
+          conversationsPerGizmo,
+          perProjectLimit,
+        });
+
+        sendResponse({ ok: true, projects } as any);
+        return;
+      } catch (e: any) {
+        sendResponse({ ok: false, error: e?.message || "Failed to list projects." } as any);
+        return;
+      } finally {
+        listProjectsRunning = false;
+      }
+    }
+
+    // EXECUTE DELETE (unchanged)
     if (msg?.type === MSG.EXECUTE_DELETE) {
-      const ids = (msg.ids || []).filter(Boolean);
-      if (!ids.length) {
+      const ids: string[] = (msg as any).ids || [];
+      const clean = ids.filter(Boolean);
+
+      if (!clean.length) {
         sendResponse({ ok: false, error: "No ids provided." } as any);
         return;
       }
@@ -434,16 +503,16 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       const startedAt = nowMs();
 
       try {
-        const throttleMs = Math.max(150, Math.min(5000, Number(msg.throttleMs ?? 600)));
+        const throttleMs = Math.max(150, Math.min(5000, Number((msg as any).throttleMs ?? 600)));
 
         const session = await fetchSession();
         if (!session.loggedIn || !session.accessToken) {
           chrome.runtime.sendMessage({
             type: MSG.EXECUTE_DELETE_DONE,
             runId,
-            total: ids.length,
+            total: clean.length,
             okCount: 0,
-            failCount: ids.length,
+            failCount: clean.length,
             elapsedMs: nowMs() - startedAt,
             throttleMs,
           });
@@ -454,7 +523,7 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
             meHint: session.meHint,
             note: "Not logged in (or access token not available).",
             throttleMs,
-            results: ids.map((id) => ({ id, ok: false, error: "Not logged in" })),
+            results: clean.map((id: string) => ({ id, ok: false, error: "Not logged in" })),
           } as any);
           return;
         }
@@ -463,8 +532,8 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
         let okCount = 0;
         let failCount = 0;
 
-        for (let idx = 0; idx < ids.length; idx++) {
-          const id = ids[idx];
+        for (let idx = 0; idx < clean.length; idx++) {
+          const id = clean[idx];
 
           if (idx > 0) {
             const jitter = randInt(0, 300);
@@ -472,8 +541,7 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
           }
 
           const r = await deleteWithRetry(session.accessToken, id, throttleMs);
-          const entry = { id, ok: r.ok, status: r.status, error: r.error };
-          results.push(entry);
+          results.push({ id, ok: r.ok, status: r.status, error: r.error });
 
           if (r.ok) okCount++;
           else failCount++;
@@ -482,7 +550,7 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
             type: MSG.EXECUTE_DELETE_PROGRESS,
             runId,
             i: idx + 1,
-            total: ids.length,
+            total: clean.length,
             id,
             ok: r.ok,
             status: r.status,
@@ -496,7 +564,7 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
         chrome.runtime.sendMessage({
           type: MSG.EXECUTE_DELETE_DONE,
           runId,
-          total: ids.length,
+          total: clean.length,
           okCount,
           failCount,
           elapsedMs: nowMs() - startedAt,
@@ -517,40 +585,15 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
       }
     }
 
-    /* v0.0.12 — LIST PROJECTS via gizmos/snorlax backend */
-    if (msg?.type === MSG.LIST_GIZMO_PROJECTS) {
-      if (listProjectsRunning) {
-        sendResponse({ ok: false, error: "A projects listing is already running." } as any);
-        return;
-      }
-      listProjectsRunning = true;
-
+    // optional: still route to content script for anything else you kept
+    const tab = await getActiveChatGPTTab();
+    if (tab?.id) {
       try {
-        const session = await fetchSession();
-        if (!session.loggedIn || !session.accessToken) {
-          sendResponse({ ok: false, error: "Not logged in (no access token)." } as any);
-          return;
-        }
-
-        const limitProjects = Math.max(1, Math.min(5000, Number((msg as any).limit ?? 50)));
-        const conversationsPerGizmo = Math.max(
-          1,
-          Math.min(50, Number((msg as any).conversationsPerGizmo ?? 5))
-        );
-
-        const projects = await listGizmoProjectsWithConversations({
-          accessToken: session.accessToken,
-          limitProjects,
-          conversationsPerGizmo,
-        });
-
-        sendResponse({ ok: true, projects } as any);
+        const res = await sendToTab(tab.id, msg as any);
+        sendResponse(res as any);
         return;
-      } catch (e: any) {
-        sendResponse({ ok: false, error: e?.message || "Failed to list projects." } as any);
-        return;
-      } finally {
-        listProjectsRunning = false;
+      } catch {
+        // fallthrough
       }
     }
 

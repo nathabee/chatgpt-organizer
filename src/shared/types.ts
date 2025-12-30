@@ -1,15 +1,23 @@
 // src/shared/types.ts
- 
+  
+// src/shared/types.ts
 
 export type ConversationItem = {
   id: string;
   title: string;
-  href: string;
+  href: string;            // https://chatgpt.com/c/<id>
+
+  // null = normal chat (not in a project)
+  // "g-p-..." = project/gizmo chat
+  gizmoId: string | null;
+
+  updateTime?: string;
+  createTime?: string;
 };
 
 export type ProjectItem = {
-  key: string; // gizmo id (stable)
+  gizmoId: string;         // g-p-...
   title: string;
-  href: string; // best-effort URL to open the project/gizmo
+  href: string;            // best-effort project URL
   conversations: ConversationItem[];
 };
