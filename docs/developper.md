@@ -120,9 +120,19 @@ Example:
 
 ## Release workflow (GitHub)
 
-Releases are created manually using shell scripts : 
-
+### Releases are created manually using shell scripts : 
+####  minor
 ```bash 
+npm run build
+./scripts/bump-version.sh minor
+git push 
+./scripts/build-zip.sh 
+./scripts/publish-release-zip.sh
+```
+
+####  patch
+```bash 
+npm run build
 ./scripts/bump-version.sh patch
 git push 
 ./scripts/build-zip.sh 
