@@ -59,12 +59,12 @@ const common = {
   logLevel: "info"
 };
 
-const entryPoints = [
-  path.join(root, "src/background.ts"),
-  path.join(root, "src/content.ts"),
-  path.join(root, "src/panel/panel.ts")
-];
-
+const entryPoints = {
+  background: path.join(root, "src/background/index.ts"),
+  content: path.join(root, "src/content.ts"),
+  panel: path.join(root, "src/panel/panel.ts"),
+};
+ 
 async function runOnce() {
   await build({
     ...common,

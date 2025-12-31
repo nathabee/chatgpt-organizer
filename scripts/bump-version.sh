@@ -60,6 +60,8 @@ if [[ -f package.json ]]; then
 fi
 
 git add VERSION manifest.json dist/manifest.json package.json 2>/dev/null || true
-git commit -m "chore(version): bump to ${new}"
+# git commit -m "chore(version): bump to ${new}"
 
 echo "Bumped: $old -> $new"
+echo "Staged version files. Commit when ready."
+ 

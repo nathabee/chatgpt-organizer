@@ -121,43 +121,49 @@ Example:
 ## Release workflow (GitHub)
 
 ### Releases are created manually using shell scripts : 
-####  minor
+
 ```bash 
+# bump first so manifest shows the release version during tests
+./scripts/bump-version.sh patch   # or minor / major
+
+
 npm run build
-./scripts/bump-version.sh minor
-git push 
-./scripts/build-zip.sh 
+# run whatever tests / manual checks you do
+
+# continue coding if needed (version already correct)
+
+git add -A
+git commit -m "vx.y.z"
+git push origin main
+./scripts/tag-version.sh
+./scripts/build-zip.sh
 ./scripts/publish-release-zip.sh
+
 ```
 
-####  patch
-```bash 
-npm run build
-./scripts/bump-version.sh patch
-git push 
-./scripts/build-zip.sh 
-./scripts/publish-release-zip.sh
-```
 
-
-### 1) Bump version
+### Bump version
 
 ```bash
+# bump version x.y.z to next z
 ./scripts/bump-version.sh patch
-git push
+# bump version x.y.z to next y
+./scripts/bump-version.sh minor
+# bump version x.y.z to next x
+./scripts/bump-version.sh major
 ```
 
 This updates:
 
 * `VERSION`
-* `manifest.json`
-* commits the change
+* `manifest.json` 
+* `package.json` 
 
-No tag or release is created yet.
+No commit, no tag or release is created yet.
 
 ---
 
-### 2) Build release ZIP
+### Build release ZIP
 
 ```bash
 ./scripts/build-zip.sh
@@ -175,7 +181,7 @@ This:
 
 ---
 
-### 3) Publish GitHub Release
+### Publish GitHub Release
 
 ```bash
 ./scripts/publish-release-zip.sh

@@ -86,21 +86,11 @@ High-level visibility into the account.
 * Large projects (cleanup candidates)
 
 Read-only, zero risk.
+ 
 
 ---
 
-##### Deferred (not in v0.1.0)
-
-These are explicitly postponed to avoid scope creep:
-
-* Project merge
-* Automatic rules / smart filing
-* Undo simulation
-* Cross-account sync
-
----
-
-## v0.0 — Experimental / Cleanup Phase *(current & completed)*
+## v0.0 — Experimental  Phase *(completed)*
 
 
 ### What 0.0.x Can Do
@@ -125,6 +115,132 @@ These are explicitly postponed to avoid scope creep:
 ---
 
 ## PATCHES
+
+
+### v0.1.1 — Epic: Architecture Restructure
+
+#### Goals
+
+* Split the codebase into **clear, testable modules** with explicit responsibilities.
+* Reduce “god files” and make future features (organize, logs, stats, moves) easier to extend.
+* Establish consistent structure across **background**, **panel**, and **shared** layers.
+
+#### What changed
+
+**1. Background split**
+
+The old single background implementation was decomposed into a structured module tree:
+
+* **API layer**: backend calls & pagination logic
+* **Executors**: long-running operations (delete chats, delete projects, move chats)
+* **Session**: authentication/session fetch + token handling
+* **Guards**: run locks to prevent concurrent executions
+* **Utilities**: URL helpers, time helpers, etc.
+
+Example structure:
+
+```
+src/background/
+├── api/
+│   ├── conversations.ts
+│   └── gizmos.ts
+├── executors/
+│   ├── deleteConversations.ts
+│   ├── deleteProjects.ts
+│   └── moveConversations.ts
+├── guards/
+│   └── runLocks.ts
+├── http/
+│   └── fetchJsonAuthed.ts
+├── logs/
+│   └── actionLog.ts
+├── session/
+│   └── session.ts
+├── util/
+│   ├── time.ts
+│   └── urls.ts
+└── index.ts
+```
+
+**2. Panel split into Tabs (model/view/tab)**
+
+Panel logic was refactored so each tab follows the same pattern:
+
+* `model.ts`: state + operations
+* `view.ts`: DOM rendering only
+* `tab.ts`: glue (bind events, call model/view, handle progress via bus)
+
+Example:
+
+> Put state + operations in `tabs/<tab>/model.ts`, UI rendering in `tabs/<tab>/view.ts`, glue in `tabs/<tab>/tab.ts`.
+
+Panel structure now:
+
+```
+src/panel/
+├── app/
+│   ├── bus.ts
+│   ├── dom.ts
+│   ├── format.ts
+│   ├── state.ts
+│   └── tabs.ts
+├── tabs/
+│   ├── single/
+│   │   ├── model.ts
+│   │   ├── tab.ts
+│   │   └── view.ts
+│   ├── projects/
+│   │   ├── model.ts
+│   │   ├── tab.ts
+│   │   └── view.ts
+│   ├── logs/
+│   ├── organize
+│   ├── search
+│   └── stats
+├── panel.ts
+├── panel.html
+└── panel.css
+```
+
+**3. Shared split (types + messages)**
+
+Shared was restructured into explicit protocol modules, with a clean “barrel” export.
+
+```
+src/shared/
+├── types/
+│   ├── conversations.ts
+│   ├── projects.ts
+│   ├── logs.ts
+│   └── index.ts
+│
+├── messages/
+│   ├── msg.ts              ← constants only (MSG)
+│   ├── conversations.ts    ← list chats protocol
+│   ├── projects.ts         ← list/delete projects protocol
+│   ├── logs.ts             ← ping + execute-delete protocol
+│   └── index.ts            ← re-exports (barrel)
+```
+
+#### Notes
+
+* This epic is **structural**: behavior should remain the same (no intentional regressions).
+* Some future tabs/files are intentionally present but still empty (placeholders for the next epics).
+
+---
+
+### v0.1.0 — Epic: Lock Previous v0.0.x
+
+#### Goals
+
+* Freeze the completed v0.0.x patch history into the first **minor release line**.
+* Create a stable baseline (v0.1.0) before starting the major architecture refactor in v0.1.x.
+
+#### What changed
+
+* Created the first minor release **v0.1.0**
+* Confirmed that all v0.0.x epics/features are included unchanged
+* Established the new development track for architecture changes in **v0.1.1+**
 
 ### v0.0.15 — Epic: Dual Progress for Project Cleanup
 
