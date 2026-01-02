@@ -1,11 +1,14 @@
 // src/background/api/gizmos.ts
 
+// fetch projects
 
 import { MSG } from "../../shared/messages";
 import type { ConversationItem, ProjectItem } from "../../shared/types";
 import { fetchJsonAuthed } from "../http/fetchJsonAuthed";
 import { nowMs, randInt, sleep } from "../util/time";
 import { convoFromApiRow } from "./conversations";
+import * as debugTrace from "../../shared/debugTrace";
+
 
 export async function deleteProject(
   accessToken: string,
@@ -52,6 +55,44 @@ async function fetchGizmosSnorlaxSidebarPaged(args: {
 
     const data = await fetchJsonAuthed<any>(url, accessToken);
 
+    // auto debug while ON (one entry per sidebar paging run)
+    if (safety === 1) {
+      const enabled = await debugTrace.isEnabled().catch(() => false);
+      if (enabled) {
+        const first = Array.isArray(data?.items) ? data.items[0] : undefined;
+        const keys = first && typeof first === "object" ? Object.keys(first) : [];
+
+        // keep shallow
+        const preview =
+          first && typeof first === "object"
+            ? {
+              // these exist in your structure: item.gizmo.gizmo + wrapper keys
+              hasGizmo: !!(first as any)?.gizmo,
+              gizmoId: (first as any)?.gizmo?.gizmo?.id ?? null,
+              name: (first as any)?.gizmo?.gizmo?.display?.name ?? null,
+              short_url: (first as any)?.gizmo?.gizmo?.short_url ?? null,
+            }
+            : null;
+
+        await debugTrace.append([
+          {
+            scope: "background",
+            kind: "debug",
+            message: `Auto debug: /gizmos/snorlax/sidebar first item keys (${keys.length})`,
+            ok: true,
+            meta: { keys },
+          },
+          {
+            scope: "background",
+            kind: "debug",
+            message: "Auto debug: /gizmos/snorlax/sidebar first item (shallow preview)",
+            ok: true,
+            meta: { item: preview },
+          },
+        ]).catch(() => { });
+      }
+    }
+
     const items = Array.isArray(data?.items) ? data.items : [];
     for (const it of items) {
       const gizmo = it?.gizmo?.gizmo;
@@ -96,6 +137,44 @@ async function fetchGizmoConversationsPaged(args: {
       (cursor ? `?cursor=${encodeURIComponent(cursor)}` : "");
 
     const data = await fetchJsonAuthed<any>(url, accessToken);
+
+        // auto debug while ON (one entry per gizmo conversations paging run, first page only)
+    if (safety === 1) {
+      const enabled = await debugTrace.isEnabled().catch(() => false);
+      if (enabled) {
+        const first = Array.isArray(data?.items) ? data.items[0] : undefined;
+        const keys = first && typeof first === "object" ? Object.keys(first) : [];
+
+        const preview =
+          first && typeof first === "object"
+            ? {
+                id: (first as any)?.id ?? null,
+                title: (first as any)?.title ?? null,
+                create_time: (first as any)?.create_time ?? null,
+                update_time: (first as any)?.update_time ?? null,
+                gizmo_id: (first as any)?.gizmo_id ?? null,
+              }
+            : null;
+
+        await debugTrace.append([
+          {
+            scope: "background",
+            kind: "debug",
+            message: `Auto debug: /gizmos/${gizmoId}/conversations first item keys (${keys.length})`,
+            ok: true,
+            meta: { keys, gizmoId },
+          },
+          {
+            scope: "background",
+            kind: "debug",
+            message: `Auto debug: /gizmos/${gizmoId}/conversations first item (shallow preview)`,
+            ok: true,
+            meta: { item: preview, gizmoId },
+          },
+        ]).catch(() => {});
+      }
+    }
+
 
     const items = Array.isArray(data?.items) ? data.items : [];
     for (const row of items) {

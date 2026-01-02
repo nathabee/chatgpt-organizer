@@ -1,6 +1,7 @@
 // src/panel/tabs/projects/tab.ts
 import { MSG, type AnyEvent } from "../../../shared/messages";
 import type { ProjectItem } from "../../../shared/types";
+import * as actionLog from "../../../shared/actionLog";
 
 import type { Dom } from "../../app/dom";
 import type { createBus } from "../../app/bus"; // adjust if export differs
@@ -26,6 +27,10 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
   let projOk = 0;
   let projFail = 0;
   let projTotal = 0;
+  let failureLogged = 0;
+  const MAX_FAILURE_LOGS_PER_RUN = 50;
+
+
 
   function refreshCounts() {
     view.updateCounts({
@@ -44,14 +49,14 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
       isBusy: getBusy(),
       onToggleProject: (p, checked) => model.toggleProjectSelection(p, checked),
       onToggleChat: (_p, chatId, checked) => model.toggleChatSelection(chatId, checked),
-    afterProjectToggle: () => {
-      refreshCounts();
-      rerender(); // needed to reflect forced checkboxes
-    },
+      afterProjectToggle: () => {
+        refreshCounts();
+        rerender(); // needed to reflect forced checkboxes
+      },
 
-    afterChatToggle: () => {
-      refreshCounts(); // no rerender => <details> stays open
-    },
+      afterChatToggle: () => {
+        refreshCounts(); // no rerender => <details> stays open
+      },
     });
 
     refreshCounts();
@@ -117,6 +122,7 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
     execOk = 0;
     execFail = 0;
     execTotal = total;
+    failureLogged = 0;
 
     view.showChatsExecProgress(true);
     dom.projectsChatsExecProgressEl.max = total;
@@ -130,6 +136,7 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
     projOk = 0;
     projFail = 0;
     projTotal = total;
+    failureLogged = 0;
 
     view.showProjectsExecProgress(true);
     dom.projectsProjectsExecProgressEl.max = total;
@@ -211,6 +218,8 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
       if (ok) execOk++;
       else execFail++;
 
+
+
       dom.projectsChatsExecProgressEl.max = total;
       dom.projectsChatsExecProgressEl.value = Math.min(i, total);
       dom.projectsChatsExecProgressTextEl.textContent =
@@ -231,6 +240,21 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
         rerender();
       }
 
+      if (!ok && failureLogged < MAX_FAILURE_LOGS_PER_RUN) {
+        failureLogged++;
+
+        actionLog.append({
+          kind: "error",
+          scope: "projects",
+          message: `Delete chat failed: ${title} (${id.slice(0, 8)})`,
+          ok: false,
+          status,
+          error: error || "failed",
+          chatId: id,
+          chatTitle: title,
+          meta: { attempt, elapsedMs, lastOpMs },
+        }).catch(() => { });
+      }
       return;
     }
 
@@ -245,6 +269,17 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
       const okCount = Number(m.okCount || execOk);
       const failCount = Number(m.failCount || execFail);
       const elapsedMs = Number(m.elapsedMs || 0);
+
+      actionLog.append({
+        kind: "run",
+        scope: "projects",
+        message: `Projects chat-delete run finished: ok ${okCount}/${total}, failed ${failCount}, elapsed ${formatMs(elapsedMs)}`,
+        ok: failCount === 0,
+        meta: { total, okCount, failCount, elapsedMs },
+      }).catch(() => { });
+
+      failureLogged = 0;
+
 
       view.setStatus("Chats delete done");
       dom.projectsChatsExecProgressTextEl.textContent =
@@ -306,6 +341,23 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
       if (ok) projOk++;
       else projFail++;
 
+      if (!ok) {
+        const nameMap = (window as any).__cgo_projectNameById as Record<string, string> | undefined;
+        const name = nameMap?.[gizmoId] || model.projects.find((p) => p.gizmoId === gizmoId)?.title || gizmoId;
+
+        actionLog.append({
+          kind: "error",
+          scope: "projects",
+          message: `Delete project failed: ${name}`,
+          ok: false,
+          status,
+          error: error || "failed",
+          projectId: gizmoId,
+          projectTitle: name,
+          meta: { elapsedMs, lastOpMs },
+        }).catch(() => { });
+      }
+
       dom.projectsProjectsExecProgressEl.max = total;
       dom.projectsProjectsExecProgressEl.value = Math.min(i, total);
       dom.projectsProjectsExecProgressTextEl.textContent =
@@ -325,6 +377,26 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
           `✗ PROJECT FAILED: ${name} (${gizmoId}) — ${status ?? ""} — ${error || "failed"} — elapsed ${formatMs(elapsedMs)}`
         );
       }
+
+      if (!ok && failureLogged < MAX_FAILURE_LOGS_PER_RUN) {
+        failureLogged++;
+
+        const nameMap = (window as any).__cgo_projectNameById as Record<string, string> | undefined;
+        const name = nameMap?.[gizmoId] || model.projects.find((p) => p.gizmoId === gizmoId)?.title || gizmoId;
+
+        actionLog.append({
+          kind: "error",
+          scope: "projects",
+          message: `Delete project failed: ${name}`,
+          ok: false,
+          status,
+          error: error || "failed",
+          projectId: gizmoId,
+          projectTitle: name,
+          meta: { elapsedMs, lastOpMs },
+        }).catch(() => { });
+      }
+
 
       return;
     }
@@ -348,6 +420,8 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
       (window as any).__cgo_projectNameById = undefined;
       return;
     }
+
+
   });
 
   function bind() {

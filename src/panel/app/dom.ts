@@ -7,6 +7,16 @@ export function getDom() {
   const tabProjects = document.getElementById("tabProjects") as HTMLButtonElement;
   const viewSingle = document.getElementById("viewSingle") as HTMLElement;
   const viewProjects = document.getElementById("viewProjects") as HTMLElement;
+  const tabOrganize = document.getElementById("tabOrganize") as HTMLButtonElement;
+  const tabSearch = document.getElementById("tabSearch") as HTMLButtonElement;
+  const tabLogs = document.getElementById("tabLogs") as HTMLButtonElement;
+  const tabStats = document.getElementById("tabStats") as HTMLButtonElement;
+
+  const viewOrganize = document.getElementById("viewOrganize") as HTMLElement;
+  const viewSearch = document.getElementById("viewSearch") as HTMLElement;
+  const viewLogs = document.getElementById("viewLogs") as HTMLElement;
+  const viewStats = document.getElementById("viewStats") as HTMLElement;
+
 
   // Single
   const singleLimitEl = document.getElementById("singleLimit") as HTMLInputElement;
@@ -62,20 +72,60 @@ export function getDom() {
 
   const projectsListEl = document.getElementById("projectsList") as HTMLUListElement;
 
+  // Logs
+  const logsLimitEl = document.getElementById("logsLimit") as HTMLInputElement;
+  const btnLogsRefresh = document.getElementById("btnLogsRefresh") as HTMLButtonElement;
+  const logsStatusEl = document.getElementById("logsStatus") as HTMLSpanElement;
+
+  const logsTrimKeepEl = document.getElementById("logsTrimKeep") as HTMLInputElement;
+  const btnLogsTrim = document.getElementById("btnLogsTrim") as HTMLButtonElement;
+  const btnLogsExport = document.getElementById("btnLogsExport") as HTMLButtonElement;
+  const btnLogsClear = document.getElementById("btnLogsClear") as HTMLButtonElement;
+
+  const logsOutEl = document.getElementById("logsOut") as HTMLPreElement;
+
+
+  // Debug trace
+  const logsCbDebugEl = document.getElementById("logsCbDebug") as HTMLInputElement;
+  const debugLimitEl = document.getElementById("debugLimit") as HTMLInputElement;
+  const btnDebugRefresh = document.getElementById("btnDebugRefresh") as HTMLButtonElement;
+  const btnDebugExport = document.getElementById("btnDebugExport") as HTMLButtonElement;
+  const btnDebugClear = document.getElementById("btnDebugClear") as HTMLButtonElement;
+  const debugStatusEl = document.getElementById("debugStatus") as HTMLSpanElement;
+  const debugOutEl = document.getElementById("debugOut") as HTMLPreElement;
+
+
+
   return {
-    tabSingle, tabProjects, viewSingle, viewProjects,
-    singleLimitEl, btnListSingle, singleStatusEl, cbSingleToggleAll, btnSingleDelete,
-    singleExecOutEl, singleExecProgressWrapEl, singleExecProgressEl, singleExecProgressTextEl,
-    singleConfirmBoxEl, singleConfirmTitleEl, singleConfirmPreviewEl, singleCbConfirmEl,
-    singleBtnConfirmExecute, singleBtnCancelExecute,
-    singleCountEl, singleSelectedCountEl, singleListEl,
-    projectsLimitEl, projectsChatsLimitEl, btnListProjects, projectsStatusEl, btnProjectsDelete,
-    projectsExecOutEl,
-    projectsChatsExecProgressWrapEl, projectsChatsExecProgressEl, projectsChatsExecProgressTextEl,
-    projectsProjectsExecProgressWrapEl, projectsProjectsExecProgressEl, projectsProjectsExecProgressTextEl,
-    projectsConfirmBoxEl, projectsConfirmTitleEl, projectsConfirmPreviewEl, projectsCbConfirmEl,
-    projectsBtnConfirmExecute, projectsBtnCancelExecute,
-    projectsCountEl, projectsChatsCountEl, projectsSelectedChatsCountEl, projectsSelectedProjectsCountEl,
-    projectsListEl,
+  tabSingle, tabProjects, viewSingle, viewProjects,
+  tabOrganize, tabSearch, tabLogs, tabStats,
+  viewOrganize, viewSearch, viewLogs, viewStats,
+
+  // Single ...
+  singleLimitEl, btnListSingle, singleStatusEl, cbSingleToggleAll, btnSingleDelete,
+  singleExecOutEl, singleExecProgressWrapEl, singleExecProgressEl, singleExecProgressTextEl,
+  singleConfirmBoxEl, singleConfirmTitleEl, singleConfirmPreviewEl, singleCbConfirmEl,
+  singleBtnConfirmExecute, singleBtnCancelExecute,
+  singleCountEl, singleSelectedCountEl, singleListEl,
+
+  // Projects ...
+  projectsLimitEl, projectsChatsLimitEl, btnListProjects, projectsStatusEl, btnProjectsDelete,
+  projectsExecOutEl,
+  projectsChatsExecProgressWrapEl, projectsChatsExecProgressEl, projectsChatsExecProgressTextEl,
+  projectsProjectsExecProgressWrapEl, projectsProjectsExecProgressEl, projectsProjectsExecProgressTextEl,
+  projectsConfirmBoxEl, projectsConfirmTitleEl, projectsConfirmPreviewEl, projectsCbConfirmEl,
+  projectsBtnConfirmExecute, projectsBtnCancelExecute,
+  projectsCountEl, projectsChatsCountEl, projectsSelectedChatsCountEl, projectsSelectedProjectsCountEl,
+  projectsListEl,
+
+    // Logs (audit)
+    logsLimitEl, btnLogsRefresh, logsStatusEl,
+    logsTrimKeepEl, btnLogsTrim, btnLogsExport, btnLogsClear,
+    logsOutEl,
+
+    // Debug trace
+    logsCbDebugEl, debugLimitEl, btnDebugRefresh, btnDebugExport, btnDebugClear,
+    debugStatusEl, debugOutEl,
   };
 }
+

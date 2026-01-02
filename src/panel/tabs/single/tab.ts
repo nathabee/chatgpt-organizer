@@ -1,6 +1,7 @@
 // src/panel/tabs/single/tab.ts
 import { MSG, type AnyEvent } from "../../../shared/messages";
 import type { ConversationItem } from "../../../shared/types";
+import * as actionLog from "../../../shared/actionLog";
 
 import type { Dom } from "../../app/dom";
 import type { createBus } from "../../app/bus"; // type-only shape; adjust if you exported differently
@@ -20,12 +21,15 @@ export function createSingleTab(dom: Dom, bus: Bus) {
   let execOk = 0;
   let execFail = 0;
   let execTotal = 0;
+  let failureLogged = 0;
+  const MAX_FAILURE_LOGS_PER_RUN = 50;
 
   function startProgressUI(total: number) {
     execRunId = null;
     execOk = 0;
     execFail = 0;
     execTotal = total;
+    failureLogged = 0; // ✅ add this
 
     view.showExecProgress(true);
     dom.singleExecProgressEl.max = total;
@@ -33,6 +37,7 @@ export function createSingleTab(dom: Dom, bus: Bus) {
     dom.singleExecProgressTextEl.textContent = `Starting… 0/${total}`;
     view.setStatus("Deleting…");
   }
+
 
   function updateProgressUI(i: number, total: number, okCount: number, failCount: number, lastOpMs: number) {
     dom.singleExecProgressEl.max = total;
@@ -168,6 +173,23 @@ export function createSingleTab(dom: Dom, bus: Bus) {
 
       view.appendExecOut(line);
 
+      if (!ok && failureLogged < MAX_FAILURE_LOGS_PER_RUN) {
+        failureLogged++;
+
+        actionLog.append({
+          kind: "error",
+          scope: "single",
+          message: `Delete chat failed: ${title} (${id.slice(0, 8)})`,
+          ok: false,
+          status,
+          error: error || "failed",
+          chatId: id,
+          chatTitle: title,
+          meta: { attempt, elapsedMs, lastOpMs },
+        }).catch(() => { });
+      }
+
+
       if (ok) {
         model.removeChat(id);
         view.renderList({
@@ -195,6 +217,17 @@ export function createSingleTab(dom: Dom, bus: Bus) {
       const okCount = Number(m.okCount || execOk);
       const failCount = Number(m.failCount || execFail);
       const elapsedMs = Number(m.elapsedMs || 0);
+
+      actionLog.append({
+        kind: "run",
+        scope: "single",
+        message: `Delete run finished: ok ${okCount}/${total}, failed ${failCount}, elapsed ${formatMs(elapsedMs)}`,
+        ok: failCount === 0,
+        meta: { total, okCount, failCount, elapsedMs },
+      }).catch(() => { });
+
+      failureLogged = 0;
+
 
       finishProgressUI(`Done · ok ${okCount}/${total} · failed ${failCount} · elapsed ${formatMs(elapsedMs)}`);
       setBusy(dom, false);

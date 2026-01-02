@@ -22,6 +22,11 @@ The project is intentionally simple, local-first, and transparent.
 - Does not access other users' data
 
 ---
+## ChatGPT Organizer – UI
+
+![ChatGPT Organizer UI](screenshot/screenshot-chatgpt-organizer.png)
+
+---
 
 ## Responsibility
 

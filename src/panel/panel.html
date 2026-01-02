@@ -16,10 +16,29 @@
             <button id="tabSingle" class="tab is-active" role="tab" aria-selected="true" type="button">
                 Single Chats
             </button>
+
             <button id="tabProjects" class="tab" role="tab" aria-selected="false" type="button">
                 Projects
             </button>
+
+            <button id="tabOrganize" class="tab" role="tab" aria-selected="false" type="button">
+                Organize
+            </button>
+
+            <button id="tabSearch" class="tab" role="tab" aria-selected="false" type="button">
+                Search
+            </button>
+
+            <button id="tabLogs" class="tab" role="tab" aria-selected="false" type="button">
+                Logs
+            </button>
+
+
+            <button id="tabStats" class="tab" role="tab" aria-selected="false" type="button">
+                Stats
+            </button>
         </div>
+
 
         <!-- =========================
          SINGLE CHATS VIEW
@@ -146,6 +165,104 @@
 
             <ul id="projectsList" class="list"></ul>
         </section>
+
+
+        <!-- =========================
+        ORGANIZE VIEW (placeholder)
+        ========================= -->
+        <section id="viewOrganize" class="view" role="tabpanel" aria-labelledby="tabOrganize" hidden>
+            <p class="muted">
+                Move chats into projects. No destructive actions in this tab.
+            </p>
+            <div class="placeholder">
+                Coming next: selection → destination → execute.
+            </div>
+        </section>
+
+        <!-- =========================
+        SEARCH VIEW (placeholder)
+        ========================= -->
+        <section id="viewSearch" class="view" role="tabpanel" aria-labelledby="tabSearch" hidden>
+            <p class="muted">
+                Search chats, filter, and bulk move results into projects.
+            </p>
+            <div class="placeholder">
+                Coming next: title search + filters + bulk actions.
+            </div>
+        </section>
+
+        <!-- =========================
+LOGS VIEW
+========================= -->
+        <section id="viewLogs" class="view" role="tabpanel" aria-labelledby="tabLogs" hidden>
+            <p class="muted">
+                Audit log is always-on. Debug trace is optional and can be wiped instantly.
+            </p>
+
+            <!-- AUDIT -->
+            <h3>Audit log</h3>
+
+            <div class="row">
+                <label class="fieldInline">
+                    <span>Show</span>
+                    <input id="logsLimit" type="number" inputmode="numeric" min="10" step="10" value="200" />
+                </label>
+
+                <button id="btnLogsRefresh" type="button">Refresh</button>
+                <span id="logsStatus" class="status">Idle</span>
+            </div>
+
+            <div class="row">
+                <label class="fieldInline">
+                    <span>Trim keep last</span>
+                    <input id="logsTrimKeep" type="number" inputmode="numeric" min="0" step="100" value="2000" />
+                </label>
+
+                <button id="btnLogsTrim" type="button">Trim</button>
+                <button id="btnLogsExport" type="button">Export JSON</button>
+                <button id="btnLogsClear" type="button" class="danger">Clear</button>
+            </div>
+
+            <pre id="logsOut" class="report" aria-live="polite"></pre>
+
+            <!-- DEBUG TRACE -->
+            <h3>Debug trace</h3>
+
+            <div class="row">
+                <label class="confirm" style="margin-right: auto;">
+                    <input id="logsCbDebug" type="checkbox" />
+                    Debug enabled (OFF wipes all debug traces)
+                </label>
+
+                <label class="fieldInline">
+                    <span>Show</span>
+                    <input id="debugLimit" type="number" inputmode="numeric" min="10" step="10" value="200" />
+                </label>
+
+                <button id="btnDebugRefresh" type="button">Refresh debug</button>
+                <button id="btnDebugExport" type="button">Export debug JSON</button>
+                <button id="btnDebugClear" type="button" class="danger">Clear debug</button>
+                <span id="debugStatus" class="status">Idle</span>
+            </div>
+
+            <pre id="debugOut" class="report" aria-live="polite"></pre>
+        </section>
+
+
+
+
+        <!-- =========================
+        STATS VIEW (placeholder)
+        ========================= -->
+        <section id="viewStats" class="view" role="tabpanel" aria-labelledby="tabStats" hidden>
+            <p class="muted">
+                Read-only overview of chats/projects and distribution.
+            </p>
+            <div class="placeholder">
+                Coming next: totals, empty projects, large projects, etc.
+            </div>
+        </section>
+
     </div>
 
     <script type="module" src="../panel.js"></script>

@@ -116,6 +116,102 @@ Read-only, zero risk.
 
 ## PATCHES
 
+Here’s a clean **version.md** section you can paste. I’m assuming you keep newest on top.
+
+---
+
+### v0.1.2 — Epic: Placeholder Tabs + Logs + Debug Trace
+
+#### Goals
+
+* Add the new tab skeletons (UI only) so the architecture is ready for the next epics:
+
+  * Organize
+  * Search
+  * Logs
+  * Stats
+* Provide **real traceability**:
+
+  * an **Audit Log** (always on, append-only) for actions like deletes/moves
+  * a separate **Debug Trace** (developer toggle) for inspecting API payloads without polluting the audit trail
+
+---
+
+#### Features
+
+**1. Placeholder tabs (UI only)**
+
+* Added tabs and empty placeholder views:
+
+  * Organize (future: move chats into projects)
+  * Search (future: discovery + bulk actions)
+  * Stats (future: overview / distribution)
+* No functionality yet — just visible navigation + basic layout.
+
+---
+
+**2. Logs tab (Audit Log UI)**
+
+The Logs tab is now the dedicated place to view and manage the local audit trail.
+
+* **Refresh**: reload entries from storage
+* **Show (limit)**: choose how many entries to display (newest first)
+* **Trim keep last (N)**: configure the keep limit
+* **Trim**: applies the keep-last rule (manual, user-controlled)
+* **Export JSON**: downloads the audit log as a JSON file
+* **Clear**: wipes the audit log
+
+Audit log is **append-only by design** (until the user trims/clears).
+
+---
+
+**3. Debug Trace (separate storage + separate lifecycle)**
+
+Debug traces are **not mixed** with audit log entries.
+
+* Debug is controlled via a **Debug toggle** inside the Logs tab:
+
+  * **ON**: debug traces may be written
+  * **OFF**: immediately wipes all debug traces and stops new debug writes
+
+Debug traces are meant for temporary inspection, not long-term history.
+
+---
+
+**4. Auto debug while ON (API sample capture)**
+
+When Debug is ON, the extension automatically captures a small debug sample:
+
+* One debug entry set per **“List single chats”** run
+* Source: background call to `GET /backend-api/conversations`
+* Captures:
+
+  * first item keys (shape discovery)
+  * shallow preview of the first item (safe subset)
+
+This is intentionally small to avoid spamming storage.
+
+---
+
+#### Storage
+
+**Audit Log**
+
+* Stored in `chrome.storage.local`
+* Key: `cgo.actionLog`
+* Object type: `ActionLogEntry[]`
+
+**Debug Trace**
+
+* Stored in `chrome.storage.local`
+* Key: `cgo.debugTrace`
+* Object type: `ActionLogEntry[]` (same entry shape, different storage + lifecycle)
+
+Debug OFF => `cgo.debugTrace` is cleared immediately.
+
+---
+
+ 
 
 ### v0.1.1 — Epic: Architecture Restructure
 

@@ -1,10 +1,15 @@
 // src/background/api/conversations.ts
 
 import { MSG } from "../../shared/messages";
-import type { ConversationItem } from "../../shared/types";
+import type { ConversationItem } from "../../shared/types"; 
+import * as debugTrace from "../../shared/debugTrace";
 import { fetchJsonAuthed } from "../http/fetchJsonAuthed";
 import { nowMs, randInt, sleep } from "../util/time";
 import { normalizeChatHref } from "../util/urls";
+ 
+
+ 
+ 
 
 export function convoFromApiRow(row: any, gizmoId: string | null): ConversationItem | null {
   const id = String(row?.id || "");
@@ -52,9 +57,50 @@ export async function listAllChatsBackend(args: {
 
     const data = await fetchJsonAuthed<any>(url, accessToken);
 
+    // auto debug while ON (one entry per list run)
+    if (safety === 1) {
+      const enabled = await debugTrace.isEnabled().catch(() => false);
+      if (enabled) {
+        const first = Array.isArray(data?.items) ? data.items[0] : undefined;
+        const keys = first && typeof first === "object" ? Object.keys(first) : [];
+
+        // keep preview shallow to avoid huge storage
+        const preview: any = first && typeof first === "object"
+          ? {
+              id: first.id ?? null,
+              title: first.title ?? null,
+              create_time: first.create_time ?? null,
+              update_time: first.update_time ?? null,
+              gizmo_id: first.gizmo_id ?? null,
+              is_archived: first.is_archived ?? null,
+              is_starred: first.is_starred ?? null,
+              snippet: first.snippet ?? null,
+            }
+          : null;
+
+        await debugTrace.append([
+          {
+            scope: "background",
+            kind: "debug",
+            message: `Auto debug: /conversations first item keys (${keys.length})`,
+            ok: true,
+            meta: { keys },
+          },
+          {
+            scope: "background",
+            kind: "debug",
+            message: "Auto debug: /conversations first item (shallow preview)",
+            ok: true,
+            meta: { item: preview },
+          },
+        ]).catch(() => {});
+      }
+    }
+
     if (typeof data?.total === "number") total = data.total;
 
     const items = Array.isArray(data?.items) ? data.items : [];
+
     if (!items.length) break;
 
     for (const row of items) {
