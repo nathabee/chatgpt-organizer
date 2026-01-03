@@ -2,6 +2,7 @@
 import { MSG, type AnyEvent } from "../../../shared/messages";
 import type { ProjectItem } from "../../../shared/types";
 import * as actionLog from "../../../shared/actionLog";
+import type { PanelCache } from "../../app/cache";
 
 import type { Dom } from "../../app/dom";
 import type { createBus } from "../../app/bus"; // adjust if export differs
@@ -12,7 +13,10 @@ import { createProjectsView } from "./view";
 
 type Bus = ReturnType<typeof createBus>;
 
-export function createProjectsTab(dom: Dom, bus: Bus) {
+
+
+export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
+
   const model = createProjectsModel();
   const view = createProjectsView(dom);
 
@@ -94,6 +98,11 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
         conversations: (p.conversations || []).slice(0, uiMaxChatsPerProject),
       }))
     );
+
+    cache.setProjects(model.projects, {
+      limitProjects,
+      chatsPerProject: uiMaxChatsPerProject,
+    });
 
     rerender();
     view.setStatus(`Done: ${model.projects.length} project(s)`);
@@ -237,6 +246,7 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
 
       if (ok) {
         model.removeChatEverywhere(id);
+        cache.removeChat(id);
         rerender();
       }
 
@@ -371,6 +381,7 @@ export function createProjectsTab(dom: Dom, bus: Bus) {
           `✓ PROJECT DELETED: ${name} (${gizmoId}) — ${status ?? "OK"} — ${formatMs(lastOpMs)} — elapsed ${formatMs(elapsedMs)}`
         );
         model.removeProject(gizmoId);
+        cache.removeProject(gizmoId);
         rerender();
       } else {
         view.appendExecOut(

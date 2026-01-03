@@ -2,6 +2,14 @@
 export type Dom = ReturnType<typeof getDom>;
 
 export function getDom() {
+
+  function must<T extends Element>(el: T | null, id: string): T {
+    if (!el) throw new Error(`[dom] Missing #${id}`);
+    return el;
+  }
+
+
+
   // Tabs
   const tabSingle = document.getElementById("tabSingle") as HTMLButtonElement;
   const tabProjects = document.getElementById("tabProjects") as HTMLButtonElement;
@@ -16,6 +24,44 @@ export function getDom() {
   const viewSearch = document.getElementById("viewSearch") as HTMLElement;
   const viewLogs = document.getElementById("viewLogs") as HTMLElement;
   const viewStats = document.getElementById("viewStats") as HTMLElement;
+
+  // Search
+
+  // Top row
+  const searchQueryEl = must(document.getElementById("searchQuery"), "searchQuery") as HTMLInputElement;
+  const btnSearchClear = must(document.getElementById("btnSearchClear"), "btnSearchClear") as HTMLButtonElement;
+  const btnSearchResetFilters = must(document.getElementById("btnSearchResetFilters"), "btnSearchResetFilters") as HTMLButtonElement;
+
+  // Extra filters (details)
+  const searchScopeEl = must(document.getElementById("searchScope"), "searchScope") as HTMLSelectElement;
+  const searchArchivedEl = must(document.getElementById("searchArchived"), "searchArchived") as HTMLSelectElement;
+
+  const searchUpdatedWithinEl = must(document.getElementById("searchUpdatedWithin"), "searchUpdatedWithin") as HTMLSelectElement;
+  const searchCreatedWithinEl = must(document.getElementById("searchCreatedWithin"), "searchCreatedWithin") as HTMLSelectElement;
+
+  const searchUpdatedAfterEl = must(document.getElementById("searchUpdatedAfter"), "searchUpdatedAfter") as HTMLInputElement;
+  const searchUpdatedBeforeEl = must(document.getElementById("searchUpdatedBefore"), "searchUpdatedBefore") as HTMLInputElement;
+
+  const searchCreatedAfterEl = must(document.getElementById("searchCreatedAfter"), "searchCreatedAfter") as HTMLInputElement;
+  const searchCreatedBeforeEl = must(document.getElementById("searchCreatedBefore"), "searchCreatedBefore") as HTMLInputElement;
+
+  // Info box
+  const searchInfoBoxEl = must(document.getElementById("searchInfoBox"), "searchInfoBox") as HTMLDetailsElement;
+  const btnSearchListSingle = must(document.getElementById("btnSearchListSingle"), "btnSearchListSingle") as HTMLButtonElement;
+  const btnSearchListProjects = must(document.getElementById("btnSearchListProjects"), "btnSearchListProjects") as HTMLButtonElement;
+
+  const searchInfoLoadedSinglesEl = must(document.getElementById("searchInfoLoadedSingles"), "searchInfoLoadedSingles") as HTMLElement;
+  const searchInfoLoadedProjectsEl = must(document.getElementById("searchInfoLoadedProjects"), "searchInfoLoadedProjects") as HTMLElement;
+  const searchInfoLoadedProjectChatsEl = must(document.getElementById("searchInfoLoadedProjectChats"), "searchInfoLoadedProjectChats") as HTMLElement;
+  const searchInfoLimitsEl = must(document.getElementById("searchInfoLimits"), "searchInfoLimits") as HTMLElement;
+
+  // Always visible status + results
+  const searchStatusEl = must(document.getElementById("searchStatus"), "searchStatus") as HTMLDivElement; // ✅ it's a <div> now
+  const searchResultsCountEl = must(document.getElementById("searchResultsCount"), "searchResultsCount") as HTMLElement;
+
+  // Results list
+  const searchResultsEl = must(document.getElementById("searchResults"), "searchResults") as HTMLUListElement;
+
 
 
   // Single
@@ -97,26 +143,41 @@ export function getDom() {
 
 
   return {
-  tabSingle, tabProjects, viewSingle, viewProjects,
-  tabOrganize, tabSearch, tabLogs, tabStats,
-  viewOrganize, viewSearch, viewLogs, viewStats,
+    tabSingle, tabProjects, viewSingle, viewProjects,
+    tabOrganize, tabSearch, tabLogs, tabStats,
+    viewOrganize, viewSearch, viewLogs, viewStats,
+ 
+    // Search ...
+    searchInfoBoxEl, btnSearchListSingle, btnSearchListProjects,
+    searchInfoLoadedSinglesEl, searchInfoLoadedProjectsEl, searchInfoLoadedProjectChatsEl,
+    searchInfoLimitsEl,
 
-  // Single ...
-  singleLimitEl, btnListSingle, singleStatusEl, cbSingleToggleAll, btnSingleDelete,
-  singleExecOutEl, singleExecProgressWrapEl, singleExecProgressEl, singleExecProgressTextEl,
-  singleConfirmBoxEl, singleConfirmTitleEl, singleConfirmPreviewEl, singleCbConfirmEl,
-  singleBtnConfirmExecute, singleBtnCancelExecute,
-  singleCountEl, singleSelectedCountEl, singleListEl,
+    btnSearchResetFilters,
+    searchStatusEl, searchQueryEl, btnSearchClear,
 
-  // Projects ...
-  projectsLimitEl, projectsChatsLimitEl, btnListProjects, projectsStatusEl, btnProjectsDelete,
-  projectsExecOutEl,
-  projectsChatsExecProgressWrapEl, projectsChatsExecProgressEl, projectsChatsExecProgressTextEl,
-  projectsProjectsExecProgressWrapEl, projectsProjectsExecProgressEl, projectsProjectsExecProgressTextEl,
-  projectsConfirmBoxEl, projectsConfirmTitleEl, projectsConfirmPreviewEl, projectsCbConfirmEl,
-  projectsBtnConfirmExecute, projectsBtnCancelExecute,
-  projectsCountEl, projectsChatsCountEl, projectsSelectedChatsCountEl, projectsSelectedProjectsCountEl,
-  projectsListEl,
+    searchScopeEl, searchArchivedEl,
+    searchUpdatedWithinEl, searchUpdatedAfterEl, searchUpdatedBeforeEl,
+    searchCreatedWithinEl, searchCreatedAfterEl, searchCreatedBeforeEl,
+
+    searchResultsCountEl, searchResultsEl,
+
+
+    // Single ...
+    singleLimitEl, btnListSingle, singleStatusEl, cbSingleToggleAll, btnSingleDelete,
+    singleExecOutEl, singleExecProgressWrapEl, singleExecProgressEl, singleExecProgressTextEl,
+    singleConfirmBoxEl, singleConfirmTitleEl, singleConfirmPreviewEl, singleCbConfirmEl,
+    singleBtnConfirmExecute, singleBtnCancelExecute,
+    singleCountEl, singleSelectedCountEl, singleListEl,
+
+    // Projects ...
+    projectsLimitEl, projectsChatsLimitEl, btnListProjects, projectsStatusEl, btnProjectsDelete,
+    projectsExecOutEl,
+    projectsChatsExecProgressWrapEl, projectsChatsExecProgressEl, projectsChatsExecProgressTextEl,
+    projectsProjectsExecProgressWrapEl, projectsProjectsExecProgressEl, projectsProjectsExecProgressTextEl,
+    projectsConfirmBoxEl, projectsConfirmTitleEl, projectsConfirmPreviewEl, projectsCbConfirmEl,
+    projectsBtnConfirmExecute, projectsBtnCancelExecute,
+    projectsCountEl, projectsChatsCountEl, projectsSelectedChatsCountEl, projectsSelectedProjectsCountEl,
+    projectsListEl,
 
     // Logs (audit)
     logsLimitEl, btnLogsRefresh, logsStatusEl,
@@ -128,4 +189,3 @@ export function getDom() {
     debugStatusEl, debugOutEl,
   };
 }
-

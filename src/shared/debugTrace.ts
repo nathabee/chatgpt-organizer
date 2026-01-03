@@ -17,7 +17,7 @@ export type DebugTraceEntry = {
 };
 
 const TRACE_KEY = "cgo.debugTrace";
-const ENABLED_KEY = "cgo.debugEnabled";
+const ENABLED_KEY = "cgo.debugTrace.enabled";
 const DEFAULT_MAX = 2000;
 
 function ensureChromeStorage() {

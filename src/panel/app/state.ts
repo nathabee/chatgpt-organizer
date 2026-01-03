@@ -22,6 +22,17 @@ export function setBusy(dom: Dom, next: boolean) {
   dom.projectsChatsLimitEl.disabled = next;
   dom.btnProjectsDelete.disabled = next;
 
+
+
+  // ✅ add: Search tab “trigger list” buttons must follow busy too
+  dom.btnSearchListSingle.disabled = next;
+  dom.btnSearchListProjects.disabled = next;
+
+  // (optional) also disable reset/clear to prevent UI confusion mid-run
+  dom.btnSearchResetFilters.disabled = next;
+  dom.btnSearchClear.disabled = next;
+  dom.searchQueryEl.disabled = next;
+
   Array.from(document.querySelectorAll<HTMLInputElement>("input[type='checkbox']")).forEach((cb) => {
     cb.disabled = next;
   });

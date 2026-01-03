@@ -167,6 +167,132 @@
         </section>
 
 
+
+
+        <!-- =========================
+        SEARCH VIEW  
+        ========================= -->
+        <section id="viewSearch" class="view" role="tabpanel" aria-labelledby="tabSearch" hidden>
+            <p class="muted">Search chats, filter, and bulk move results into projects.</p>
+
+            <!-- TOP BAR -->
+            <div class="row searchTopRow">
+                <label class="sr-only" for="searchQuery">Search</label>
+                <input id="searchQuery" type="search" placeholder="Search…" autocomplete="off" />
+
+                <button id="btnSearchClear" type="button">Clear</button>
+                <button id="btnSearchResetFilters" type="button" class="subtle">Reset filters</button>
+
+                <!-- moved here from Info -->
+                <button id="btnSearchListSingle" type="button" class="subtle">
+                    List single
+                </button>
+                <button id="btnSearchListProjects" type="button" class="subtle">
+                    List projects
+                </button>
+            </div>
+
+            <!-- EXTRA FILTERS -->
+            <details class="searchBox" id="searchExtra" role="group">
+                <summary>Extra filters</summary>
+
+                <div class="row searchFilters">
+                    <label class="fieldInline">
+                        <span>Scope</span>
+                        <select id="searchScope">
+                            <option value="all" selected>All</option>
+                            <option value="single">Single</option>
+                            <option value="projects">Projects</option>
+                        </select>
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Archived</span>
+                        <select id="searchArchived">
+                            <option value="include" selected>Include</option>
+                            <option value="exclude">Exclude</option>
+                            <option value="only">Only</option>
+                        </select>
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Updated</span>
+                        <select id="searchUpdatedWithin">
+                            <option value="any" selected>Any</option>
+                            <option value="24h">24h</option>
+                            <option value="7d">7d</option>
+                            <option value="30d">30d</option>
+                            <option value="1y">1y</option>
+                        </select>
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Created</span>
+                        <select id="searchCreatedWithin">
+                            <option value="any" selected>Any</option>
+                            <option value="24h">24h</option>
+                            <option value="7d">7d</option>
+                            <option value="30d">30d</option>
+                            <option value="1y">1y</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="row searchFilters">
+                    <label class="fieldInline">
+                        <span>Updated after</span>
+                        <input id="searchUpdatedAfter" type="date" />
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Updated before</span>
+                        <input id="searchUpdatedBefore" type="date" />
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Created after</span>
+                        <input id="searchCreatedAfter" type="date" />
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Created before</span>
+                        <input id="searchCreatedBefore" type="date" />
+                    </label>
+                </div>
+            </details>
+
+            <!-- INFO -->
+            <details class="searchBox" id="searchInfoBox" role="group">
+                <summary>Info</summary>
+
+                <div class="searchInfoText muted">
+                    Search works on the locally loaded cache.
+                    Increase limits in <strong>Single</strong> or <strong>Projects</strong>, then list again.
+                </div>
+
+                <div class="searchInfoMeta">
+                    <div>
+                        Loaded:
+                        <strong id="searchInfoLoadedSingles">0</strong> single ·
+                        <strong id="searchInfoLoadedProjects">0</strong> projects ·
+                        <strong id="searchInfoLoadedProjectChats">0</strong> project chats
+                    </div>
+
+                    <div class="muted" id="searchInfoLimits"></div>
+
+                    <div>
+                        Results: <strong id="searchResultsCount">0</strong>
+                    </div>
+
+                    <div id="searchStatus" class="muted"></div>
+                </div>
+            </details>
+
+            <!-- RESULTS -->
+            <ul id="searchResults" class="list"></ul>
+        </section>
+
+
         <!-- =========================
         ORGANIZE VIEW (placeholder)
         ========================= -->
@@ -179,17 +305,6 @@
             </div>
         </section>
 
-        <!-- =========================
-        SEARCH VIEW (placeholder)
-        ========================= -->
-        <section id="viewSearch" class="view" role="tabpanel" aria-labelledby="tabSearch" hidden>
-            <p class="muted">
-                Search chats, filter, and bulk move results into projects.
-            </p>
-            <div class="placeholder">
-                Coming next: title search + filters + bulk actions.
-            </div>
-        </section>
 
         <!-- =========================
 LOGS VIEW

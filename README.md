@@ -24,8 +24,8 @@ The project is intentionally simple, local-first, and transparent.
 ---
 ## ChatGPT Organizer – UI
 
-![ChatGPT Organizer UI](screenshot/screenshot-chatgpt-organizer.png)
-
+![ChatGPT Organizer UI](docs/screenshots/screenshot-chatgpt-organizer.png)
+ 
 ---
 
 ## Responsibility

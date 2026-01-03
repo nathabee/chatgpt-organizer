@@ -24,14 +24,16 @@ export function createTabs(dom: Dom, tabs: Record<TabId, Tab>) {
     dom.tabProjects.setAttribute("aria-selected", String(is("projects")));
     dom.viewProjects.hidden = !is("projects");
 
-    dom.tabOrganize.classList.toggle("is-active", is("organize"));
-    dom.tabOrganize.setAttribute("aria-selected", String(is("organize")));
-    dom.viewOrganize.hidden = !is("organize");
 
     dom.tabSearch.classList.toggle("is-active", is("search"));
     dom.tabSearch.setAttribute("aria-selected", String(is("search")));
     dom.viewSearch.hidden = !is("search");
 
+
+    dom.tabOrganize.classList.toggle("is-active", is("organize"));
+    dom.tabOrganize.setAttribute("aria-selected", String(is("organize")));
+    dom.viewOrganize.hidden = !is("organize");
+    
     dom.tabLogs.classList.toggle("is-active", is("logs"));
     dom.tabLogs.setAttribute("aria-selected", String(is("logs")));
     dom.viewLogs.hidden = !is("logs");

@@ -116,7 +116,73 @@ Read-only, zero risk.
 
 ## PATCHES
 
-Here’s a clean **version.md** section you can paste. I’m assuming you keep newest on top.
+ 
+
+### v0.1.3 — Epic: Search Tab
+
+#### Goal
+
+Add a **Search** tab that filters and explores conversations using the **in-panel cache** already loaded from:
+
+* **Single → List single chats**
+* **Projects → List projects** (including their conversations)
+
+Search does **not** call the API by itself. It only works on what is currently loaded.
+
+#### What changed
+
+**1) Introduced a shared cache snapshot**
+
+* Single and Projects listings write their results into a shared cache (`singleChats`, `projects[].conversations`)
+* The Search tab reads from that cache and automatically re-renders when the cache changes
+
+This keeps Search fast, predictable, and consistent with what the user has actually loaded.
+
+**2) Search is live and cache-driven**
+
+* Query matches against:
+
+  * conversation `title`
+  * `snippet` (when present)
+  * conversation `id`
+  * for project chats: also the project `title` (and optionally `gizmoId`)
+* Results show:
+
+  * conversation title
+  * project name in parentheses for project conversations
+  * optional small badges for metadata (e.g., archived + dates)
+
+**3) Clear empty state**
+
+If nothing is loaded yet, Search shows:
+
+* “No data loaded yet. Use Single/Projects and click List.”
+
+**4) Collapsible filters and Info panel**
+
+* **Extra filters** (collapsed by default) to keep the Search tab compact:
+
+  * Scope: All / Singles / Projects
+  * Archived: Include / Exclude / Only
+  * Updated: within + optional before/after dates
+  * Created: within + optional before/after dates
+* **Info** (collapsed by default):
+
+  * explains Search uses local cache
+  * shows loaded counts + current limits
+  * includes buttons to trigger the same listing actions as Single/Projects to refresh the cache
+
+**5) Live updates**
+
+When Single/Projects loads new data (or deletes data), the cache updates and:
+
+* Search refreshes automatically
+* counts and results update without manual refresh
+
+#### Notes / constraints
+
+* Search coverage depends on what was loaded via limits in Single/Projects.
+* Some metadata fields are often empty in real usage (e.g., starred/pinned depending on UI availability), so filters should only exist for fields that are reliably populated by the API.
 
 ---
 

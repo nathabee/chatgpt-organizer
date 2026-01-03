@@ -2,6 +2,8 @@ import { getDom } from "./app/dom";
 import { createBus } from "./app/bus";
 import { createTabs } from "./app/tabs";
 
+import { createPanelCache } from "./app/cache";
+
 import { createSingleTab } from "./tabs/single/tab";
 import { createProjectsTab } from "./tabs/projects/tab";
 import { createOrganizeTab } from "./tabs/organize/tab";
@@ -15,10 +17,14 @@ import { createStatsTab } from "./tabs/stats/tab";
   const bus = createBus();
   bus.start();
 
-  const singleTab = createSingleTab(dom, bus);
-  const projectsTab = createProjectsTab(dom, bus);
+
+
+  const cache = createPanelCache();
+  const singleTab = createSingleTab(dom, bus, cache);
+  const projectsTab = createProjectsTab(dom, bus, cache);
+  const searchTab = createSearchTab(dom, bus, cache);
+
   const organizeTab = createOrganizeTab(dom, bus);
-  const searchTab = createSearchTab(dom, bus);
   const logsTab = createLogsTab(dom, bus);
   const statsTab = createStatsTab(dom, bus);
 
@@ -29,6 +35,7 @@ import { createStatsTab } from "./tabs/stats/tab";
   logsTab.bind();
   statsTab.bind();
 
+  
   const tabs = createTabs(dom, {
     single: singleTab,
     projects: projectsTab,
@@ -38,6 +45,7 @@ import { createStatsTab } from "./tabs/stats/tab";
     stats: statsTab,
   });
 
-  tabs.bind();
-  tabs.boot();
+   
+ tabs.bind();
+ tabs.boot();
 })();

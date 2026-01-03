@@ -279,3 +279,151 @@ details > summary {
   background: rgba(0,0,0,0.03);
   opacity: 0.9;
 }
+
+
+/* -----------------------------
+   Search results layout
+   ----------------------------- */
+.searchTopRow {
+  align-items: center;
+}
+
+button.subtle {
+  border: 1px solid rgba(0,0,0,0.16);
+  background: rgba(0,0,0,0.03);
+  font-weight: 600;
+}
+
+button.subtle:hover {
+  background: rgba(0,0,0,0.06);
+}
+
+.searchBox {
+  margin: 8px 0 10px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px dashed rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.02);
+}
+
+.searchBox > summary {
+  cursor: pointer;
+  font-weight: 600;
+  opacity: 0.9;
+  user-select: none;
+}
+
+#searchStatus {
+  margin-bottom: 6px;
+}
+/* Search results: completely override the generic .item card/grid */
+.item.searchItem {
+  display: block;          /* stop grid (28px + 1fr) */
+  grid-template-columns: unset;
+  gap: 0;
+
+  padding: 8px 4px;
+  margin: 0;
+
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* subtle separators between results */
+.item.searchItem + .item.searchItem {
+  border-top: 1px solid rgba(0,0,0,0.10);
+}
+
+/* Make the line usable: allow wrapping instead of forcing single-line cut */
+.searchLine {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.searchTitle {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.searchProject {
+  flex: 0 1 40%;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+/* Badges: keep on the right but allow them to wrap to next line if needed */
+.searchBadges {
+  margin-left: auto;
+  flex: 0 0 auto;
+
+  display: inline-flex;
+  gap: 6px;
+  align-items: baseline;
+  flex-wrap: wrap;         /* ✅ */
+}
+
+/* compact badge */
+.badge {
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 999px;
+  border: 1px solid rgba(0,0,0,0.14);
+  background: rgba(0,0,0,0.03);
+  white-space: nowrap;
+}
+
+/* tiny variants (optional) */
+.badge--date { opacity: 0.75; }
+.badge--arch { opacity: 0.75; }
+.badge--pin  { opacity: 0.9; }
+.badge--star { opacity: 0.95; }
+
+
+/* Separator dot */
+.searchSep {
+  opacity: 0.4;
+  flex: 0 0 auto;
+}
+
+ 
+/* snippet clamped */
+.searchSnippet {
+  margin-top: 4px;
+  font-size: 12px;
+  opacity: 0.85;
+  overflow: hidden;
+}
+
+@supports (-webkit-line-clamp: 2) or (line-clamp: 2) {
+  .searchSnippet {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+  }
+}
+
+.searchFilters {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.searchFilters select,
+.searchFilters input[type="date"] {
+  font: inherit;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.16);
+  background: white;
+}

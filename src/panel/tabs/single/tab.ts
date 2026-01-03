@@ -3,7 +3,9 @@ import { MSG, type AnyEvent } from "../../../shared/messages";
 import type { ConversationItem } from "../../../shared/types";
 import * as actionLog from "../../../shared/actionLog";
 
-import type { Dom } from "../../app/dom";
+import type { Dom } from "../../app/dom"; 
+import type { PanelCache } from "../../app/cache"; 
+
 import type { createBus } from "../../app/bus"; // type-only shape; adjust if you exported differently
 import { clampInt, formatMs } from "../../app/format";
 import { getBusy, setBusy } from "../../app/state";
@@ -12,7 +14,7 @@ import { createSingleView } from "./view";
 
 type Bus = ReturnType<typeof createBus>;
 
-export function createSingleTab(dom: Dom, bus: Bus) {
+export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
   const model = createSingleModel();
   const view = createSingleView(dom);
 
@@ -77,6 +79,10 @@ export function createSingleTab(dom: Dom, bus: Bus) {
 
     const items = (res.conversations || []) as ConversationItem[];
     model.setChats(items.filter((c) => !c.gizmoId));
+
+
+    // ✅ write into cache (single chats)
+    cache.setSingleChats(model.chats, { limit });
 
     view.renderList({
       chats: model.chats,
@@ -192,6 +198,11 @@ export function createSingleTab(dom: Dom, bus: Bus) {
 
       if (ok) {
         model.removeChat(id);
+
+
+        // ✅ keep cache in sync
+        cache.removeChat(id);
+
         view.renderList({
           chats: model.chats,
           selected: model.selected,

@@ -5,8 +5,7 @@ export type ActionLogKind =
   | "move_chat"
   | "run"
   | "info"
-  | "error"
-  | "debug";
+  | "error" 
 
 export type ActionLogScope =
   | "single"
@@ -38,8 +37,7 @@ export type ActionLogEntry = {
   meta?: Record<string, unknown>;
 };
 
-const STORAGE_KEY = "cgo.actionLog";
-const DEBUG_KEY = "cgo.debugEnabled";
+const STORAGE_KEY = "cgo.actionLog"; 
 const DEFAULT_MAX = 5000;
 
 function ensureChromeStorage() {
@@ -74,17 +72,7 @@ function clampInt(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.floor(n)));
 }
 
-/** Debug toggle (stored in chrome.storage.local) */
-export async function getDebugEnabled(): Promise<boolean> {
-  ensureChromeStorage();
-  const res = await chrome.storage.local.get(DEBUG_KEY);
-  return !!(res as any)?.[DEBUG_KEY];
-}
-
-export async function setDebugEnabled(next: boolean): Promise<void> {
-  ensureChromeStorage();
-  await chrome.storage.local.set({ [DEBUG_KEY]: !!next });
-}
+ 
 
 export type ListOptions = {
   limit?: number;         // default 200
@@ -106,20 +94,15 @@ export async function append(
   opts?: { max?: number }
 ): Promise<{ total: number }> {
   const max = clampInt(opts?.max ?? DEFAULT_MAX, 100, 50000);
-
-  // If debug is OFF, ignore debug entries.
-  // (run/error/info/etc still go through)
-  const dbg = await getDebugEnabled().catch(() => false);
-
+ 
   const incomingAll = toArray(entryOrEntries);
 
-  const incoming = incomingAll
-    .filter((e) => (e.kind === "debug" ? dbg : true))
-    .map((e) => ({
-      ...e,
-      id: makeId(),
-      ts: Date.now(),
-    }));
+  const incoming = incomingAll.map((e) => ({
+    ...e,
+    id: makeId(),
+    ts: Date.now(),
+  }));
+
 
   if (!incoming.length) {
     // no-op (e.g. debug entry while debug disabled)
