@@ -2,98 +2,200 @@
   <img src="./docs/cgo.svg" alt="CGO Logo" width="300" style="vertical-align:middle; margin-right:20px;"> 
 </a>
 
-# ChatGPT Organizer (CGO)  <img src="./docs/icon.svg" alt="CGO Icon" width="60" style="vertical-align:middle; margin-right:20px;"> 
+# ChatGPT Organizer (CGO)
 
-**ChatGPT Organizer** is a browser extension that helps you inspect and clean up your ChatGPT conversations.
+<img src="./docs/icon.svg" alt="CGO Icon" width="60" style="vertical-align:middle; margin-right:20px;"> 
 
-The first goal is pragmatic:  
-**list and bulk-delete conversations safely**, without manually clicking hundreds of chats in the sidebar.
+**ChatGPT Organizer** is a browser extension that gives you **visibility and control** over your own ChatGPT conversations.
 
-The project is intentionally simple, local-first, and transparent.
+It started as a cleanup tool.
+As of **v0.1.x**, it is evolving into a **long-term organization and inspection tool**.
+
+The philosophy is simple:
+
+> **Show what exists. Let the user decide. Execute explicitly.**
+
+No server. No sync. No automation behind your back.
+
+---
+
+## What this extension does (and does not)
+
+**Does**
+
+* Runs entirely in your browser
+* Uses your existing ChatGPT login session
+* Lists chats and projects via the same backend APIs the UI uses
+* Executes actions only when you explicitly click
+* Keeps a local, auditable action log
+
+**Does NOT**
+
+* Store credentials
+* Sync data anywhere
+* Access other accounts
+* Modify chats automatically
+* Pretend deletions are reversible
 
 ---
 
-## What this extension does
+## UI Overview
 
-- Runs entirely in your browser
-- Acts only on your own ChatGPT account
-- Requires you to be logged in to chatgpt.com
-- Does not store credentials
-- Does not access other users' data
+**Search screen**
+![ChatGPT Organizer UI search tab](docs/screenshots/screenshot-chatgpt-organizer-search.png)
+
+**Projects screen**
+![ChatGPT Organizer UI project tab](docs/screenshots/screenshot-chatgpt-organizer-projects.png)
+
+**Logs screen**
+![ChatGPT Organizer UI logs and debug tab](docs/screenshots/screenshot-chatgpt-organizer-logs.png)
+
+The side panel is organized into **explicit tabs**, each with a single responsibility.
+
+### Tabs at a glance
+
+| Tab          | Status        | Purpose                                                           |
+| ------------ | ------------- | ----------------------------------------------------------------- |
+| **Single**   | ✅ Active      | List and delete standalone (non-project) chats                    |
+| **Projects** | ✅ Active      | Browse projects and their conversations, delete chats or projects |
+| **Search**   | ✅ Active      | Search across *loaded* chats (singles + projects)                 |
+| **Logs**     | ✅ Active      | Audit log + debug trace                                           |
+| **Organize** | ⏳ Placeholder | Future: move chats into projects                                  |
+| **Stats**    | ⏳ Placeholder | Future: read-only overview                                        |
 
 ---
-## ChatGPT Organizer – UI
 
-![ChatGPT Organizer UI](docs/screenshots/screenshot-chatgpt-organizer.png)
- 
+## Core features (current)
+
+### Single chats
+
+* List standalone chats via backend API
+* Supports pagination and limits
+* Checkbox selection with live counters
+* Bulk delete with:
+
+  * explicit confirmation
+  * throttling
+  * progress feedback
+  * per-item results
+
+### Projects
+
+* List all projects
+* Expand projects to see conversations
+* Select:
+
+  * individual conversations
+  * entire projects
+* Delete flow:
+
+  1. conversations are deleted first
+  2. project is deleted afterwards
+* Separate progress for chats vs projects
+
+### Search (v0.1.3)
+
+Search is **cache-driven**, not magic.
+
+* Searches only what is currently loaded from:
+
+  * **Single → List**
+  * **Projects → List**
+* Live updates when cache changes
+* Matches against:
+
+  * title
+  * snippet (if present)
+  * conversation id
+  * project title (for project chats)
+
+Clear empty state:
+
+> “No data loaded yet. Use Single/Projects and click List.”
+
+Filters exist only where the data is reliable.
+
+### Logs
+
+There are **two different logs**, on purpose:
+
+#### Audit Log
+
+* Append-only by default
+* Records:
+
+  * deletions
+  * project removals
+  * bulk actions
+* Stored locally
+* User can:
+
+  * limit view
+  * trim
+  * export JSON
+  * clear manually
+
+#### Debug Trace
+
+* Developer-oriented
+* Explicit ON/OFF toggle
+* OFF = wiped immediately
+* Captures small API shape samples (never full payloads)
+
+No fake “undo”.
+Only traceability.
+
 ---
 
-## Responsibility
+## Safety & responsibility
 
-This tool automates actions that are normally performed manually
-by the user in the ChatGPT interface. Use at your own discretion.
+This extension automates actions that **you could perform manually** in the ChatGPT UI.
+
+* Deletions are real
+* There is no server-side undo
+* The tool provides **confirmation and traceability**, not artificial safety
+
+If you do not understand what a button does, **do not click it**.
 
 ---
 
 ## Why this exists
 
-Long ChatGPT histories slow down browsers and make the UI painful to use.  
 ChatGPT currently offers:
-- delete one conversation at a time, or
-- delete everything
 
-What’s missing is controlled, selective cleanup.
+* delete one chat at a time, or
+* delete everything
 
-ChatGPT Organizer aims to fill that gap.
+That is not sufficient once you have **hundreds or thousands of chats**.
 
----
+ChatGPT Organizer exists to fill that gap with:
 
-## Features (current)
+* inspection
+* selection
+* controlled execution
 
-- Chrome MV3 extension
-- Side panel UI
-- Quick scan: lists conversations visible in the current ChatGPT UI
-- Deep scan (auto-scroll): collects more conversations by scrolling the UI
-- Checkbox selection with live counters
-- Safe bulk delete:
-  - inline confirmation (count + preview + checkbox)
-  - throttled execution
-  - progress indicator and per-item log
-  - removed items disappear from the list as they are deleted
-
-Notes:
-- The extension lists what ChatGPT loads in the UI. For very large histories, scanning everything depends on how ChatGPT loads older items.
-
----
-
-## Planned features
-
-- Better large-history handling:
-  - improved deep scan strategies
-  - optional chunked deletion (run in batches)
-- Keyword filtering (titles)
-- Lightweight grouping and saved “project” lists (local-only)
-- Basic stats based on local scanning history (first seen / last seen), not on true creation dates
+Nothing more. Nothing hidden.
 
 ---
 
 ## Project principles
 
-- No server
-- No tracking
-- No analytics
-- Runs only in your browser
-- Uses your existing ChatGPT login session
-- Clear, auditable source code
+* No backend
+* No tracking
+* No analytics
+* Local-only storage
+* Explicit user actions
+* Auditable behavior
+* Source code over promises
 
 ---
 
 ## Tech stack
 
-- Chrome Extension (Manifest V3)
-- TypeScript
-- esbuild
-- No framework (plain DOM)
+* Chrome Extension (Manifest V3)
+* TypeScript
+* esbuild
+* Plain DOM (no framework)
 
 ---
 
@@ -102,45 +204,59 @@ Notes:
 ```bash
 npm install
 npm run build
-````
+```
+
+Build output goes to:
+
+```
+dist/
+```
 
 ---
 
-## Installation
+## Installation (unpacked)
 
-Load the extension from the generated dist/ directory via:
+1. Open
 
-```bash
-chrome://extensions → Load unpacked
-```
+   ```
+   chrome://extensions
+   ```
+2. Enable **Developer mode**
+3. Click **Load unpacked**
+4. Select the project root (folder containing `manifest.json`)
 
-Detailed installation (Chrome/Chromium):
-
-* Open chrome://extensions
-* Enable “Developer mode”
-* Click “Load unpacked”
-* Select this folder: chatgpt-organizer/ (the project root)
-
-The extension should appear. Open ChatGPT, then open the side panel.
-
-Notes:
-
-This is a client-side tool. It does not require your ChatGPT password. It relies on the fact that you are already logged into chatgpt.com in your browser.
+Open ChatGPT → open the side panel.
 
 ---
 
 ## Status
 
-Early development. APIs and UI may change as ChatGPT evolves.
+**v0.1.3 — Active development**
+
+Architecture is stable.
+Functionality is expanding tab by tab.
+
+Placeholder tabs are intentional and visible so future features slot in without rewrites.
 
 ---
 
-## For more information
+## Documentation & project page
 
-Visit the github pages: <a href="https://nathabee.github.io/chatgpt-organizer/index.html"> <img src="./docs/visitgithubpage.svg" alt="CGO Docs" width="300" style="vertical-align:middle;"> </a>
+<a href="https://nathabee.github.io/chatgpt-organizer/index.html">
+  <img src="./docs/visitgithubpage.svg" alt="CGO Docs" width="300" style="vertical-align:middle;">
+</a>
 
 ---
 
 ## License
 
-MIT — see LICENSE
+MIT — see `LICENSE`
+
+---
+
+If you want, next we can:
+
+* tighten wording even more (shorter README),
+* split “User README” vs “Developer README”,
+* or add a **tab-by-tab mini guide** with screenshots.
+
