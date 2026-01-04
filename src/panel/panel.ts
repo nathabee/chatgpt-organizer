@@ -26,7 +26,7 @@ import { createStatsTab } from "./tabs/stats/tab";
 
   const organizeTab = createOrganizeTab(dom, bus);
   const logsTab = createLogsTab(dom, bus);
-  const statsTab = createStatsTab(dom, bus);
+  const statsTab = createStatsTab(dom, bus, cache);
 
   singleTab.bind();
   projectsTab.bind();

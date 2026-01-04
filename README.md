@@ -93,7 +93,7 @@ The side panel is organized into **explicit tabs**, each with a single responsib
   2. project is deleted afterwards
 * Separate progress for chats vs projects
 
-### Search (v0.1.3)
+### Search
 
 Search is **cache-driven**, not magic.
 
@@ -198,8 +198,43 @@ Nothing more. Nothing hidden.
 * Plain DOM (no framework)
 
 ---
+You’re right — the README must **explicitly say that non-developers can install it**, and that the **GitHub Release ZIP is the primary path**.
+What you pasted still reads like “dev-only”.
 
-## Development
+Here is a **clean replacement** for the **Development + Installation** sections.
+You can paste this verbatim.
+
+---
+
+## Installation from GitHub Release (ZIP) 
+
+You **do not need to be a developer** to install ChatGPT Organizer.
+
+
+1. Go to the **GitHub Releases** page
+   (latest version is listed at the top)
+2. Download the provided **ZIP archive**
+3. Extract the ZIP somewhere on your computer
+4. Open Chrome and go to:
+
+   ```
+   chrome://extensions
+   ```
+5. Enable **Developer mode**
+6. Click **Load unpacked**
+7. Select the **extracted folder** (the one containing `manifest.json`)
+
+Open ChatGPT → open the side panel.
+
+This is the **intended installation path** for normal users.
+
+---
+
+ 
+
+## Development (optional)
+
+Only needed if you want to **modify or build the extension yourself**.
 
 ```bash
 npm install
@@ -212,11 +247,10 @@ Build output goes to:
 dist/
 ```
 
----
+You can then load :
+ 
 
-## Installation (unpacked)
-
-1. Open
+1. Open:
 
    ```
    chrome://extensions
@@ -229,6 +263,7 @@ Open ChatGPT → open the side panel.
 
 ---
 
+ 
 ## Status
 
 **v0.1.3 — Active development**

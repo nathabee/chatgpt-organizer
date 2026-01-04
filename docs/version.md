@@ -116,6 +116,196 @@ Read-only, zero risk.
 
 ## PATCHES
 
+
+
+### v0.1.4 — Epic: Stats Tab
+
+#### Goal
+
+Introduce a **read-only Statistics tab** that provides insight into chat and project usage, based primarily on the **current cache snapshot**, with minimal persistent storage.
+
+Statistics must be:
+
+* fast (no extra API calls),
+* honest (reflect only loaded data),
+* non-blocking (no recalculation during listing),
+* explicit about their limits.
+
+---
+
+## Data sources
+
+### 1. Cache-derived snapshot (primary)
+
+All core statistics are computed **only from the in-panel cache**, populated by:
+
+* **Single → List single chats**
+* **Projects → List projects**
+
+No additional API calls are made by the Stats tab.
+
+Cache arrays used:
+
+* `cache.singleChats`
+* `cache.projects[].conversations`
+
+### 2. Persistent counters (minimal storage)
+
+A small persistent record is stored in extension storage:
+
+* `deletedChatsCount`
+* `deletedProjectsCount`
+
+These counters are incremented when delete actions succeed.
+
+All other stats are derived from cache only.
+
+---
+
+## Snapshot totals (always visible)
+
+Computed on demand from cache:
+
+* **Single chats**
+  `cache.singleChats.length`
+
+* **Projects**
+  `cache.projects.length`
+
+* **Project chats**
+  `sum(p.conversations.length)`
+
+* **Total chats**
+  `singleChats + projectChats`
+
+* **Archived chats**
+  `count(allChats where isArchived === true)`
+
+* **Average chats per project**
+  `projectChats / max(1, projects)`
+
+Additional snapshot indicators:
+
+* Largest project (by loaded chat count)
+* Top projects (by loaded chat count)
+* Limits used (single limit / projects limit / chats per project)
+* **Last updated** timestamp (when cache was last refreshed)
+
+---
+
+## Activity statistics (cache-based)
+
+### Chat creation activity (GitHub-style)
+
+**What it shows**
+
+* Number of chats created per day.
+
+**Axes**
+
+* X: date (day)
+* Y: count of chats created that day
+
+**Meaning**
+
+Shows periods of activity and inactivity in ChatGPT usage.
+
+**Note**
+
+Based only on loaded chats. Older history requires increasing list limits.
+
+---
+
+### Chat lifetime distribution
+
+**Metric**
+
+* `lifetime = updateTime − createTime`
+
+**Visualization**
+
+* Histogram (buckets such as: 0d, 1–2d, 3–7d, 8–30d, 30d+)
+
+**Meaning**
+
+Shows whether chats are mostly short-lived or maintained over time.
+
+---
+
+## Project structure statistics
+
+### Project size distribution
+
+**Visualization**
+
+* Histogram of number of chats per project
+
+**Meaning**
+
+Shows whether projects tend to stay small or grow large.
+
+---
+
+### Top projects (snapshot)
+
+**Visualization**
+
+* Bar chart of projects with the highest loaded chat counts
+
+**Meaning**
+
+Highlights where most activity is concentrated.
+
+---
+
+## Delete activity (persistent counters)
+
+Stored in extension storage:
+
+* Total conversations deleted
+* Total projects deleted
+
+Displayed as simple totals:
+
+> “Deleted by this extension on this device”
+
+Deletes are also logged in the audit log for detailed traceability.
+
+---
+
+## Performance & lifecycle rules
+
+* Stats are **not continuously recalculated**.
+* Computation happens:
+
+  * when the Stats tab is opened,
+  * or when a section is expanded.
+* No work is done while Single / Projects listing is running.
+* Graph rendering is deferred until the corresponding section is expanded.
+* No recalculation blocks other tabs.
+
+---
+
+## Scope & limitations (explicit in UI)
+
+Stats are based on **currently loaded cache only**.
+
+The UI clearly states:
+
+> “Statistics are computed from loaded chats and projects.
+> Increase limits in Single / Projects and list again to include more history.”
+
+---
+
+## Non-goals (explicitly out of scope)
+
+* No background tracking of full history
+* No cross-device sync
+* No reconstruction of deleted history
+* No automatic periodic snapshots (yet)
+
+---
+
  
 
 ### v0.1.3 — Epic: Search Tab

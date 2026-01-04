@@ -10,6 +10,8 @@ import { clampInt, formatMs } from "../../app/format";
 import { getBusy, setBusy } from "../../app/state";
 import { createProjectsModel } from "./model";
 import { createProjectsView } from "./view";
+import { incDeletedChats, incDeletedProjects } from "../../app/statsStore";
+
 
 type Bus = ReturnType<typeof createBus>;
 
@@ -247,6 +249,9 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       if (ok) {
         model.removeChatEverywhere(id);
         cache.removeChat(id);
+
+        // ✅ persist stats
+        incDeletedChats(1).catch(() => { });
         rerender();
       }
 
@@ -382,6 +387,10 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
         );
         model.removeProject(gizmoId);
         cache.removeProject(gizmoId);
+
+
+        // ✅ persist stats
+        incDeletedProjects(1).catch(() => { });
         rerender();
       } else {
         view.appendExecOut(

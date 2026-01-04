@@ -140,6 +140,32 @@ export function getDom() {
   const debugStatusEl = document.getElementById("debugStatus") as HTMLSpanElement;
   const debugOutEl = document.getElementById("debugOut") as HTMLPreElement;
 
+  // Stats
+  const btnStatsRecalc = must(document.getElementById("btnStatsRecalc"), "btnStatsRecalc") as HTMLButtonElement;
+  const statsStatusEl = must(document.getElementById("statsStatus"), "statsStatus") as HTMLSpanElement;
+  const statsLastCacheUpdateEl = must(document.getElementById("statsLastCacheUpdate"), "statsLastCacheUpdate") as HTMLElement;
+
+  const statsSnapshotBoxEl = must(document.getElementById("statsSnapshotBox"), "statsSnapshotBox") as HTMLDetailsElement;
+  const statsSingleChatsEl = must(document.getElementById("statsSingleChats"), "statsSingleChats") as HTMLElement;
+  const statsProjectsEl = must(document.getElementById("statsProjects"), "statsProjects") as HTMLElement;
+  const statsProjectChatsEl = must(document.getElementById("statsProjectChats"), "statsProjectChats") as HTMLElement;
+  const statsTotalChatsEl = must(document.getElementById("statsTotalChats"), "statsTotalChats") as HTMLElement;
+  const statsArchivedChatsEl = must(document.getElementById("statsArchivedChats"), "statsArchivedChats") as HTMLElement;
+  const statsAvgChatsPerProjectEl = must(document.getElementById("statsAvgChatsPerProject"), "statsAvgChatsPerProject") as HTMLElement;
+  const statsLimitsHintEl = must(document.getElementById("statsLimitsHint"), "statsLimitsHint") as HTMLElement;
+
+  const statsActivityBoxEl = must(document.getElementById("statsActivityBox"), "statsActivityBox") as HTMLDetailsElement;
+  const statsActivityExplainEl = must(document.getElementById("statsActivityExplain"), "statsActivityExplain") as HTMLElement;
+  const statsCreatedHeatmapEl = must(document.getElementById("statsCreatedHeatmap"), "statsCreatedHeatmap") as HTMLElement;
+  const statsLifetimeHistEl = must(document.getElementById("statsLifetimeHist"), "statsLifetimeHist") as HTMLElement;
+
+  const statsProjectsBoxEl = must(document.getElementById("statsProjectsBox"), "statsProjectsBox") as HTMLDetailsElement;
+  const statsProjectSizeHistEl = must(document.getElementById("statsProjectSizeHist"), "statsProjectSizeHist") as HTMLElement;
+  const statsTopProjectsEl = must(document.getElementById("statsTopProjects"), "statsTopProjects") as HTMLElement;
+
+  const statsDeletesBoxEl = must(document.getElementById("statsDeletesBox"), "statsDeletesBox") as HTMLDetailsElement;
+  const statsDeletedChatsEl = must(document.getElementById("statsDeletedChats"), "statsDeletedChats") as HTMLElement;
+  const statsDeletedProjectsEl = must(document.getElementById("statsDeletedProjects"), "statsDeletedProjects") as HTMLElement;
 
 
   return {
@@ -187,5 +213,15 @@ export function getDom() {
     // Debug trace
     logsCbDebugEl, debugLimitEl, btnDebugRefresh, btnDebugExport, btnDebugClear,
     debugStatusEl, debugOutEl,
+
+        // Stats ...
+    btnStatsRecalc, statsStatusEl, statsLastCacheUpdateEl,
+    statsSnapshotBoxEl,
+    statsSingleChatsEl, statsProjectsEl, statsProjectChatsEl, statsTotalChatsEl,
+    statsArchivedChatsEl, statsAvgChatsPerProjectEl, statsLimitsHintEl,
+    statsActivityBoxEl, statsActivityExplainEl, statsCreatedHeatmapEl, statsLifetimeHistEl,
+    statsProjectsBoxEl, statsProjectSizeHistEl, statsTopProjectsEl,
+    statsDeletesBoxEl, statsDeletedChatsEl, statsDeletedProjectsEl,
+
   };
 }

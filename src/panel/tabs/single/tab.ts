@@ -3,14 +3,16 @@ import { MSG, type AnyEvent } from "../../../shared/messages";
 import type { ConversationItem } from "../../../shared/types";
 import * as actionLog from "../../../shared/actionLog";
 
-import type { Dom } from "../../app/dom"; 
-import type { PanelCache } from "../../app/cache"; 
+import type { Dom } from "../../app/dom";
+import type { PanelCache } from "../../app/cache";
 
 import type { createBus } from "../../app/bus"; // type-only shape; adjust if you exported differently
 import { clampInt, formatMs } from "../../app/format";
 import { getBusy, setBusy } from "../../app/state";
 import { createSingleModel } from "./model";
 import { createSingleView } from "./view";
+import { incDeletedChats } from "../../app/statsStore";
+
 
 type Bus = ReturnType<typeof createBus>;
 
@@ -202,6 +204,8 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
 
         // ✅ keep cache in sync
         cache.removeChat(id);
+        // ✅ persist stats
+        incDeletedChats(1).catch(() => { });
 
         view.renderList({
           chats: model.chats,

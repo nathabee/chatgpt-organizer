@@ -367,16 +367,128 @@ LOGS VIEW
 
 
         <!-- =========================
-        STATS VIEW (placeholder)
+        STATS VIEW  
         ========================= -->
         <section id="viewStats" class="view" role="tabpanel" aria-labelledby="tabStats" hidden>
             <p class="muted">
-                Read-only overview of chats/projects and distribution.
+                Read-only statistics computed from the currently loaded cache (Single + Projects).
+                Increase limits and list again to include more history.
             </p>
-            <div class="placeholder">
-                Coming next: totals, empty projects, large projects, etc.
+
+            <!-- Top row: actions + status -->
+            <div class="row statsTopRow">
+                <button id="btnStatsRecalc" type="button" class="subtle">Recalculate</button>
+                <span id="statsStatus" class="status">Idle</span>
+                <span class="muted" style="margin-left:auto;">
+                    Last cache update: <strong id="statsLastCacheUpdate">—</strong>
+                </span>
             </div>
+
+
+            <!-- Snapshot totals (collapsed by default, like Search filters/info) -->
+            <details class="statsBox" id="statsSnapshotBox" role="group">
+                <summary>Snapshot totals</summary>
+
+                <div class="statsGrid">
+                    <div class="statsCard">
+                        <div class="muted">Single chats</div>
+                        <div class="statsBig" id="statsSingleChats">0</div>
+                    </div>
+
+                    <div class="statsCard">
+                        <div class="muted">Projects</div>
+                        <div class="statsBig" id="statsProjects">0</div>
+                    </div>
+
+                    <div class="statsCard">
+                        <div class="muted">Project chats</div>
+                        <div class="statsBig" id="statsProjectChats">0</div>
+                    </div>
+
+                    <div class="statsCard">
+                        <div class="muted">Total chats</div>
+                        <div class="statsBig" id="statsTotalChats">0</div>
+                    </div>
+
+                    <div class="statsCard">
+                        <div class="muted">Archived</div>
+                        <div class="statsBig" id="statsArchivedChats">0</div>
+                    </div>
+
+                    <div class="statsCard">
+                        <div class="muted">Avg chats / project</div>
+                        <div class="statsBig" id="statsAvgChatsPerProject">0</div>
+                    </div>
+                </div>
+
+                <div class="statsMeta muted" id="statsLimitsHint">
+                    Limits: —
+                </div>
+            </details>
+
+            <!-- Activity (collapsed) -->
+            <details class="statsBox" id="statsActivityBox" role="group">
+                <summary>Activity</summary>
+
+                <div class="muted statsExplain" id="statsActivityExplain">
+                    Based on createTime/updateTime fields in loaded chats. Missing timestamps are ignored.
+                </div>
+
+                <!-- Placeholder containers for future rendering (heatmap, histograms, bars) -->
+                <div class="statsGraphBox">
+                    <div class="statsGraphTitle">Created chats per day (loaded data)</div>
+                    <div id="statsCreatedHeatmap" class="statsGraphPlaceholder">
+                        Coming next: GitHub-style activity grid.
+                    </div>
+                </div>
+
+                <div class="statsGraphBox">
+                    <div class="statsGraphTitle">Chat lifetime distribution (update - create)</div>
+                    <div id="statsLifetimeHist" class="statsGraphPlaceholder">
+                        Coming next: histogram buckets (0d / 1–2d / 3–7d / 8–30d / 30d+).
+                    </div>
+                </div>
+            </details>
+
+            <!-- Project structure (collapsed) -->
+            <details class="statsBox" id="statsProjectsBox" role="group">
+                <summary>Projects structure</summary>
+
+                <div class="statsGraphBox">
+                    <div class="statsGraphTitle">Project size distribution (loaded chats per project)</div>
+                    <div id="statsProjectSizeHist" class="statsGraphPlaceholder">
+                        Coming next: histogram.
+                    </div>
+                </div>
+
+                <div class="statsGraphBox">
+                    <div class="statsGraphTitle">Top projects by loaded chats</div>
+                    <div id="statsTopProjects" class="statsGraphPlaceholder">
+                        Coming next: bar list.
+                    </div>
+                </div>
+            </details>
+
+            <!-- Deletes (persistent counters, collapsed) -->
+            <details class="statsBox" id="statsDeletesBox" role="group">
+                <summary>Deletes (this device)</summary>
+
+                <div class="row statsDeletesRow">
+                    <div>Deleted chats: <strong id="statsDeletedChats">0</strong></div>
+                    <div>Deleted projects: <strong id="statsDeletedProjects">0</strong></div>
+                </div>
+
+                <div class="muted statsExplain">
+                    These counters are stored in extension storage. Everything else in Stats is derived from the current
+                    cache.
+                </div>
+            </details>
+
+ 
+
+
         </section>
+
 
     </div>
 
