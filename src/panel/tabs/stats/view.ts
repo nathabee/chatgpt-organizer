@@ -52,45 +52,78 @@ function renderBars(
 }
 
 /** Heatmap: last N weeks, GitHub-style 7 rows (Mon..Sun), columns are weeks. */
+/** Heatmap: created per day over the retrieved period (oldest -> newest). */
 function renderHeatmap(
   el: HTMLElement,
   dayCounts: Array<{ day: string; count: number }>,
-  opts?: { weeks?: number }
+  opts?: { maxWeeks?: number }
 ) {
-  const weeks = Math.max(8, Math.min(opts?.weeks ?? 16, 52));
-
   // map YYYY-MM-DD -> count
   const map = new Map<string, number>();
-  for (const x of dayCounts) map.set(x.day, Number(x.count || 0));
+  for (const x of dayCounts) {
+    const day = String(x.day || "").slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) continue;
+    map.set(day, Number(x.count || 0));
+  }
 
-  // today (local) => strip time
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  // No data
+  if (map.size === 0) {
+    el.innerHTML =
+      `<div class="statsHeatmapWrap">` +
+        `<div class="statsHeatmapHeader">` +
+          `<div class="statsHeatmapTitle">Activity</div>` +
+          `<div class="statsHeatmapHint">No created timestamps in the retrieved data.</div>` +
+        `</div>` +
+      `</div>`;
+    return;
+  }
 
-  // find Monday of the current week (Mon=1..Sun=0)
-  const dow = (today.getDay() + 6) % 7; // Mon=0..Sun=6
-  const thisMon = new Date(today);
-  thisMon.setDate(today.getDate() - dow);
+  function parseDay(s: string): Date {
+    const [y, m, d] = s.split("-").map((n) => Number(n));
+    return new Date(y, (m || 1) - 1, d || 1);
+  }
 
-  // start Monday N weeks back
-  const start = new Date(thisMon);
-  start.setDate(thisMon.getDate() - (weeks - 1) * 7);
+  function fmtDayKey(dt: Date): string {
+    return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+  }
 
-  // build cells for weeks*7 days
-  const cells: string[] = [];
-  let max = 0;
+  // Find min/max day in data
+  const daysSorted = Array.from(map.keys()).sort(); // YYYY-MM-DD sorts lexicographically
+  const minDay = daysSorted[0];
+  const maxDay = daysSorted[daysSorted.length - 1];
 
-  // compute max for intensity scaling
-  for (let w = 0; w < weeks; w++) {
+  const minDate = parseDay(minDay);
+  const maxDate = parseDay(maxDay);
+
+  // Align start to Monday of minDate's week
+  const minDow = (minDate.getDay() + 6) % 7; // Mon=0..Sun=6
+  const start = new Date(minDate);
+  start.setDate(minDate.getDate() - minDow);
+
+  // Align end to Sunday of maxDate's week
+  const maxDow = (maxDate.getDay() + 6) % 7; // Mon=0..Sun=6
+  const end = new Date(maxDate);
+  end.setDate(maxDate.getDate() + (6 - maxDow));
+
+  const dayMs = 24 * 60 * 60 * 1000;
+  const spanDays = Math.round((end.getTime() - start.getTime()) / dayMs) + 1;
+  const spanWeeks = Math.ceil(spanDays / 7);
+
+  const maxWeeks = Math.max(8, Math.min(opts?.maxWeeks ?? 104, 260)); // keep sane
+  const weeksToRender = Math.min(spanWeeks, maxWeeks);
+  const truncated = spanWeeks > weeksToRender;
+
+  // Compute max for intensity scaling (within rendered window only)
+  let max = 1;
+  for (let w = 0; w < weeksToRender; w++) {
     for (let d = 0; d < 7; d++) {
       const dt = new Date(start);
       dt.setDate(start.getDate() + w * 7 + d);
-      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+      const key = fmtDayKey(dt);
       const c = map.get(key) || 0;
       if (c > max) max = c;
     }
   }
-  max = Math.max(1, max);
 
   function level(c: number): number {
     // 0..4
@@ -102,16 +135,15 @@ function renderHeatmap(
     return 4;
   }
 
+  const cells: string[] = [];
   let total = 0;
-  let knownDays = 0;
 
-  for (let w = 0; w < weeks; w++) {
+  for (let w = 0; w < weeksToRender; w++) {
     for (let d = 0; d < 7; d++) {
       const dt = new Date(start);
       dt.setDate(start.getDate() + w * 7 + d);
-      const key = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, "0")}-${String(dt.getDate()).padStart(2, "0")}`;
+      const key = fmtDayKey(dt);
       const c = map.get(key) || 0;
-      if (map.has(key)) knownDays++;
       total += c;
 
       const cls = `statsHeatCell statsHeat${level(c)}`;
@@ -120,15 +152,23 @@ function renderHeatmap(
     }
   }
 
+  const shownEnd = new Date(start);
+  shownEnd.setDate(start.getDate() + weeksToRender * 7 - 1);
+  const shownStartKey = fmtDayKey(start);
+  const shownEndKey = fmtDayKey(shownEnd);
+
   el.innerHTML =
     `<div class="statsHeatmapWrap">` +
       `<div class="statsHeatmapHeader">` +
-        `<div class="statsHeatmapTitle">Last ${weeks} weeks</div>` +
-        `<div class="statsHeatmapHint">Total created: ${total} · Max/day: ${max}</div>` +
+        `<div class="statsHeatmapTitle">From ${shownStartKey} to ${shownEndKey} · ${weeksToRender} week(s)</div>` +
+        `<div class="statsHeatmapHint">Total created: ${total} · Max/day: ${max}` +
+          (truncated ? ` · Showing first ${weeksToRender}/${spanWeeks} weeks (increase maxWeeks or scroll)` : ``) +
+        `</div>` +
       `</div>` +
       `<div class="statsHeatmapGrid">${cells.join("")}</div>` +
     `</div>`;
 }
+
 
 export function createStatsView(dom: Dom) {
   function setStatus(text: string) {
@@ -158,7 +198,8 @@ export function createStatsView(dom: Dom) {
     const a = report.activity;
 
     // Heatmap: created per day (last 16 weeks)
-    renderHeatmap(dom.statsCreatedHeatmapEl, a.createdPerDay, { weeks: 16 });
+    renderHeatmap(dom.statsCreatedHeatmapEl, a.createdPerDay, { maxWeeks: 104 });
+
 
     // Lifetime histogram
     const L = a.lifetime;

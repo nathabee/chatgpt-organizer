@@ -12,6 +12,24 @@
     <div class="wrap">
         <h1>ChatGPT Organizer</h1>
 
+        <!-- Global scope (applies to Single + Projects fetch) -->
+        <div class="scopeBar" role="region" aria-label="Data scope">
+            <div class="scopeLeft">
+                <span class="muted">Scope:</span>
+                <strong id="scopeLabel">Updated since —</strong>
+            </div>
+
+            <div class="scopeRight">
+                <button id="btnScopeChange" type="button" class="subtle" title="Change scope date">
+                    Change…
+                </button>
+                <button id="btnScopeRefresh" type="button" class="subtle" title="Refresh data using current scope">
+                    Refresh
+                </button>
+            </div>
+        </div>
+
+
         <div class="tabs" role="tablist" aria-label="CGO Tabs">
             <button id="tabSingle" class="tab is-active" role="tab" aria-selected="true" type="button">
                 Single Chats
@@ -54,7 +72,7 @@
                     <input id="singleLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
                 </label>
 
-                <button id="btnListSingle" type="button">List single chats</button>
+                <button id="btnListSingle" type="button"  class="is-hidden">List single chats</button>
                 <span id="singleStatus" class="status">Idle</span>
             </div>
 
@@ -103,7 +121,7 @@
          ========================= -->
         <section id="viewProjects" class="view" role="tabpanel" aria-labelledby="tabProjects" hidden>
             <p class="muted">
-                Projects and their conversations (API-based). No sidebar scraping.
+                Projects and their conversations (API-based)
             </p>
 
             <div class="row">
@@ -117,7 +135,7 @@
                     <input id="projectsChatsLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
                 </label>
 
-                <button id="btnListProjects" type="button">List projects</button>
+                <button id="btnListProjects" type="button"  class="is-hidden">List projects</button>
                 <span id="projectsStatus" class="status">Idle</span>
             </div>
 
@@ -184,10 +202,10 @@
                 <button id="btnSearchResetFilters" type="button" class="subtle">Reset filters</button>
 
                 <!-- moved here from Info -->
-                <button id="btnSearchListSingle" type="button" class="subtle">
+                <button id="btnSearchListSingle" type="button"  class="is-hidden" > <!--  class="subtle"> -->
                     List single
                 </button>
-                <button id="btnSearchListProjects" type="button" class="subtle">
+                <button id="btnSearchListProjects" type="button"  class="is-hidden"> <!--  class="subtle"> -->
                     List projects
                 </button>
             </div>
@@ -484,12 +502,37 @@ LOGS VIEW
                 </div>
             </details>
 
- 
+
 
 
         </section>
 
 
+
+        <!-- Scope dialog -->
+        <dialog id="scopeDialog" class="scopeDialog" aria-labelledby="scopeDialogTitle">
+            <form method="dialog" class="scopeDialogForm">
+                <h2 id="scopeDialogTitle" class="scopeDialogTitle">Set scope</h2>
+
+                <p class="muted">
+                    This scope controls what data will be fetched. Changing it will require a refresh.
+                </p>
+
+                <label class="fieldInline">
+                    <span>Updated since</span>
+                    <input id="scopeDate" type="date" />
+                </label>
+
+                <div class="scopeDialogHint">
+                    Validating will refresh Single + Projects and may take a while.
+                </div>
+
+                <div class="row scopeDialogActions">
+                    <button id="btnScopeCancel" type="button">Cancel</button>
+                    <button id="btnScopeApply" type="button" class="subtle">Validate &amp; refresh</button>
+                </div>
+            </form>
+        </dialog>
     </div>
 
     <script type="module" src="../panel.js"></script>

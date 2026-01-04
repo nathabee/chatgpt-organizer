@@ -8,6 +8,15 @@ export function getDom() {
     return el;
   }
 
+  // Global scope
+  const scopeLabelEl = must(document.getElementById("scopeLabel"), "scopeLabel") as HTMLElement;
+  const btnScopeChange = must(document.getElementById("btnScopeChange"), "btnScopeChange") as HTMLButtonElement;
+  const btnScopeRefresh = must(document.getElementById("btnScopeRefresh"), "btnScopeRefresh") as HTMLButtonElement;
+
+  const scopeDialogEl = must(document.getElementById("scopeDialog"), "scopeDialog") as HTMLDialogElement;
+  const scopeDateEl = must(document.getElementById("scopeDate"), "scopeDate") as HTMLInputElement;
+  const btnScopeCancel = must(document.getElementById("btnScopeCancel"), "btnScopeCancel") as HTMLButtonElement;
+  const btnScopeApply = must(document.getElementById("btnScopeApply"), "btnScopeApply") as HTMLButtonElement;
 
 
   // Tabs
@@ -173,6 +182,11 @@ export function getDom() {
     tabOrganize, tabSearch, tabLogs, tabStats,
     viewOrganize, viewSearch, viewLogs, viewStats,
  
+    // Global scope ...
+    scopeLabelEl, btnScopeChange, btnScopeRefresh,
+    scopeDialogEl, scopeDateEl, btnScopeCancel, btnScopeApply,
+
+
     // Search ...
     searchInfoBoxEl, btnSearchListSingle, btnSearchListProjects,
     searchInfoLoadedSinglesEl, searchInfoLoadedProjectsEl, searchInfoLoadedProjectChatsEl,

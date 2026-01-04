@@ -10,6 +10,13 @@ export function getBusy() {
 export function setBusy(dom: Dom, next: boolean) {
   isBusy = next;
 
+    // Global scope controls
+  dom.btnScopeChange.disabled = next;
+  dom.btnScopeRefresh.disabled = next;
+  dom.scopeDateEl.disabled = next;
+  dom.btnScopeCancel.disabled = next;
+  dom.btnScopeApply.disabled = next;
+
   // Single tab controls
   dom.btnListSingle.disabled = next;
   dom.singleLimitEl.disabled = next;

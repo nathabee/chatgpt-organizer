@@ -1,10 +1,10 @@
+## ChatGPT Organizer (CGO)
+
 <a href="https://nathabee.github.io/chatgpt-organizer/index.html">
-  <img src="./docs/cgo.svg" alt="CGO Logo" width="300" style="vertical-align:middle; margin-right:20px;"> 
+  <img src="./docs/cgo.svg" alt="CGO Logo" width="300" style="vertical-align:middle; margin-right:20px;">
 </a>
 
-# ChatGPT Organizer (CGO)
-
-<img src="./docs/icon.svg" alt="CGO Icon" width="60" style="vertical-align:middle; margin-right:20px;"> 
+<img src="./docs/icon.svg" alt="CGO Icon" width="60" style="vertical-align:middle; margin-right:20px;">
 
 **ChatGPT Organizer** is a browser extension that gives you **visibility and control** over your own ChatGPT conversations.
 
@@ -21,56 +21,64 @@ No server. No sync. No automation behind your back.
 
 ## What this extension does (and does not)
 
-**Does**
+### Does
 
 * Runs entirely in your browser
 * Uses your existing ChatGPT login session
-* Lists chats and projects via the same backend APIs the UI uses
-* Executes actions only when you explicitly click
+* Retrieves chats and projects via the same backend APIs the ChatGPT UI uses
+* Fetches data **only when explicitly requested**
 * Keeps a local, auditable action log
+* Stores all data locally (cache + stats counters)
 
-**Does NOT**
+### Does NOT
 
 * Store credentials
 * Sync data anywhere
 * Access other accounts
 * Modify chats automatically
 * Pretend deletions are reversible
+* Fetch data silently in the background
 
 ---
 
 ## UI Overview
 
-**Search screen**
+**Search tab**
 ![ChatGPT Organizer UI search tab](docs/screenshots/screenshot-chatgpt-organizer-search.png)
 
-**Projects screen**
+**Projects tab**
 ![ChatGPT Organizer UI project tab](docs/screenshots/screenshot-chatgpt-organizer-projects.png)
 
-**Logs screen**
+**Logs tab**
 ![ChatGPT Organizer UI logs and debug tab](docs/screenshots/screenshot-chatgpt-organizer-logs.png)
+
+**Stats tab**
+![ChatGPT Organizer UI stats tab 1](docs/screenshots/screenshot-chatgpt-organizer-stats-1.png)
+![ChatGPT Organizer UI stats tab 2](docs/screenshots/screenshot-chatgpt-organizer-stats-2.png)
 
 The side panel is organized into **explicit tabs**, each with a single responsibility.
 
-### Tabs at a glance
+---
 
-| Tab          | Status        | Purpose                                                           |
-| ------------ | ------------- | ----------------------------------------------------------------- |
-| **Single**   | ✅ Active      | List and delete standalone (non-project) chats                    |
-| **Projects** | ✅ Active      | Browse projects and their conversations, delete chats or projects |
-| **Search**   | ✅ Active      | Search across *loaded* chats (singles + projects)                 |
-| **Logs**     | ✅ Active      | Audit log + debug trace                                           |
-| **Organize** | ⏳ Placeholder | Future: move chats into projects                                  |
-| **Stats**    | ⏳ Placeholder | Future: read-only overview                                        |
+## Tabs at a glance
+
+| Tab          | Status        | Purpose                                                      |
+| ------------ | ------------- | ------------------------------------------------------------ |
+| **Single**   | ✅ Active      | Inspect and delete standalone (non-project) chats            |
+| **Projects** | ✅ Active      | Inspect projects and conversations, delete chats or projects |
+| **Search**   | ✅ Active      | Search across *loaded cache only* (singles + projects)       |
+| **Stats**    | ✅ Active      | Read-only statistics derived from the current cache          |
+| **Logs**     | ✅ Active      | Audit log and debug trace                                    |
+| **Organize** | ⏳ Placeholder | Future: move / reorganize chats into projects                |
 
 ---
+
 
 ## Core features (current)
 
 ### Single chats
 
-* List standalone chats via backend API
-* Supports pagination and limits
+* Inspect standalone chats retrieved within the selected scope
 * Checkbox selection with live counters
 * Bulk delete with:
 
@@ -78,163 +86,153 @@ The side panel is organized into **explicit tabs**, each with a single responsib
   * throttling
   * progress feedback
   * per-item results
+* Cache is updated immediately after deletions
 
 ### Projects
 
-* List all projects
+* Inspect all projects retrieved within the selected scope
 * Expand projects to see conversations
 * Select:
 
   * individual conversations
   * entire projects
-* Delete flow:
+* Deletion flow:
 
   1. conversations are deleted first
-  2. project is deleted afterwards
-* Separate progress for chats vs projects
+  2. project is deleted afterwards (only if empty)
+* Separate progress tracking for chats vs projects
 
 ### Search
 
 Search is **cache-driven**, not magic.
 
-* Searches only what is currently loaded from:
-
-  * **Single → List**
-  * **Projects → List**
+* Searches only what is currently loaded from the cache
+* No backend calls
 * Live updates when cache changes
 * Matches against:
 
-  * title
-  * snippet (if present)
+  * conversation title
   * conversation id
   * project title (for project chats)
 
-Clear empty state:
+Empty state is explicit:
 
-> “No data loaded yet. Use Single/Projects and click List.”
+> “No data loaded. Select a scope and refresh.”
 
-Filters exist only where the data is reliable.
+---
 
-### Logs
+## Stats tab
 
-There are **two different logs**, on purpose:
+The **Stats tab is strictly read-only**.
 
-#### Audit Log
+It computes statistics from the **current cache snapshot only**.
+
+### Snapshot totals
+
+* Number of:
+
+  * single chats
+  * projects
+  * project chats
+  * total chats
+* Archived chats (if present in cache)
+* Average chats per project
+* Last cache update timestamp
+* Active limits used during retrieval
+
+### Activity
+
+* Chat creation activity over the **retrieved time range**
+
+  * Not hard-coded to “last 16 weeks”
+  * Heatmap spans from the oldest retrieved chat to the newest
+* Distribution of chat lifetime:
+
+  * same day
+  * 1–2 days
+  * 3–7 days
+  * 8–30 days
+  * 31+ days
+  * unknown (missing timestamps)
+
+### Project structure
+
+* Project size distribution
+* Top projects by loaded conversation count
+
+### Persistent counters
+
+* Number of deleted chats (this device)
+* Number of deleted projects (this device)
+
+Everything else is derived — no hidden tracking.
+
+---
+
+## Logs
+
+There are **two intentionally separate logs**.
+
+### Audit log
 
 * Append-only by default
 * Records:
 
   * deletions
   * project removals
-  * bulk actions
+  * bulk operations
 * Stored locally
 * User can:
 
   * limit view
   * trim
-  * export JSON
+  * export
   * clear manually
 
-#### Debug Trace
+### Debug trace
 
 * Developer-oriented
 * Explicit ON/OFF toggle
 * OFF = wiped immediately
-* Captures small API shape samples (never full payloads)
+* Captures **small API shape samples only**
+* Never stores full payloads
 
 No fake “undo”.
 Only traceability.
 
 ---
 
-## Safety & responsibility
-
-This extension automates actions that **you could perform manually** in the ChatGPT UI.
-
-* Deletions are real
-* There is no server-side undo
-* The tool provides **confirmation and traceability**, not artificial safety
-
-If you do not understand what a button does, **do not click it**.
-
----
-
-## Why this exists
-
-ChatGPT currently offers:
-
-* delete one chat at a time, or
-* delete everything
-
-That is not sufficient once you have **hundreds or thousands of chats**.
-
-ChatGPT Organizer exists to fill that gap with:
-
-* inspection
-* selection
-* controlled execution
-
-Nothing more. Nothing hidden.
-
----
-
-## Project principles
-
-* No backend
-* No tracking
-* No analytics
-* Local-only storage
-* Explicit user actions
-* Auditable behavior
-* Source code over promises
-
----
-
-## Tech stack
-
-* Chrome Extension (Manifest V3)
-* TypeScript
-* esbuild
-* Plain DOM (no framework)
-
----
-You’re right — the README must **explicitly say that non-developers can install it**, and that the **GitHub Release ZIP is the primary path**.
-What you pasted still reads like “dev-only”.
-
-Here is a **clean replacement** for the **Development + Installation** sections.
-You can paste this verbatim.
-
----
-
-## Installation from GitHub Release (ZIP) 
+## Installation from GitHub Release (ZIP)
 
 You **do not need to be a developer** to install ChatGPT Organizer.
 
-
 1. Go to the **GitHub Releases** page
-   (latest version is listed at the top)
-2. Download the provided **ZIP archive**
-3. Extract the ZIP somewhere on your computer
+
+2. Download the latest **ZIP archive**
+
+3. Extract it somewhere on your computer
+
 4. Open Chrome and go to:
 
    ```
    chrome://extensions
    ```
+
 5. Enable **Developer mode**
+
 6. Click **Load unpacked**
-7. Select the **extracted folder** (the one containing `manifest.json`)
+
+7. Select the extracted folder (containing `manifest.json`)
 
 Open ChatGPT → open the side panel.
 
-This is the **intended installation path** for normal users.
+This is the **intended installation path for normal users**.
 
 ---
 
- 
-
 ## Development (optional)
 
-Only needed if you want to **modify or build the extension yourself**.
+Only needed if you want to modify or build the extension yourself.
 
 ```bash
 npm install
@@ -247,29 +245,16 @@ Build output goes to:
 dist/
 ```
 
-You can then load :
- 
-
-1. Open:
-
-   ```
-   chrome://extensions
-   ```
-2. Enable **Developer mode**
-3. Click **Load unpacked**
-4. Select the project root (folder containing `manifest.json`)
-
-Open ChatGPT → open the side panel.
+Load the extension from `dist/` via **Load unpacked**.
 
 ---
 
- 
 ## Status
 
-**v0.1.3 — Active development**
+**v0.1.5 — Active development**
 
-Architecture is stable.
-Functionality is expanding tab by tab.
+Core architecture is stable.
+Scope-based retrieval and cache-driven inspection are now in place.
 
 Placeholder tabs are intentional and visible so future features slot in without rewrites.
 
@@ -288,10 +273,4 @@ Placeholder tabs are intentional and visible so future features slot in without 
 MIT — see `LICENSE`
 
 ---
-
-If you want, next we can:
-
-* tighten wording even more (shorter README),
-* split “User README” vs “Developer README”,
-* or add a **tab-by-tab mini guide** with screenshots.
-
+ 

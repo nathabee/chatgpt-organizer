@@ -78,10 +78,29 @@ Notes:
 - All actions are performed within the browser context of the logged-in user
 
 ---
+## UI Overview
+
+The extension lives entirely in the **ChatGPT side panel**.
+Each tab has a single, explicit responsibility.
+
+### Search tab
+![ChatGPT Organizer UI search tab](./screenshots/screenshot-chatgpt-organizer-search.png)
+
+### Projects tab
+![ChatGPT Organizer UI project tab](./screenshots/screenshot-chatgpt-organizer-projects.png)
+
+### Logs tab
+![ChatGPT Organizer UI logs and debug tab](./screenshots/screenshot-chatgpt-organizer-logs.png)
+
+### Stats tab
+![ChatGPT Organizer UI stats tab — snapshot](./screenshots/screenshot-chatgpt-organizer-stats-1.png)
+![ChatGPT Organizer UI stats tab — activity](./screenshots/screenshot-chatgpt-organizer-stats-2.png)
+
+The side panel is organized into **explicit tabs**, each with a single responsibility.
+
+---
 
 ## Project status
-
-Early development.
 
 The extension is functional and under active development.  
 APIs and UI may change as ChatGPT’s web interface evolves.

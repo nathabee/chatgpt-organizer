@@ -115,8 +115,90 @@ Read-only, zero risk.
 ---
 
 ## PATCHES
+ 
+ 
 
+### v0.1.5 — Epic: Global Scope Date
 
+#### Goal
+
+Introduce a **single global “updated since” scope date** that controls **all data retrieval** (single chats and projects).
+
+Data is no longer fetched implicitly or per-tab.
+Users must explicitly choose a scope and refresh.
+
+---
+
+#### Rationale
+
+* Numeric limits alone are misleading for large histories
+* Fetching without a clear temporal scope wastes time and bandwidth
+* A single global scope guarantees consistency across:
+
+  * Single chats
+  * Projects
+  * Search
+  * Stats
+
+---
+
+#### Core Changes
+
+**1. Global scope controller**
+
+* New global scope: **Updated since YYYY-MM-DD**
+* Visible at the top of the panel
+* Persisted in extension storage
+* Default suggested value: *today − 3 months* (not auto-fetched)
+
+**2. Explicit refresh workflow**
+
+* Data is fetched **only** via:
+
+  * Scope → Refresh
+  * Scope → Change → Apply (with confirmation)
+* Refresh is global:
+
+  * Single chats
+  * Projects
+* UI is locked during refresh
+
+**3. Removal of legacy list buttons**
+
+* Removed from:
+
+  * Single chats
+  * Projects
+  * Search
+* Search becomes **read-only over cached data**
+* Empty cache shows a clear message:
+
+  * “No data loaded. Select a scope and refresh.”
+
+**4. Cache & state alignment**
+
+* Cache metadata now reflects:
+
+  * Scope date
+  * Last update timestamp
+* Stats and Search operate strictly on cached data
+* No silent background fetches
+
+---
+
+#### UI / UX Notes
+
+* Scope label reflects **actual cache state**
+
+  * No “fake” scope shown when cache is empty
+* Calendar dialog:
+
+  * Pre-filled with current scope
+  * Validation warning before refresh
+* Refresh icon available next to scope label
+
+---
+ 
 
 ### v0.1.4 — Epic: Stats Tab
 

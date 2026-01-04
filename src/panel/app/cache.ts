@@ -4,6 +4,9 @@ import type { ConversationItem, ProjectItem } from "../../shared/types";
 export type CacheSource = "single" | "projects";
 
 export type CacheMeta = {
+  // current global scope used for fetch (YYYY-MM-DD)
+  scopeUpdatedSince?: string;
+
   // when the cache was last refreshed (per section)
   singleUpdatedTs?: number;
   projectsUpdatedTs?: number;
@@ -61,6 +64,13 @@ function makeSnapshot(state: {
 }
 
 export function createPanelCache() {
+
+  function setScopeUpdatedSince(isoDay: string) {
+    state.meta.scopeUpdatedSince = isoDay;
+    emit();
+  }
+
+
   // Internal mutable state (per panel instance)
   const state = {
     singleChats: [] as ConversationItem[],
@@ -151,6 +161,7 @@ export function createPanelCache() {
   }
 
   return {
+    
     // read
     getSnapshot,
     subscribe,
@@ -161,6 +172,8 @@ export function createPanelCache() {
     setProjects,
     removeChat,
     removeProject,
+    setScopeUpdatedSince,
+
   };
 }
 

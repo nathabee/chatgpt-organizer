@@ -103,25 +103,40 @@ export function createSearchTab(dom: Dom, _bus: Bus, cache: PanelCache) {
     // If your Single/Projects tabs already send list actions through bus,
     // wire them here similarly. For now we trigger click on existing buttons.
 
-    dom.btnSearchListSingle.addEventListener("click", () => {
-      // reuse existing Single tab button (already wired)
-      dom.btnListSingle.click();
-    });
+    //dom.btnSearchListSingle.addEventListener("click", () => {
+    // reuse existing Single tab button (already wired)
+    //  dom.btnListSingle.click();
+    //});
 
-    dom.btnSearchListProjects.addEventListener("click", () => {
-      // reuse existing Projects tab button (already wired)
-      dom.btnListProjects.click();
-    });
+    //dom.btnSearchListProjects.addEventListener("click", () => {
+    // reuse existing Projects tab button (already wired)
+    // dom.btnListProjects.click();
+    //});
   }
 
   return {
     id: "search" as const,
+
     mount() {
-      // ensure UI defaults are applied at first open
-      // (don’t force-reset if user already changed them in the same session)
+      const snap = cache.getSnapshot();
+      const hasData =
+        (snap.counts.singleChats || 0) > 0 ||
+        (snap.counts.projects || 0) > 0 ||
+        (snap.counts.projectChats || 0) > 0;
+
+      if (!hasData) {
+        view.setStatus("No data loaded. Use Scope → Refresh.");
+        dom.searchResultsCountEl.textContent = "0";
+        return;
+      }
+
+      // If you *do* have data, render immediately
       rerender();
-    },
-    unmount() {},
+    }
+    ,
+
+
+    unmount() { },
     bind,
     dispose() {
       unsub();

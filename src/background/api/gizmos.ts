@@ -9,6 +9,41 @@ import { nowMs, randInt, sleep } from "../util/time";
 import { convoFromApiRow } from "./conversations";
 import * as debugTrace from "../../shared/debugTrace";
 
+/**
+ * Parse OpenAI time fields that may be:
+ * - number (seconds or ms)
+ * - numeric string
+ * - ISO string
+ */
+function parseTimeToMs(v: any): number | undefined {
+  if (v == null) return undefined;
+
+  if (typeof v === "number" && Number.isFinite(v)) {
+    if (v > 1e12) return Math.floor(v);
+    if (v > 1e10) return Math.floor(v);
+    if (v > 1e9) return Math.floor(v * 1000);
+    return Math.floor(v * 1000);
+  }
+
+  if (typeof v === "string") {
+    const s = v.trim();
+    if (!s) return undefined;
+
+    const n = Number(s);
+    if (Number.isFinite(n)) return parseTimeToMs(n);
+
+    const t = Date.parse(s);
+    if (!Number.isNaN(t)) return t;
+
+    return undefined;
+  }
+
+  return undefined;
+}
+
+function rowUpdatedMs(row: any): number | undefined {
+  return parseTimeToMs(row?.update_time) ?? parseTimeToMs(row?.create_time);
+}
 
 export async function deleteProject(
   accessToken: string,
@@ -66,30 +101,32 @@ async function fetchGizmosSnorlaxSidebarPaged(args: {
         const preview =
           first && typeof first === "object"
             ? {
-              // these exist in your structure: item.gizmo.gizmo + wrapper keys
-              hasGizmo: !!(first as any)?.gizmo,
-              gizmoId: (first as any)?.gizmo?.gizmo?.id ?? null,
-              name: (first as any)?.gizmo?.gizmo?.display?.name ?? null,
-              short_url: (first as any)?.gizmo?.gizmo?.short_url ?? null,
-            }
+                // these exist in your structure: item.gizmo.gizmo + wrapper keys
+                hasGizmo: !!(first as any)?.gizmo,
+                gizmoId: (first as any)?.gizmo?.gizmo?.id ?? null,
+                name: (first as any)?.gizmo?.gizmo?.display?.name ?? null,
+                short_url: (first as any)?.gizmo?.gizmo?.short_url ?? null,
+              }
             : null;
 
-        await debugTrace.append([
-          {
-            scope: "background",
-            kind: "debug",
-            message: `Auto debug: /gizmos/snorlax/sidebar first item keys (${keys.length})`,
-            ok: true,
-            meta: { keys },
-          },
-          {
-            scope: "background",
-            kind: "debug",
-            message: "Auto debug: /gizmos/snorlax/sidebar first item (shallow preview)",
-            ok: true,
-            meta: { item: preview },
-          },
-        ]).catch(() => { });
+        await debugTrace
+          .append([
+            {
+              scope: "background",
+              kind: "debug",
+              message: `Auto debug: /gizmos/snorlax/sidebar first item keys (${keys.length})`,
+              ok: true,
+              meta: { keys },
+            },
+            {
+              scope: "background",
+              kind: "debug",
+              message: "Auto debug: /gizmos/snorlax/sidebar first item (shallow preview)",
+              ok: true,
+              meta: { item: preview },
+            },
+          ])
+          .catch(() => {});
       }
     }
 
@@ -99,8 +136,7 @@ async function fetchGizmosSnorlaxSidebarPaged(args: {
       const gizmoId = String(gizmo?.id || "");
       if (!gizmoId) continue;
 
-      const title =
-        String(gizmo?.display?.name || gizmo?.short_url || gizmoId).trim() || "Untitled";
+      const title = String(gizmo?.display?.name || gizmo?.short_url || gizmoId).trim() || "Untitled";
 
       const shortUrl = String(gizmo?.short_url || "").trim();
       const href = shortUrl ? `https://chatgpt.com/g/${shortUrl}` : `https://chatgpt.com/`;
@@ -122,14 +158,18 @@ async function fetchGizmoConversationsPaged(args: {
   accessToken: string;
   gizmoId: string;
   limitConversations: number;
+  /** Optional cutoff: stop paging when conversations are older than this (ms epoch). */
+  sinceUpdatedMs?: number;
 }): Promise<ConversationItem[]> {
-  const { accessToken, gizmoId, limitConversations } = args;
+  const { accessToken, gizmoId, limitConversations, sinceUpdatedMs } = args;
 
   const convos = new Map<string, ConversationItem>();
   let cursor: string | null = null;
   let safety = 0;
 
-  while (convos.size < limitConversations && safety < 120) {
+  let reachedScopeEnd = false;
+
+  while (convos.size < limitConversations && safety < 120 && !reachedScopeEnd) {
     safety++;
 
     const url =
@@ -138,7 +178,7 @@ async function fetchGizmoConversationsPaged(args: {
 
     const data = await fetchJsonAuthed<any>(url, accessToken);
 
-        // auto debug while ON (one entry per gizmo conversations paging run, first page only)
+    // auto debug while ON (one entry per gizmo conversations paging run, first page only)
     if (safety === 1) {
       const enabled = await debugTrace.isEnabled().catch(() => false);
       if (enabled) {
@@ -156,28 +196,39 @@ async function fetchGizmoConversationsPaged(args: {
               }
             : null;
 
-        await debugTrace.append([
-          {
-            scope: "background",
-            kind: "debug",
-            message: `Auto debug: /gizmos/${gizmoId}/conversations first item keys (${keys.length})`,
-            ok: true,
-            meta: { keys, gizmoId },
-          },
-          {
-            scope: "background",
-            kind: "debug",
-            message: `Auto debug: /gizmos/${gizmoId}/conversations first item (shallow preview)`,
-            ok: true,
-            meta: { item: preview, gizmoId },
-          },
-        ]).catch(() => {});
+        await debugTrace
+          .append([
+            {
+              scope: "background",
+              kind: "debug",
+              message: `Auto debug: /gizmos/${gizmoId}/conversations first item keys (${keys.length})`,
+              ok: true,
+              meta: { keys, gizmoId },
+            },
+            {
+              scope: "background",
+              kind: "debug",
+              message: `Auto debug: /gizmos/${gizmoId}/conversations first item (shallow preview)`,
+              ok: true,
+              meta: { item: preview, gizmoId },
+            },
+          ])
+          .catch(() => {});
       }
     }
 
-
     const items = Array.isArray(data?.items) ? data.items : [];
+
     for (const row of items) {
+      // Scope cutoff (assumes items are returned newest-first)
+      if (typeof sinceUpdatedMs === "number") {
+        const u = rowUpdatedMs(row);
+        if (typeof u === "number" && u < sinceUpdatedMs) {
+          reachedScopeEnd = true;
+          break;
+        }
+      }
+
       const it = convoFromApiRow(row, gizmoId);
       if (!it) continue;
       convos.set(it.id, it);
@@ -185,6 +236,7 @@ async function fetchGizmoConversationsPaged(args: {
     }
 
     const next = typeof data?.cursor === "string" ? data.cursor : null;
+    if (reachedScopeEnd) break;
     if (!next || next === cursor) break;
     cursor = next;
 
@@ -201,8 +253,10 @@ export async function listGizmoProjectsWithConversations(args: {
   limitProjects: number;
   conversationsPerGizmo: number;
   perProjectLimit: number;
+  /** Optional cutoff: stop paging when conversations are older than this (ms epoch). */
+  sinceUpdatedMs?: number;
 }): Promise<ProjectItem[]> {
-  const { accessToken, limitProjects, conversationsPerGizmo, perProjectLimit } = args;
+  const { accessToken, limitProjects, conversationsPerGizmo, perProjectLimit, sinceUpdatedMs } = args;
 
   const gizmos = await fetchGizmosSnorlaxSidebarPaged({
     accessToken,
@@ -222,6 +276,7 @@ export async function listGizmoProjectsWithConversations(args: {
       accessToken,
       gizmoId: g.gizmoId,
       limitConversations: perProjectLimit,
+      sinceUpdatedMs,
     });
 
     totalConversations += conversations.length;

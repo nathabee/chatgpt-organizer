@@ -445,10 +445,10 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
   });
 
   function bind() {
-    dom.btnListProjects.addEventListener("click", () => {
-      if (getBusy()) return;
-      listProjects().catch((e) => view.setStatus(`Error: ${e?.message || e}`));
-    });
+    // dom.btnListProjects.addEventListener("click", () => {
+    //  if (getBusy()) return;
+    //  listProjects().catch((e) => view.setStatus(`Error: ${e?.message || e}`));
+    //});
 
     dom.btnProjectsDelete.addEventListener("click", () => {
       if (getBusy()) return;
@@ -470,17 +470,18 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
     });
   }
 
+
   return {
     id: "projects" as const,
-    mount() {
-      // nothing special
+    refresh() {
+      if (getBusy()) return;
+      listProjects().catch((e) => view.setStatus(`Error: ${e?.message || e}`));
     },
-    unmount() {
-      // keep state/UI
-    },
+    mount() { /* no auto fetch */ },
+    unmount() { },
     bind,
-    dispose() {
-      off();
-    },
+    dispose() { off(); },
   };
+
+
 }

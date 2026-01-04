@@ -253,10 +253,10 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
   });
 
   function bind() {
-    dom.btnListSingle.addEventListener("click", () => {
-      if (getBusy()) return;
-      listSingleChats().catch((e) => view.setStatus(`Error: ${e?.message || e}`));
-    });
+    // dom.btnListSingle.addEventListener("click", () => {
+    //   if (getBusy()) return;
+    //  listSingleChats().catch((e) => view.setStatus(`Error: ${e?.message || e}`));
+    // });
 
     dom.cbSingleToggleAll.addEventListener("change", () => onToggleAll());
 
@@ -282,15 +282,14 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
 
   return {
     id: "single" as const,
-    mount() {
-      // nothing special (view is always in DOM)
+    refresh() {
+      if (getBusy()) return;
+      listSingleChats().catch((e) => view.setStatus(`Error: ${e?.message || e}`));
     },
-    unmount() {
-      // keep state; do not clear UI
-    },
+    mount() { /* no auto fetch */ },
+    unmount() { },
     bind,
-    dispose() {
-      off();
-    },
+    dispose() { off(); },
   };
+
 }
