@@ -161,6 +161,24 @@ label {
 /***************************************************/
 /* Markdown content styling */
 /***************************************************/
+/* Keep #content as the card */
+#content {
+  background-color: white;
+  padding: 1rem;
+  border-radius: 10px;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Make markdown flat inside it */
+.markdown {
+  font-family: Georgia, serif;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+/*
 .markdown {
   font-family: Georgia, serif;
   background: #ffffff;
@@ -171,6 +189,8 @@ label {
   max-width: 100%;
   overflow-x: auto;
 }
+*/
+
 
 .markdown h1,
 .markdown h2,
@@ -236,6 +256,28 @@ label {
   color: #5c6297;
 }
  
+
+/* Markdown images: never exceed container, and cap absolute size */
+.markdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+
+  /* this is the key: prevent “wallpaper screenshots” */
+  width: min(100%, 900px);
+
+  margin: 0.75rem auto;
+  border-radius: 10px;
+ 
+  border: 1px solid rgba(0, 0, 0, 0.10);
+ 
+  cursor: zoom-in;
+}
+
+.markdown img:active {
+  cursor: zoom-out;
+  width: min(100%, 1200px);
+}
 
 
 /***************************************************/
