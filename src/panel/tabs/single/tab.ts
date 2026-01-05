@@ -13,7 +13,6 @@ import { createSingleModel } from "./model";
 import { createSingleView } from "./view";
 import { incDeletedChats } from "../../app/statsStore";
 
-
 type Bus = ReturnType<typeof createBus>;
 
 export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
@@ -28,20 +27,30 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
   let failureLogged = 0;
   const MAX_FAILURE_LOGS_PER_RUN = 50;
 
+  // IMPORTANT:
+  // Scope source of truth is panel.ts (scopeIso) pushed into cache meta.
+  // Do NOT read scope from the dialog input as the main source; it can contain unvalidated edits.
+  function getScopeYmd(): string {
+    const fromCache = typeof cache.getScopeUpdatedSince === "function" ? cache.getScopeUpdatedSince() : "";
+    if (fromCache) return fromCache;
+
+    // fallback only (should rarely be needed)
+    return dom.scopeDateEl?.value || "";
+  }
+
   function startProgressUI(total: number) {
     execRunId = null;
     execOk = 0;
     execFail = 0;
     execTotal = total;
-    failureLogged = 0; // ✅ add this
+    failureLogged = 0;
 
     view.showExecProgress(true);
     dom.singleExecProgressEl.max = total;
     dom.singleExecProgressEl.value = 0;
     dom.singleExecProgressTextEl.textContent = `Starting… 0/${total}`;
-    view.setStatus("Deleting…");
+    view.setStatus("Deleting chats…");
   }
-
 
   function updateProgressUI(i: number, total: number, okCount: number, failCount: number, lastOpMs: number) {
     dom.singleExecProgressEl.max = total;
@@ -51,7 +60,7 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
   }
 
   function finishProgressUI(summary: string) {
-    view.setStatus("Done");
+    view.setStatus("");
     dom.singleExecProgressTextEl.textContent = summary;
   }
 
@@ -59,29 +68,31 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
     view.showConfirm(false);
     view.writeExecOut("");
 
-    view.setStatus("Loading…");
+    view.setStatus("Loading single chats…");
     setBusy(dom, true);
 
     const limit = clampInt(dom.singleLimitEl.value, 1, 50000, 50);
+    const scopeYmd = getScopeYmd(); // "YYYY-MM-DD" or ""
+
+    console.log("[CGO][scope] panel->background LIST_ALL_CHATS", { scopeYmd, limit, pageSize: 50 });
 
     const res = await chrome.runtime
-      .sendMessage({ type: MSG.LIST_ALL_CHATS, limit, pageSize: 50 })
+      .sendMessage({ type: MSG.LIST_ALL_CHATS, limit, pageSize: 50, scopeYmd })
       .catch(() => null);
 
     setBusy(dom, false);
 
     if (!res) {
-      view.setStatus("Failed (no response).");
+      view.setStatus("Loading single chats failed (no response).");
       return;
     }
     if (!res.ok) {
-      view.setStatus(`Failed: ${res.error}`);
+      view.setStatus(`Loading single chats failed: ${res.error}`);
       return;
     }
 
     const items = (res.conversations || []) as ConversationItem[];
     model.setChats(items.filter((c) => !c.gizmoId));
-
 
     // ✅ write into cache (single chats)
     cache.setSingleChats(model.chats, { limit });
@@ -97,7 +108,7 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
       },
     });
 
-    view.setStatus(`Done: ${model.chats.length}`);
+    view.setStatus("");
   }
 
   function openConfirm() {
@@ -184,28 +195,29 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
       if (!ok && failureLogged < MAX_FAILURE_LOGS_PER_RUN) {
         failureLogged++;
 
-        actionLog.append({
-          kind: "error",
-          scope: "single",
-          message: `Delete chat failed: ${title} (${id.slice(0, 8)})`,
-          ok: false,
-          status,
-          error: error || "failed",
-          chatId: id,
-          chatTitle: title,
-          meta: { attempt, elapsedMs, lastOpMs },
-        }).catch(() => { });
+        actionLog
+          .append({
+            kind: "error",
+            scope: "single",
+            message: `Delete chat failed: ${title} (${id.slice(0, 8)})`,
+            ok: false,
+            status,
+            error: error || "failed",
+            chatId: id,
+            chatTitle: title,
+            meta: { attempt, elapsedMs, lastOpMs },
+          })
+          .catch(() => {});
       }
-
 
       if (ok) {
         model.removeChat(id);
 
-
         // ✅ keep cache in sync
         cache.removeChat(id);
+
         // ✅ persist stats
-        incDeletedChats(1).catch(() => { });
+        incDeletedChats(1).catch(() => {});
 
         view.renderList({
           chats: model.chats,
@@ -233,16 +245,17 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
       const failCount = Number(m.failCount || execFail);
       const elapsedMs = Number(m.elapsedMs || 0);
 
-      actionLog.append({
-        kind: "run",
-        scope: "single",
-        message: `Delete run finished: ok ${okCount}/${total}, failed ${failCount}, elapsed ${formatMs(elapsedMs)}`,
-        ok: failCount === 0,
-        meta: { total, okCount, failCount, elapsedMs },
-      }).catch(() => { });
+      actionLog
+        .append({
+          kind: "run",
+          scope: "single",
+          message: `Delete run finished: ok ${okCount}/${total}, failed ${failCount}, elapsed ${formatMs(elapsedMs)}`,
+          ok: failCount === 0,
+          meta: { total, okCount, failCount, elapsedMs },
+        })
+        .catch(() => {});
 
       failureLogged = 0;
-
 
       finishProgressUI(`Done · ok ${okCount}/${total} · failed ${failCount} · elapsed ${formatMs(elapsedMs)}`);
       setBusy(dom, false);
@@ -253,11 +266,6 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
   });
 
   function bind() {
-    // dom.btnListSingle.addEventListener("click", () => {
-    //   if (getBusy()) return;
-    //  listSingleChats().catch((e) => view.setStatus(`Error: ${e?.message || e}`));
-    // });
-
     dom.cbSingleToggleAll.addEventListener("change", () => onToggleAll());
 
     dom.btnSingleDelete.addEventListener("click", () => {
@@ -286,10 +294,13 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
       if (getBusy()) return;
       listSingleChats().catch((e) => view.setStatus(`Error: ${e?.message || e}`));
     },
-    mount() { /* no auto fetch */ },
-    unmount() { },
+    mount() {
+      /* no auto fetch */
+    },
+    unmount() {},
     bind,
-    dispose() { off(); },
+    dispose() {
+      off();
+    },
   };
-
 }

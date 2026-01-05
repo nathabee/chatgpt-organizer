@@ -4,13 +4,17 @@ import type { Dom } from "./dom";
 let isBusy = false;
 
 export function getBusy() {
+  
+
   return isBusy;
 }
 
 export function setBusy(dom: Dom, next: boolean) {
   isBusy = next;
 
-    // Global scope controls
+  dom.scopeLoadingEl.classList.toggle("is-busy", next);
+
+  // Global scope controls
   dom.btnScopeChange.disabled = next;
   dom.btnScopeRefresh.disabled = next;
   dom.scopeDateEl.disabled = next;
@@ -29,17 +33,14 @@ export function setBusy(dom: Dom, next: boolean) {
   dom.projectsChatsLimitEl.disabled = next;
   dom.btnProjectsDelete.disabled = next;
 
-
-
-  // ✅ add: Search tab “trigger list” buttons must follow busy too
+  // Search tab controls
   dom.btnSearchListSingle.disabled = next;
   dom.btnSearchListProjects.disabled = next;
-
-  // (optional) also disable reset/clear to prevent UI confusion mid-run
   dom.btnSearchResetFilters.disabled = next;
   dom.btnSearchClear.disabled = next;
   dom.searchQueryEl.disabled = next;
 
+  // disable all checkboxes
   Array.from(document.querySelectorAll<HTMLInputElement>("input[type='checkbox']")).forEach((cb) => {
     cb.disabled = next;
   });

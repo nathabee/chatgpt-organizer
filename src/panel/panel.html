@@ -13,21 +13,74 @@
         <h1>ChatGPT Organizer</h1>
 
         <!-- Global scope (applies to Single + Projects fetch) -->
-        <div class="scopeBar" role="region" aria-label="Data scope">
-            <div class="scopeLeft">
-                <span class="muted">Scope:</span>
-                <strong id="scopeLabel">Updated since —</strong>
+        <div class="scopeBar" role="region" aria-label="Data scope and cache">
+            <div class="scopeTop">
+                <div class="scopeLeft">
+                    <span class="muted">Scope:</span>
+                    <strong id="scopeLabel">Updated since —</strong>
+                </div>
+
+                <div class="scopeRight">
+                    <button id="btnScopeChange" type="button" class="subtle" title="Change scope date">
+                        Change…
+                    </button>
+                    <button id="btnScopeRefresh" type="button" class="subtle" title="Refresh data using current scope">
+                        Refresh
+                    </button>
+                </div>
             </div>
 
-            <div class="scopeRight">
-                <button id="btnScopeChange" type="button" class="subtle" title="Change scope date">
-                    Change…
-                </button>
-                <button id="btnScopeRefresh" type="button" class="subtle" title="Refresh data using current scope">
-                    Refresh
-                </button>
+            <!-- Always visible: status + cache snapshot -->
+            <div class="scopeLoading" aria-live="polite">
+                <span id="singleStatus" class="status">Idle</span>
+                <span id="projectsStatus" class="status">Idle</span>
+
             </div>
+
+            <!-- Collapsible: limits + list actions -->
+            <details class="scopeControls" id="scopeControls">
+                <summary>Fetch info and settings</summary>
+
+                <div class="row scopeMeta">
+                    <span class="muted">Cache:</span>
+                    <span class="scopeMetaItem">Single: <strong id="scopeLoadedSingles">0</strong></span>
+                    <span class="scopeMetaSep"> </span>
+                    <span class="scopeMetaItem">Projects: <strong id="scopeLoadedProjects">0</strong></span>
+                    <span class="scopeMetaSep"> </span>
+                    <span class="scopeMetaItem">Project chats: <strong id="scopeLoadedProjectChats">0</strong></span>
+                </div>
+
+
+                <div class="row scopeRow">
+                    <label class="fieldInline">
+                        <span>Single limit</span>
+                        <input id="singleLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
+                    </label>
+
+                    <button id="btnListSingle" type="button" class="subtle is-hidden">List single</button>
+                </div>
+
+                <div class="row scopeRow">
+                    <label class="fieldInline">
+                        <span>Projects limit</span>
+                        <input id="projectsLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Chats / project</span>
+                        <input id="projectsChatsLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
+                    </label>
+
+                    <button id="btnListProjects" type="button" class="subtle is-hidden">List projects</button>
+                </div>
+
+                <div class="muted scopeHint" id="scopeLimitsHint">
+                    Limits apply to fetch + cache (Search/Stats use the cache).
+                </div>
+            </details>
         </div>
+
+
 
 
         <div class="tabs" role="tablist" aria-label="CGO Tabs">
@@ -65,16 +118,6 @@
             <p class="muted">
                 Chats not attached to a Project.
             </p>
-
-            <div class="row">
-                <label class="fieldInline">
-                    <span>Limit</span>
-                    <input id="singleLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
-                </label>
-
-                <button id="btnListSingle" type="button"  class="is-hidden">List single chats</button>
-                <span id="singleStatus" class="status">Idle</span>
-            </div>
 
             <div class="row row--select">
                 <label class="toggleAll">
@@ -123,21 +166,6 @@
             <p class="muted">
                 Projects and their conversations (API-based)
             </p>
-
-            <div class="row">
-                <label class="fieldInline">
-                    <span>Projects</span>
-                    <input id="projectsLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
-                </label>
-
-                <label class="fieldInline">
-                    <span>Chats per project</span>
-                    <input id="projectsChatsLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
-                </label>
-
-                <button id="btnListProjects" type="button"  class="is-hidden">List projects</button>
-                <span id="projectsStatus" class="status">Idle</span>
-            </div>
 
             <div class="row row--danger">
                 <button id="btnProjectsDelete" type="button" class="danger">
@@ -202,10 +230,10 @@
                 <button id="btnSearchResetFilters" type="button" class="subtle">Reset filters</button>
 
                 <!-- moved here from Info -->
-                <button id="btnSearchListSingle" type="button"  class="is-hidden" > <!--  class="subtle"> -->
+                <button id="btnSearchListSingle" type="button" class="is-hidden"> <!--  class="subtle"> -->
                     List single
                 </button>
-                <button id="btnSearchListProjects" type="button"  class="is-hidden"> <!--  class="subtle"> -->
+                <button id="btnSearchListProjects" type="button" class="is-hidden"> <!--  class="subtle"> -->
                     List projects
                 </button>
             </div>
@@ -289,11 +317,11 @@
                 </div>
 
                 <div class="searchInfoMeta">
-                    <div>
-                        Loaded:
-                        <strong id="searchInfoLoadedSingles">0</strong> single ·
-                        <strong id="searchInfoLoadedProjects">0</strong> projects ·
-                        <strong id="searchInfoLoadedProjectChats">0</strong> project chats
+                    <div>Loaded:
+                        <strong id="searchLoadedSingles">0</strong> single ·
+                        <strong id="searchLoadedProjects">0</strong> projects ·
+                        <strong id="searchLoadedProjectChats">0</strong> project chats
+
                     </div>
 
                     <div class="muted" id="searchInfoLimits"></div>
@@ -328,6 +356,35 @@
 LOGS VIEW
 ========================= -->
         <section id="viewLogs" class="view" role="tabpanel" aria-labelledby="tabLogs" hidden>
+
+            <details id="devConfigDetails" class="devConfig">
+                <summary>Configuration</summary>
+
+                <div class="devConfigGrid">
+                    <label class="devRow">
+                        <input id="cfgTraceScope" type="checkbox" />
+                        <span>Trace scope (console)</span>
+                    </label>
+
+                    <label class="devRowSplit">
+                        <span>Stop after N out-of-scope projects</span>
+                        <input id="cfgStopAfterOutOfScope" type="number" min="0" step="1" value="3" />
+                    </label> 
+
+
+                    <div class="devRow">
+                        <button id="btnCfgResetDefaults" type="button">Reset defaults</button>
+                        <span id="cfgStatus" class="muted"></span>
+                    </div>
+
+
+
+                    
+                </div>
+            </details>
+            <hr class="devDivider" />
+
+
             <p class="muted">
                 Audit log is always-on. Debug trace is optional and can be wiped instantly.
             </p>

@@ -26,6 +26,8 @@ function buildBadges(chat: { isArchived?: boolean; updateTime?: string; createTi
   return bits.length ? `<span class="searchBadges">${bits.join("")}</span>` : "";
 }
 
+ 
+
 export type RenderArgs = {
   loaded: {
     singleChats: number;
@@ -46,14 +48,16 @@ export function createSearchView(dom: Dom) {
   function setStatus(text: string) {
     dom.searchStatusEl.textContent = text;
   }
-
+ 
   function setCounts(args: RenderArgs) {
     const { loaded, limits } = args;
 
+ 
+
     // ✅ Info box numbers (the only ones that exist in your HTML)
-    dom.searchInfoLoadedSinglesEl.textContent = String(loaded.singleChats);
-    dom.searchInfoLoadedProjectsEl.textContent = String(loaded.projects);
-    dom.searchInfoLoadedProjectChatsEl.textContent = String(loaded.projectChats);
+    dom.searchLoadedSinglesEl.textContent = String(loaded.singleChats);
+    dom.searchLoadedProjectsEl.textContent = String(loaded.projects);
+    dom.searchLoadedProjectChatsEl.textContent = String(loaded.projectChats);
 
     const bits: string[] = [];
     if (typeof limits.singleLimit === "number") bits.push(`single limit ${limits.singleLimit}`);
@@ -61,8 +65,7 @@ export function createSearchView(dom: Dom) {
     if (typeof limits.projectsChatsLimit === "number") bits.push(`chats/project limit ${limits.projectsChatsLimit}`);
 
     dom.searchInfoLimitsEl.textContent = bits.length ? `Limits: ${bits.join(" · ")}` : "";
-  }
-
+  } 
   function renderResults(items: SearchResultItem[]) {
     const out: string[] = [];
 

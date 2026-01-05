@@ -18,6 +18,11 @@ export function getDom() {
   const btnScopeCancel = must(document.getElementById("btnScopeCancel"), "btnScopeCancel") as HTMLButtonElement;
   const btnScopeApply = must(document.getElementById("btnScopeApply"), "btnScopeApply") as HTMLButtonElement;
 
+  const scopeLoadedSinglesEl = must(document.getElementById("scopeLoadedSingles"), "scopeLoadedSingles") as HTMLElement;
+  const scopeLoadedProjectsEl = must(document.getElementById("scopeLoadedProjects"), "scopeLoadedProjects") as HTMLElement;
+  const scopeLoadedProjectChatsEl = must(document.getElementById("scopeLoadedProjectChats"), "scopeLoadedProjectChats") as HTMLElement;
+  const scopeLoadingEl = must(document.querySelector(".scopeLoading"), "scopeLoading") as HTMLDivElement;
+
 
   // Tabs
   const tabSingle = document.getElementById("tabSingle") as HTMLButtonElement;
@@ -59,9 +64,10 @@ export function getDom() {
   const btnSearchListSingle = must(document.getElementById("btnSearchListSingle"), "btnSearchListSingle") as HTMLButtonElement;
   const btnSearchListProjects = must(document.getElementById("btnSearchListProjects"), "btnSearchListProjects") as HTMLButtonElement;
 
-  const searchInfoLoadedSinglesEl = must(document.getElementById("searchInfoLoadedSingles"), "searchInfoLoadedSingles") as HTMLElement;
-  const searchInfoLoadedProjectsEl = must(document.getElementById("searchInfoLoadedProjects"), "searchInfoLoadedProjects") as HTMLElement;
-  const searchInfoLoadedProjectChatsEl = must(document.getElementById("searchInfoLoadedProjectChats"), "searchInfoLoadedProjectChats") as HTMLElement;
+  const searchLoadedSinglesEl = must(document.getElementById("searchLoadedSingles"), "searchLoadedSingles") as HTMLElement;
+  const searchLoadedProjectsEl = must(document.getElementById("searchLoadedProjects"), "searchLoadedProjects") as HTMLElement;
+  const searchLoadedProjectChatsEl = must(document.getElementById("searchLoadedProjectChats"), "searchLoadedProjectChats") as HTMLElement;
+
   const searchInfoLimitsEl = must(document.getElementById("searchInfoLimits"), "searchInfoLimits") as HTMLElement;
 
   // Always visible status + results
@@ -138,9 +144,14 @@ export function getDom() {
   const btnLogsClear = document.getElementById("btnLogsClear") as HTMLButtonElement;
 
   const logsOutEl = document.getElementById("logsOut") as HTMLPreElement;
+  // Logs config 
+const cfgTraceScopeEl = document.getElementById("cfgTraceScope") as HTMLInputElement | null;
+const cfgStopAfterOutOfScopeEl = document.getElementById("cfgStopAfterOutOfScope") as HTMLInputElement | null;
+const btnCfgResetDefaults = document.getElementById("btnCfgResetDefaults") as HTMLButtonElement | null;
+const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
 
 
-  // Debug trace
+  // Debug trace 
   const logsCbDebugEl = document.getElementById("logsCbDebug") as HTMLInputElement;
   const debugLimitEl = document.getElementById("debugLimit") as HTMLInputElement;
   const btnDebugRefresh = document.getElementById("btnDebugRefresh") as HTMLButtonElement;
@@ -181,15 +192,18 @@ export function getDom() {
     tabSingle, tabProjects, viewSingle, viewProjects,
     tabOrganize, tabSearch, tabLogs, tabStats,
     viewOrganize, viewSearch, viewLogs, viewStats,
- 
+
     // Global scope ...
     scopeLabelEl, btnScopeChange, btnScopeRefresh,
     scopeDialogEl, scopeDateEl, btnScopeCancel, btnScopeApply,
+    scopeLoadedSinglesEl, scopeLoadedProjectsEl, scopeLoadedProjectChatsEl,
+    scopeLoadingEl,
 
 
     // Search ...
     searchInfoBoxEl, btnSearchListSingle, btnSearchListProjects,
-    searchInfoLoadedSinglesEl, searchInfoLoadedProjectsEl, searchInfoLoadedProjectChatsEl,
+    searchLoadedSinglesEl, searchLoadedProjectsEl, searchLoadedProjectChatsEl,
+
     searchInfoLimitsEl,
 
     btnSearchResetFilters,
@@ -219,6 +233,12 @@ export function getDom() {
     projectsCountEl, projectsChatsCountEl, projectsSelectedChatsCountEl, projectsSelectedProjectsCountEl,
     projectsListEl,
 
+    // Logs config
+    cfgTraceScopeEl,
+    cfgStopAfterOutOfScopeEl,
+    btnCfgResetDefaults,
+    cfgStatusEl,
+
     // Logs (audit)
     logsLimitEl, btnLogsRefresh, logsStatusEl,
     logsTrimKeepEl, btnLogsTrim, btnLogsExport, btnLogsClear,
@@ -228,7 +248,7 @@ export function getDom() {
     logsCbDebugEl, debugLimitEl, btnDebugRefresh, btnDebugExport, btnDebugClear,
     debugStatusEl, debugOutEl,
 
-        // Stats ...
+    // Stats ...
     btnStatsRecalc, statsStatusEl, statsLastCacheUpdateEl,
     statsSnapshotBoxEl,
     statsSingleChatsEl, statsProjectsEl, statsProjectChatsEl, statsTotalChatsEl,

@@ -116,6 +116,123 @@ Read-only, zero risk.
 
 ## PATCHES
  
+
+
+## v0.1.7 — Epic: Organize Tab (Move Chats into Projects)
+
+### Goals
+
+* Provide a clear workflow to **move selected chats into a chosen project**.
+* Keep interaction simple, visual, and safe.
+
+### Planned deliverables
+
+#### 1) Organize tab UI (two-column layout)
+
+* **Left column:** source chats (select many)
+
+  * Supports listing from:
+
+    * single chats
+    * project chats (grouped or flat)
+  * Multi-select via checkboxes
+* **Right column:** destination project selector
+
+  * Choose exactly **one** target project
+
+#### 2) Move action
+
+* Button: **Move to project**
+* Behavior:
+
+  * validates: at least 1 chat selected + exactly 1 destination selected
+  * executes move requests (new backend executor)
+  * progress + per-item success/failure logging
+  * updates local model + cache after successful moves
+
+#### 3) Guardrails + feedback
+
+* Clear confirmation gating (similar to delete pattern)
+* Progress indicator + results log
+* Failure logging into Logs tab
+
+#### 4) Optional (if time)
+
+* “Filter left list” (search box)
+* “Show only loaded data” vs “fetch missing” (later)
+
+### Dependencies / prerequisites from v0.1.6
+
+* Reuse timestamp + conversation parsing utilities
+* Reuse global scope concept later for filtering what appears in Organize
+
+---
+ 
+
+## v0.1.6 — Epic: Global Scope Controls + Timestamp Groundwork (No Organize)
+
+### Goals
+
+* Establish a **global “Scope” concept** (date-based) that will later drive consistent filtering.
+* Add **instrumentation** to verify what ChatGPT’s backend timestamps actually do (single + projects).
+* Keep the release focused: **no Organize UI yet**.
+
+### Delivered
+
+#### 1) Global Scope UI foundation
+
+* Added a global **Scope date** control (date input + label).
+* Scope is stored at the panel level (UI-level source of truth).
+* Scope intended semantics: **date at 00:00 local time** (day-granularity).
+
+#### 2) Timestamp parsing + normalization utilities
+
+* Added robust parsing for time fields that can be:
+
+  * ISO strings (`2025-12-05T08:44:00Z`)
+  * numeric strings
+  * epoch seconds
+  * epoch milliseconds
+* Unified logic around “updated time” = `update_time` fallback to `create_time`.
+
+#### 3) Scope-first paging algorithm for projects (implemented but not fully wired yet)
+
+* Implemented “scope-first / time-first” paging logic for gizmo conversations:
+
+  * Check first page newest item
+  * Stop paging once items fall below cutoff
+  * Keep only in-scope conversations (intended)
+  * Skip caching empty projects (intended)
+
+#### 4) Debug tracing to diagnose scope flow + backend behavior
+
+* Added console/debug trace points showing:
+
+  * whether `sinceUpdatedMs` exists or is `undefined`
+  * first item timestamps per gizmo project fetch
+* Result of tracing: **scope cutoff wasn’t being passed** (sinceUpdatedMs shows `undefined`), so scope filtering was not active.
+
+#### 5) Verified timestamp behavior experimentally (important findings)
+
+Based on your controlled edits:
+
+* Adding a message to a chat:
+
+  * updates **conversation `update_time`**
+  * does **not** change `create_time`
+* Moving a chat between projects:
+
+  * updates **conversation `update_time`**
+* Renaming a project:
+
+  * does **not** update conversation timestamps
+
+**Conclusion:** project/container metadata is unreliable for “updated”; only conversation timestamps are trustworthy.
+
+
+ 
+---
+
  
 
 ### v0.1.5 — Epic: Global Scope Date

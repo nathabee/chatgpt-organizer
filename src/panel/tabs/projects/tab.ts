@@ -12,13 +12,9 @@ import { createProjectsModel } from "./model";
 import { createProjectsView } from "./view";
 import { incDeletedChats, incDeletedProjects } from "../../app/statsStore";
 
-
 type Bus = ReturnType<typeof createBus>;
 
-
-
 export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
-
   const model = createProjectsModel();
   const view = createProjectsView(dom);
 
@@ -36,7 +32,16 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
   let failureLogged = 0;
   const MAX_FAILURE_LOGS_PER_RUN = 50;
 
+  // IMPORTANT:
+  // Scope source of truth is the panel controller (panel.ts) which pushed it into cache meta.
+  // Do NOT read scope from the dialog input as the main source; it can contain unvalidated edits.
+  function getScopeYmd(): string {
+    const fromCache = typeof cache.getScopeUpdatedSince === "function" ? cache.getScopeUpdatedSince() : "";
+    if (fromCache) return fromCache;
 
+    // fallback only (should rarely be needed)
+    return dom.scopeDateEl?.value || "";
+  }
 
   function refreshCounts() {
     view.updateCounts({
@@ -59,7 +64,6 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
         refreshCounts();
         rerender(); // needed to reflect forced checkboxes
       },
-
       afterChatToggle: () => {
         refreshCounts(); // no rerender => <details> stays open
       },
@@ -72,24 +76,44 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
     view.showConfirm(false);
     view.writeExecOut("");
 
-    view.setStatus("Loading… 0 project(s), 0 chat(s)");
+    view.setStatus("Projects loading… 0 project(s), 0 chat(s)");
     setBusy(dom, true);
 
     const limitProjects = clampInt(dom.projectsLimitEl.value, 1, 5000, 50);
     const uiMaxChatsPerProject = clampInt(dom.projectsChatsLimitEl.value, 1, 5000, 200);
 
+    // Scope is global and stored in cache meta by panel.ts
+    const scopeYmd = getScopeYmd(); // "YYYY-MM-DD" or ""
+
+    const conversationsPerGizmo = 5; // sidebar hint only
+    const perProjectLimit = clampInt(dom.projectsChatsLimitEl.value, 1, 50000, 5000);
+
+    console.log("[CGO][scope] panel->background LIST_GIZMO_PROJECTS", {
+      scopeYmd,
+      limitProjects,
+      conversationsPerGizmo,
+      perProjectLimit,
+      uiMaxChatsPerProject,
+    });
+
     const res = await chrome.runtime
-      .sendMessage({ type: MSG.LIST_GIZMO_PROJECTS, limit: limitProjects, conversationsPerGizmo: 5 })
+      .sendMessage({
+        type: MSG.LIST_GIZMO_PROJECTS,
+        limit: limitProjects,
+        conversationsPerGizmo,
+        perProjectLimit,
+        scopeYmd,
+      })
       .catch(() => null);
 
     setBusy(dom, false);
 
     if (!res) {
-      view.setStatus("Failed (no response).");
+      view.setStatus("Projects loading failed (no response).");
       return;
     }
     if (!res.ok) {
-      view.setStatus(`Failed: ${res.error}`);
+      view.setStatus(`Projects loading failed: ${res.error}`);
       return;
     }
 
@@ -107,7 +131,7 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
     });
 
     rerender();
-    view.setStatus(`Done: ${model.projects.length} project(s)`);
+    view.setStatus("");
   }
 
   function openConfirm() {
@@ -196,7 +220,7 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       const m = msg as any;
       const foundProjects = Number(m.foundProjects || 0);
       const foundConversations = Number(m.foundConversations || 0);
-      view.setStatus(`Loading… ${foundProjects} project(s), ${foundConversations} chat(s)`);
+      view.setStatus(`Projects loading… ${foundProjects} project(s), ${foundConversations} chat(s)`);
       return;
     }
 
@@ -205,7 +229,10 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       const totalProjects = Number(m.totalProjects || 0);
       const totalConversations = Number(m.totalConversations || 0);
       const elapsedMs = Number(m.elapsedMs || 0);
-      view.setStatus(`Done: ${totalProjects} project(s), ${totalConversations} chat(s) in ${formatMs(elapsedMs)}`);
+      void totalProjects;
+      void totalConversations;
+      void elapsedMs;
+      view.setStatus("");
       return;
     }
 
@@ -229,8 +256,6 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       if (ok) execOk++;
       else execFail++;
 
-
-
       dom.projectsChatsExecProgressEl.max = total;
       dom.projectsChatsExecProgressEl.value = Math.min(i, total);
       dom.projectsChatsExecProgressTextEl.textContent =
@@ -249,26 +274,26 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       if (ok) {
         model.removeChatEverywhere(id);
         cache.removeChat(id);
-
-        // ✅ persist stats
-        incDeletedChats(1).catch(() => { });
+        incDeletedChats(1).catch(() => {});
         rerender();
       }
 
       if (!ok && failureLogged < MAX_FAILURE_LOGS_PER_RUN) {
         failureLogged++;
 
-        actionLog.append({
-          kind: "error",
-          scope: "projects",
-          message: `Delete chat failed: ${title} (${id.slice(0, 8)})`,
-          ok: false,
-          status,
-          error: error || "failed",
-          chatId: id,
-          chatTitle: title,
-          meta: { attempt, elapsedMs, lastOpMs },
-        }).catch(() => { });
+        actionLog
+          .append({
+            kind: "error",
+            scope: "projects",
+            message: `Delete chat failed: ${title} (${id.slice(0, 8)})`,
+            ok: false,
+            status,
+            error: error || "failed",
+            chatId: id,
+            chatTitle: title,
+            meta: { attempt, elapsedMs, lastOpMs },
+          })
+          .catch(() => {});
       }
       return;
     }
@@ -285,16 +310,19 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       const failCount = Number(m.failCount || execFail);
       const elapsedMs = Number(m.elapsedMs || 0);
 
-      actionLog.append({
-        kind: "run",
-        scope: "projects",
-        message: `Projects chat-delete run finished: ok ${okCount}/${total}, failed ${failCount}, elapsed ${formatMs(elapsedMs)}`,
-        ok: failCount === 0,
-        meta: { total, okCount, failCount, elapsedMs },
-      }).catch(() => { });
+      actionLog
+        .append({
+          kind: "run",
+          scope: "projects",
+          message: `Projects chat-delete run finished: ok ${okCount}/${total}, failed ${failCount}, elapsed ${formatMs(
+            elapsedMs
+          )}`,
+          ok: failCount === 0,
+          meta: { total, okCount, failCount, elapsedMs },
+        })
+        .catch(() => {});
 
       failureLogged = 0;
-
 
       view.setStatus("Chats delete done");
       dom.projectsChatsExecProgressTextEl.textContent =
@@ -356,23 +384,6 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       if (ok) projOk++;
       else projFail++;
 
-      if (!ok) {
-        const nameMap = (window as any).__cgo_projectNameById as Record<string, string> | undefined;
-        const name = nameMap?.[gizmoId] || model.projects.find((p) => p.gizmoId === gizmoId)?.title || gizmoId;
-
-        actionLog.append({
-          kind: "error",
-          scope: "projects",
-          message: `Delete project failed: ${name}`,
-          ok: false,
-          status,
-          error: error || "failed",
-          projectId: gizmoId,
-          projectTitle: name,
-          meta: { elapsedMs, lastOpMs },
-        }).catch(() => { });
-      }
-
       dom.projectsProjectsExecProgressEl.max = total;
       dom.projectsProjectsExecProgressEl.value = Math.min(i, total);
       dom.projectsProjectsExecProgressTextEl.textContent =
@@ -383,40 +394,38 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
 
       if (ok) {
         view.appendExecOut(
-          `✓ PROJECT DELETED: ${name} (${gizmoId}) — ${status ?? "OK"} — ${formatMs(lastOpMs)} — elapsed ${formatMs(elapsedMs)}`
+          `✓ PROJECT DELETED: ${name} (${gizmoId}) — ${status ?? "OK"} — ${formatMs(lastOpMs)} — elapsed ${formatMs(
+            elapsedMs
+          )}`
         );
         model.removeProject(gizmoId);
         cache.removeProject(gizmoId);
-
-
-        // ✅ persist stats
-        incDeletedProjects(1).catch(() => { });
+        incDeletedProjects(1).catch(() => {});
         rerender();
       } else {
         view.appendExecOut(
-          `✗ PROJECT FAILED: ${name} (${gizmoId}) — ${status ?? ""} — ${error || "failed"} — elapsed ${formatMs(elapsedMs)}`
+          `✗ PROJECT FAILED: ${name} (${gizmoId}) — ${status ?? ""} — ${error || "failed"} — elapsed ${formatMs(
+            elapsedMs
+          )}`
         );
+
+        if (failureLogged < MAX_FAILURE_LOGS_PER_RUN) {
+          failureLogged++;
+          actionLog
+            .append({
+              kind: "error",
+              scope: "projects",
+              message: `Delete project failed: ${name}`,
+              ok: false,
+              status,
+              error: error || "failed",
+              projectId: gizmoId,
+              projectTitle: name,
+              meta: { elapsedMs, lastOpMs },
+            })
+            .catch(() => {});
+        }
       }
-
-      if (!ok && failureLogged < MAX_FAILURE_LOGS_PER_RUN) {
-        failureLogged++;
-
-        const nameMap = (window as any).__cgo_projectNameById as Record<string, string> | undefined;
-        const name = nameMap?.[gizmoId] || model.projects.find((p) => p.gizmoId === gizmoId)?.title || gizmoId;
-
-        actionLog.append({
-          kind: "error",
-          scope: "projects",
-          message: `Delete project failed: ${name}`,
-          ok: false,
-          status,
-          error: error || "failed",
-          projectId: gizmoId,
-          projectTitle: name,
-          meta: { elapsedMs, lastOpMs },
-        }).catch(() => { });
-      }
-
 
       return;
     }
@@ -432,24 +441,19 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       const okCount = Number(m.okCount || projOk);
       const failCount = Number(m.failCount || projFail);
       const elapsedMs = Number(m.elapsedMs || 0);
+      void total;
+      void elapsedMs;
 
       dom.projectsProjectsExecProgressTextEl.textContent =
-        `Done · ok ${okCount}/${total} · failed ${failCount} · elapsed ${formatMs(elapsedMs)}`;
+        `Done · ok ${okCount}/${projTotal || total} · failed ${failCount} · elapsed ${formatMs(elapsedMs)}`;
 
       projectRunId = null;
       (window as any).__cgo_projectNameById = undefined;
       return;
     }
-
-
   });
 
   function bind() {
-    // dom.btnListProjects.addEventListener("click", () => {
-    //  if (getBusy()) return;
-    //  listProjects().catch((e) => view.setStatus(`Error: ${e?.message || e}`));
-    //});
-
     dom.btnProjectsDelete.addEventListener("click", () => {
       if (getBusy()) return;
       openConfirm();
@@ -470,18 +474,19 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
     });
   }
 
-
   return {
     id: "projects" as const,
     refresh() {
       if (getBusy()) return;
       listProjects().catch((e) => view.setStatus(`Error: ${e?.message || e}`));
     },
-    mount() { /* no auto fetch */ },
-    unmount() { },
+    mount() {
+      /* no auto fetch */
+    },
+    unmount() {},
     bind,
-    dispose() { off(); },
+    dispose() {
+      off();
+    },
   };
-
-
 }

@@ -6,49 +6,9 @@ import * as debugTrace from "../../shared/debugTrace";
 import { fetchJsonAuthed } from "../http/fetchJsonAuthed";
 import { nowMs, randInt, sleep } from "../util/time";
 import { normalizeChatHref } from "../util/urls";
+import { rowUpdatedMs } from "../util/openaiTime";
 
-/**
- * Parse OpenAI time fields that may be:
- * - number (seconds or ms)
- * - numeric string
- * - ISO string
- */
-function parseTimeToMs(v: any): number | undefined {
-  if (v == null) return undefined;
 
-  if (typeof v === "number" && Number.isFinite(v)) {
-    // Heuristic: seconds vs ms
-    if (v > 1e12) return Math.floor(v); // already ms
-    if (v > 1e10) return Math.floor(v); // ms
-    if (v > 1e9) return Math.floor(v * 1000); // seconds
-    // small numbers: treat as seconds (common for epoch seconds)
-    return Math.floor(v * 1000);
-  }
-
-  if (typeof v === "string") {
-    const s = v.trim();
-    if (!s) return undefined;
-
-    // numeric string?
-    const n = Number(s);
-    if (Number.isFinite(n)) {
-      return parseTimeToMs(n);
-    }
-
-    // ISO date string?
-    const t = Date.parse(s);
-    if (!Number.isNaN(t)) return t;
-
-    return undefined;
-  }
-
-  return undefined;
-}
-
-function rowUpdatedMs(row: any): number | undefined {
-  // Prefer update_time; fall back to create_time
-  return parseTimeToMs(row?.update_time) ?? parseTimeToMs(row?.create_time);
-}
 
 export function convoFromApiRow(row: any, gizmoId: string | null): ConversationItem | null {
   const id = String(row?.id || "");
@@ -72,7 +32,7 @@ export async function listAllChatsBackend(args: {
   accessToken: string;
   limit: number;
   pageSize: number;
-  /** Optional cutoff: stop paging when chats are older than this (ms epoch). */
+  /** Optional cutoff: stop paging when conversations are older than this (ms epoch). */
   sinceUpdatedMs?: number;
 }): Promise<{ conversations: ConversationItem[]; total?: number }> {
   const { accessToken, limit, pageSize, sinceUpdatedMs } = args;

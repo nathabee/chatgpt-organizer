@@ -282,6 +282,31 @@ details > summary {
 
 
 /* -----------------------------
+   log config debug
+   ----------------------------- */
+
+.devConfigGrid {
+  display: grid;
+  gap: 10px;
+}
+
+.devRowSplit {
+  display: grid;
+  grid-template-columns: 1fr 90px;
+  align-items: center;
+  gap: 10px;
+}
+
+.devRowSplit input[type="number"] {
+  width: 90px;
+}
+.devDivider {
+  border: 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.12); /* tweak for your theme */
+  margin: 12px 0 14px;
+}
+
+/* -----------------------------
    Search results layout
    ----------------------------- */
 .searchTopRow {
@@ -705,3 +730,69 @@ button.subtle:hover {
   color: var(--danger, #b00020);
   font-weight: 700;
 }
+
+.scopeLoading.is-busy {
+  color: var(--danger, #b00020);
+  font-weight: 700;
+}
+.scopeLoading {
+  color: inherit;
+  font-weight: 600;
+}
+
+
+/* Scope bar becomes a small vertical stack */
+.scopeBar {
+  display: grid;
+  gap: 8px;
+}
+
+.scopeTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+/* Always-visible cache line */
+.scopeMeta {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.scopeMetaSep { opacity: 0.35; }
+
+
+.scopeMetaItem strong {
+  font-weight: 700;
+}
+
+/* Collapsible controls inside scope */
+.scopeControls {
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px dashed rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.02);
+}
+
+.scopeControls > summary {
+  cursor: pointer;
+  font-weight: 600;
+  opacity: 0.9;
+  user-select: none;
+}
+
+.scopeRow {
+  margin-top: 10px;
+  margin-bottom: 0;
+  flex-wrap: wrap;
+}
+
+.scopeHint {
+  margin-top: 10px;
+  font-size: 12px;
+  opacity: 0.85;
+}
+

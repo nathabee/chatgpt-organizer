@@ -107,6 +107,21 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
 
   let scopeIso = ""; // YYYY-MM-DD
 
+  function isCacheEmpty() {
+    const snap = cache.getSnapshot();
+    const total =
+      (snap.counts?.singleChats ?? 0) +
+      (snap.counts?.projects ?? 0) +
+      (snap.counts?.projectChats ?? 0);
+    return total === 0;
+  }
+
+  function pushScopeToCacheMeta(iso: string) {
+    const anyCache = cache as any;
+    if (typeof anyCache.setScopeUpdatedSince === "function") {
+      anyCache.setScopeUpdatedSince(iso);
+    }
+  }
 
   function applyScopeToUI(iso: string) {
     if (isCacheEmpty()) {
@@ -117,25 +132,12 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
       dom.scopeLabelEl.classList.remove("is-warn");
     }
 
-    dom.scopeDateEl.value = iso || "";
-  }
-
-
-  function pushScopeToCacheMeta(iso: string) {
-    // only if you added cache.setScopeUpdatedSince (recommended)
-    const anyCache = cache as any;
-    if (typeof anyCache.setScopeUpdatedSince === "function") {
-      anyCache.setScopeUpdatedSince(iso);
+    // IMPORTANT:
+    // scopeDateEl is inside the dialog. Do NOT overwrite it while the dialog is open
+    // (otherwise cache updates / refreshes can clobber what the user is typing).
+    if (!dom.scopeDialogEl.open) {
+      dom.scopeDateEl.value = iso || "";
     }
-  }
-
-  function isCacheEmpty() {
-    const snap = cache.getSnapshot();
-    const total =
-      (snap.counts?.singleChats ?? 0) +
-      (snap.counts?.projects ?? 0) +
-      (snap.counts?.projectChats ?? 0);
-    return total === 0;
   }
 
   async function loadScope(): Promise<string> {
@@ -162,12 +164,12 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
     await waitNotBusy();
   }
 
-
   function openScopeDialog() {
     if (getBusy()) return;
 
     // prefill with current scope
     dom.scopeDateEl.value = scopeIso || "";
+
     try {
       dom.scopeDialogEl.showModal();
     } catch {
@@ -185,8 +187,8 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
 
   // boot scope
   scopeIso = await loadScope();
-  applyScopeToUI(scopeIso);
   pushScopeToCacheMeta(scopeIso);
+  applyScopeToUI(scopeIso);
 
   // wire buttons
   dom.btnScopeChange.addEventListener("click", () => {
@@ -194,7 +196,7 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
   });
 
   dom.btnScopeRefresh.addEventListener("click", () => {
-    refreshAllUsingCurrentScope().catch(() => { });
+    refreshAllUsingCurrentScope().catch(() => {});
   });
 
   dom.btnScopeCancel.addEventListener("click", () => {
@@ -208,14 +210,15 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
     if (!isValidIsoDay(iso)) return;
 
     scopeIso = iso;
-    applyScopeToUI(scopeIso);
-    pushScopeToCacheMeta(scopeIso);
 
-    saveScope(scopeIso).catch(() => { });
+    pushScopeToCacheMeta(scopeIso);
+    applyScopeToUI(scopeIso);
+
+    saveScope(scopeIso).catch(() => {});
     closeScopeDialog();
 
     // validating implies refresh
-    refreshAllUsingCurrentScope().catch(() => { });
+    refreshAllUsingCurrentScope().catch(() => {});
   });
 
   // Optional: allow Enter to validate quickly when focused inside dialog
@@ -227,7 +230,12 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
   });
 
   cache.subscribe(() => {
-  applyScopeToUI(scopeIso);
-});
+    const snap = cache.getSnapshot();
 
+    dom.scopeLoadedSinglesEl.textContent = String(snap.counts.singleChats);
+    dom.scopeLoadedProjectsEl.textContent = String(snap.counts.projects);
+    dom.scopeLoadedProjectChatsEl.textContent = String(snap.counts.projectChats);
+
+    applyScopeToUI(scopeIso);
+  });
 })();

@@ -35,6 +35,8 @@ export type CacheSnapshot = {
 
 type Listener = (snap: CacheSnapshot) => void;
 
+
+
 function countProjectChats(projects: ProjectItem[]): number {
   let n = 0;
   for (const p of projects) n += (p.conversations?.length || 0);
@@ -64,13 +66,6 @@ function makeSnapshot(state: {
 }
 
 export function createPanelCache() {
-
-  function setScopeUpdatedSince(isoDay: string) {
-    state.meta.scopeUpdatedSince = isoDay;
-    emit();
-  }
-
-
   // Internal mutable state (per panel instance)
   const state = {
     singleChats: [] as ConversationItem[],
@@ -91,13 +86,21 @@ export function createPanelCache() {
     }
   }
 
+  function setScopeUpdatedSince(isoDay: string) {
+    state.meta.scopeUpdatedSince = isoDay;
+    emit();
+  }
+
+  function getScopeUpdatedSince(): string {
+    return String(state.meta.scopeUpdatedSince || "");
+  }
+
   function getSnapshot(): CacheSnapshot {
     return makeSnapshot(state);
   }
 
   function subscribe(fn: Listener): () => void {
     listeners.add(fn);
-    // push current snapshot immediately (nice for Search tab boot)
     try {
       fn(getSnapshot());
     } catch {
@@ -132,11 +135,9 @@ export function createPanelCache() {
   }
 
   function removeChat(chatId: string) {
-    // remove from singles
     const beforeSingles = state.singleChats.length;
     state.singleChats = state.singleChats.filter((c) => c.id !== chatId);
 
-    // remove from projects
     let changedProjects = false;
     const nextProjects: ProjectItem[] = [];
 
@@ -161,10 +162,10 @@ export function createPanelCache() {
   }
 
   return {
-    
     // read
     getSnapshot,
     subscribe,
+    getScopeUpdatedSince,
 
     // write
     clearAll,
@@ -173,9 +174,9 @@ export function createPanelCache() {
     removeChat,
     removeProject,
     setScopeUpdatedSince,
-
   };
 }
+
 
 // ✅ IMPORTANT: this is what your tabs import as a type
 export type PanelCache = ReturnType<typeof createPanelCache>;

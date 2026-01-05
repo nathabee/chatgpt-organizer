@@ -10,6 +10,20 @@ import { runLocks } from "./guards/runLocks";
 import { getActiveChatGPTTab, sendToTab } from "./util/urls";
 import { nowMs } from "./util/time";
 
+import { trace, traceWarn, traceError } from "./util/log";
+
+/* -----------------------------------------------------------
+ * Helper
+ * ----------------------------------------------------------- */
+function scopeYmdToSinceMs(scopeYmd: any): number | undefined {
+  const s = String(scopeYmd ?? "").trim();
+  if (!s) return undefined;
+
+  // Midnight UTC. Stable and predictable.
+  const t = Date.parse(`${s}T00:00:00Z`);
+  return Number.isFinite(t) ? t : undefined;
+}
+
 /* -----------------------------------------------------------
  * Side panel behavior
  * ----------------------------------------------------------- */
@@ -45,15 +59,22 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
         const limit = Math.max(1, Math.min(50000, Number((msg as any).limit ?? 50)));
         const pageSize = Math.max(1, Math.min(100, Number((msg as any).pageSize ?? 50)));
 
+        const scopeYmd = (msg as any).scopeYmd;
+        const sinceUpdatedMs = scopeYmdToSinceMs(scopeYmd);
+
+        trace("background LIST_ALL_CHATS", { scopeYmd, sinceUpdatedMs, limit, pageSize });
+
         const { conversations, total } = await listAllChatsBackend({
           accessToken: session.accessToken,
           limit,
           pageSize,
+          sinceUpdatedMs,
         });
 
         sendResponse({ ok: true, conversations, total } as any);
         return;
       } catch (e: any) {
+        traceError("background LIST_ALL_CHATS failed", e);
         sendResponse({ ok: false, error: e?.message || "Failed to list chats." } as any);
         return;
       } finally {
@@ -81,21 +102,31 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
           1,
           Math.min(50, Number((msg as any).conversationsPerGizmo ?? 5))
         );
-        const perProjectLimit = Math.max(
-          1,
-          Math.min(50000, Number((msg as any).perProjectLimit ?? 5000))
-        );
+        const perProjectLimit = Math.max(1, Math.min(50000, Number((msg as any).perProjectLimit ?? 5000)));
+
+        const scopeYmd = (msg as any).scopeYmd;
+        const sinceUpdatedMs = scopeYmdToSinceMs(scopeYmd);
+
+        trace("background LIST_GIZMO_PROJECTS", {
+          scopeYmd,
+          sinceUpdatedMs,
+          limitProjects,
+          conversationsPerGizmo,
+          perProjectLimit,
+        });
 
         const projects = await listGizmoProjectsWithConversations({
           accessToken: session.accessToken,
           limitProjects,
           conversationsPerGizmo,
           perProjectLimit,
+          sinceUpdatedMs,
         });
 
         sendResponse({ ok: true, projects } as any);
         return;
       } catch (e: any) {
+        traceError("background LIST_GIZMO_PROJECTS failed", e);
         sendResponse({ ok: false, error: e?.message || "Failed to list projects." } as any);
         return;
       } finally {
@@ -126,6 +157,8 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
 
         const session = await fetchSession();
         if (!session.loggedIn || !session.accessToken) {
+          traceWarn("EXECUTE_DELETE: not logged in", { meHint: session.meHint });
+
           // preserve old behavior: emit DONE event so UI can unlock
           const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
           chrome.runtime.sendMessage({
@@ -149,10 +182,18 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
           return;
         }
 
+        trace("EXECUTE_DELETE start", { count: clean.length, throttleMs });
+
         const r = await executeDeleteConversations({
           accessToken: session.accessToken,
           ids: clean,
           throttleMs,
+        });
+
+        trace("EXECUTE_DELETE done", {
+          okCount: r.results.filter((x) => x.ok).length,
+          failCount: r.results.filter((x) => !x.ok).length,
+          elapsedMs: nowMs() - startedAt,
         });
 
         sendResponse({
@@ -164,6 +205,9 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
           results: r.results,
         } as any);
         return;
+      } catch (e: any) {
+        traceError("EXECUTE_DELETE failed", e);
+        throw e;
       } finally {
         runLocks.executeRunning = false;
       }
@@ -185,12 +229,18 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
           return;
         }
 
+        trace("DELETE_PROJECTS start", { count: gizmoIds.length });
+
         // answer immediately; progress comes via runtime messages
         sendResponse({ ok: true } as any);
 
         await executeDeleteProjects({ accessToken: session.accessToken, gizmoIds });
+
+        trace("DELETE_PROJECTS done", { count: gizmoIds.length });
         return;
       } catch (e: any) {
+        traceError("DELETE_PROJECTS failed", e);
+
         // best-effort: if it crashes, try to still notify UI
         try {
           const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -222,7 +272,8 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
         const res = await sendToTab(tab.id, msg as any);
         sendResponse(res as any);
         return;
-      } catch {
+      } catch (e: any) {
+        traceWarn("fallback sendToTab failed", e);
         // fallthrough
       }
     }
