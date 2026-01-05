@@ -118,7 +118,7 @@ Read-only, zero risk.
  
 
 
-## v0.1.7 — Epic: Organize Tab (Move Chats into Projects)
+## v0.1.8 — Epic: Organize Tab (Move Chats into Projects)
 
 ### Goals
 
@@ -169,6 +169,86 @@ Read-only, zero risk.
 ---
  
 
+## v0.1.7 — Epic: 
+
+### v0.1.7 — Epic: Config-Driven API URLs
+
+#### Goals
+
+* Remove all hardcoded `https://chatgpt.com` URLs from the codebase
+* Centralize every API endpoint + UI link pattern behind a single **API config** (single source of truth)
+* Make the extension ready for future host variations by changing config only (not code)
+
+#### What changes
+
+**1) New API configuration layer**
+
+* Add `ApiConfig` in `src/shared/apiConfig.ts`
+
+  * `origin` (example: `https://chatgpt.com`)
+  * path templates for:
+
+    * auth session
+    * conversations list + conversation by id
+    * gizmos/projects root + sidebar + conversations
+    * UI href patterns (`/c/{id}`, `/g/{shortUrl}`)
+
+**2) Background config loader (cached, storage-backed)**
+
+* Add `src/background/util/apiConfig.ts`
+
+  * loads/syncs `ApiConfig` from `chrome.storage.local`
+  * keeps an in-memory snapshot for fast access
+  * updates snapshot on storage changes
+
+**3) URL builders replace string concatenation**
+
+* Add `src/background/util/apiUrls.ts`
+
+  * builds full URLs from `ApiConfig` (origin + paths)
+  * supports path template expansion (`{id}`, `{shortUrl}`)
+  * provides helpers like:
+
+    * `apiAuthSessionUrl()`
+    * `apiConversationsUrl(query)`
+    * `apiConversationUrl(id)`
+    * `apiGizmosSidebarUrl(query)`
+    * `apiGizmoConversationsUrl(gizmoId, cursor)`
+    * `uiConversationHref(id)`
+    * `uiGizmoHref(shortUrl)`
+
+**4) Refactor API callers to use builders**
+
+* `session.ts` uses `apiAuthSessionUrl()`
+* `conversations.ts` uses `apiConversationsUrl()` / `apiConversationUrl()` / `uiConversationHref()`
+* `gizmos.ts` uses `apiGizmosSidebarUrl()` / `apiGizmoConversationsUrl()` / `uiGizmoHref()` and `pathGizmosRoot`
+
+**5) URL detection becomes host-aware**
+
+* Replace `isChatGPTUrl()` / `getActiveChatGPTTab()` with generic:
+
+  * `isTargetUrl()`
+  * `getActiveTargetTab()`
+* Any “fallback route to content script” now targets the configured origin.
+
+**6) Trace adapts to config (debug clarity)**
+
+* Debug trace entries include:
+
+  * the active `origin`
+  * the configured endpoint path template
+  * the resolved request path/query (no more hardcoded `/gizmos/...` strings)
+
+#### UI / Logs tab additions
+
+* Logs tab (or Dev/Logs area) gains visibility into the current API configuration:
+
+  * active `origin`
+  * active endpoint paths (read-only display is enough for now)
+* Optional (if you implement it in this version): allow editing the config values in logs/dev settings for testing.
+ 
+---
+ 
 ## v0.1.6 — Epic: Global Scope Controls + Timestamp Groundwork (No Organize)
 
 ### Goals

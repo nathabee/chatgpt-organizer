@@ -56,7 +56,35 @@ import * as debugTrace from "../../shared/debugTrace";
 import { rowUpdatedMs } from "../util/openaiTime";
 
 import { ensureDevConfigLoaded, getDevConfigSnapshot } from "../util/devConfig";
+import { apiGizmosSidebarUrl, apiGizmoConversationsUrl, uiGizmoHref } from "../util/apiUrls";
 
+import { apiUrl } from "../util/apiUrls";
+import { getApiConfigSnapshot } from "../util/apiConfig";
+import { ensureApiConfigLoaded } from "../util/apiConfig";
+ 
+
+function traceEndpointLabel(path: string): string {
+  // Keep traces stable and readable: show only the path, not full origin
+  // but include origin separately in the meta.
+  return path;
+}
+
+function traceMetaBase(extra?: any) {
+  const cfg = getApiConfigSnapshot();
+  return {
+    origin: cfg.origin,
+    ...extra,
+  };
+}
+
+function safePathFromUrl(u: string): string {
+  try {
+    const x = new URL(u);
+    return x.pathname + (x.search ? x.search : "");
+  } catch {
+    return u;
+  }
+}
 
 
 function fmtMs(ms: number | undefined): string {
@@ -82,8 +110,11 @@ export async function deleteProject(
   gizmoId: string
 ): Promise<{ ok: boolean; status?: number; error?: string }> {
   try {
+    await ensureApiConfigLoaded();
+    const { pathGizmosRoot } = getApiConfigSnapshot();
+    const url = apiUrl(`${pathGizmosRoot}/${encodeURIComponent(gizmoId)}`);
     const resp = await fetch(
-      `https://chatgpt.com/backend-api/gizmos/${encodeURIComponent(gizmoId)}`,
+      url,
       {
         method: "DELETE",
         credentials: "include",
@@ -117,11 +148,13 @@ async function fetchGizmosSnorlaxSidebarPaged(args: {
   while (out.length < limitProjects && safety < 80) {
     safety++;
 
-    const url =
-      `https://chatgpt.com/backend-api/gizmos/snorlax/sidebar` +
-      `?conversations_per_gizmo=${encodeURIComponent(String(conversationsPerGizmo))}` +
-      `&owned_only=${ownedOnly ? "true" : "false"}` +
-      (cursor ? `&cursor=${encodeURIComponent(cursor)}` : "");
+    const url = apiGizmosSidebarUrl({
+      conversations_per_gizmo: conversationsPerGizmo,
+      owned_only: ownedOnly ? "true" : "false",
+      cursor: cursor ?? undefined,
+    });
+
+
 
     const data = await fetchJsonAuthed<any>(url, accessToken);
 
@@ -142,26 +175,31 @@ async function fetchGizmosSnorlaxSidebarPaged(args: {
             }
             : null;
 
+        const { pathGizmosSidebar } = getApiConfigSnapshot();
+        const label = traceEndpointLabel(pathGizmosSidebar);
+        const urlPath = safePathFromUrl(url);
+
         await debugTrace
           .append([
             {
               scope: "background",
               kind: "debug",
-              message: `Auto debug: /gizmos/snorlax/sidebar first item keys (${keys.length})`,
+              message: `Auto debug: ${label} first item keys (${keys.length})`,
               ok: true,
-              meta: { keys },
+              meta: traceMetaBase({ keys, urlPath }),
             },
             {
               scope: "background",
               kind: "debug",
-              message: "Auto debug: /gizmos/snorlax/sidebar first item (shallow preview)",
+              message: `Auto debug: ${label} first item (shallow preview)`,
               ok: true,
-              meta: { item: preview },
+              meta: traceMetaBase({ item: preview, urlPath }),
             },
           ])
           .catch(() => { });
       }
     }
+
 
     const items = Array.isArray(data?.items) ? data.items : [];
     for (const it of items) {
@@ -172,7 +210,8 @@ async function fetchGizmosSnorlaxSidebarPaged(args: {
       const title = String(gizmo?.display?.name || gizmo?.short_url || gizmoId).trim() || "Untitled";
 
       const shortUrl = String(gizmo?.short_url || "").trim();
-      const href = shortUrl ? `https://chatgpt.com/g/${shortUrl}` : `https://chatgpt.com/`;
+      const href = shortUrl ? uiGizmoHref(shortUrl) : getApiConfigSnapshot().origin + "/";
+
 
       out.push({ gizmoId, title, href });
       if (out.length >= limitProjects) break;
@@ -210,9 +249,8 @@ async function fetchGizmoConversationsPaged(args: {
   while (convos.size < limitConversations && safety < 120 && !reachedScopeEnd) {
     safety++;
 
-    const url =
-      `https://chatgpt.com/backend-api/gizmos/${encodeURIComponent(gizmoId)}/conversations` +
-      (cursor ? `?cursor=${encodeURIComponent(cursor)}` : "");
+    const url = apiGizmoConversationsUrl(gizmoId, cursor);
+
 
     const data = await fetchJsonAuthed<any>(url, accessToken);
 
@@ -226,32 +264,36 @@ async function fetchGizmoConversationsPaged(args: {
         const preview =
           first && typeof first === "object"
             ? {
-                id: (first as any)?.id ?? null,
-                title: (first as any)?.title ?? null,
-                create_time: (first as any)?.create_time ?? null,
-                update_time: (first as any)?.update_time ?? null,
-                gizmo_id: (first as any)?.gizmo_id ?? null,
-              }
+              id: (first as any)?.id ?? null,
+              title: (first as any)?.title ?? null,
+              create_time: (first as any)?.create_time ?? null,
+              update_time: (first as any)?.update_time ?? null,
+              gizmo_id: (first as any)?.gizmo_id ?? null,
+            }
             : null;
+
+        const { pathGizmoConversations } = getApiConfigSnapshot();
+        const label = traceEndpointLabel(pathGizmoConversations);
+        const urlPath = safePathFromUrl(url);
 
         await debugTrace
           .append([
             {
               scope: "background",
               kind: "debug",
-              message: `Auto debug: /gizmos/${gizmoId}/conversations first item keys (${keys.length})`,
+              message: `Auto debug: ${label} first item keys (${keys.length})`,
               ok: true,
-              meta: { keys, gizmoId },
+              meta: traceMetaBase({ keys, gizmoId, urlPath }),
             },
             {
               scope: "background",
               kind: "debug",
-              message: `Auto debug: /gizmos/${gizmoId}/conversations first item (shallow preview)`,
+              message: `Auto debug: ${label} first item (shallow preview)`,
               ok: true,
-              meta: { item: preview, gizmoId },
+              meta: traceMetaBase({ item: preview, gizmoId, urlPath }),
             },
           ])
-          .catch(() => {});
+          .catch(() => { });
       }
     }
 
@@ -331,12 +373,15 @@ export async function listGizmoProjectsWithConversations(args: {
 
   // Load dev config once, then use sync snapshot.
   await ensureDevConfigLoaded();
+  await ensureApiConfigLoaded();
 
   const { traceScope, stopAfterOutOfScopeProjects } = getDevConfigSnapshot();
   let consecutiveOutOfScope = 0;
 
   if (traceScope) {
+    const { origin } = getApiConfigSnapshot();
     console.log("[CGO][scope] listGizmoProjectsWithConversations args", {
+      origin,
       sinceUpdatedMs,
       unit: unitHint(sinceUpdatedMs),
       sinceIso: fmtMs(sinceUpdatedMs),
@@ -379,7 +424,9 @@ export async function listGizmoProjectsWithConversations(args: {
 
       if (stopAfterOutOfScopeProjects > 0 && consecutiveOutOfScope >= stopAfterOutOfScopeProjects) {
         if (traceScope) {
+          const { origin } = getApiConfigSnapshot();
           console.log("[CGO][scope] stopping early: too many out-of-scope projects", {
+            origin,
             consecutiveOutOfScope,
             stopAfterOutOfScopeProjects,
           });

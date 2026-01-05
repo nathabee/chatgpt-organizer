@@ -1,25 +1,24 @@
-// src/background/util/url.ts
+// src/background/util/urls.ts
 
-
+import { getApiConfigSnapshot } from "./apiConfig";
 import type { AnyRequest } from "../../shared/messages";
 
-export function isChatGPTUrl(url?: string): boolean {
-  return !!url && url.startsWith("https://chatgpt.com/");
+export function isTargetUrl(url?: string): boolean {
+  const { origin } = getApiConfigSnapshot();
+  return !!url && url.startsWith(origin + "/");
 }
 
-export async function getActiveChatGPTTab(): Promise<chrome.tabs.Tab | null> {
+export async function getActiveTargetTab(): Promise<chrome.tabs.Tab | null> {
   const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-  if (!tab || !isChatGPTUrl(tab.url)) return null;
+  if (!tab || !isTargetUrl(tab.url)) return null;
   return tab;
 }
 
-export async function sendToTab<TReq extends AnyRequest, TRes>(
-  tabId: number,
-  msg: TReq
-): Promise<TRes> {
+export async function sendToTab<TReq extends AnyRequest, TRes>(tabId: number, msg: TReq): Promise<TRes> {
   return (await chrome.tabs.sendMessage(tabId, msg)) as TRes;
 }
 
-export function normalizeChatHref(id: string): string {
-  return `https://chatgpt.com/c/${id}`;
-}
+// normalizeChatHref() with the new uiConversationHref()
+// export function normalizeChatHref(id: string): string {
+//  return `https://chatgpt.com/c/${id}`;
+// }

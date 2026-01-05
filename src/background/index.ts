@@ -1,5 +1,6 @@
 // src/background/index.ts
 import { MSG, type AnyRequest } from "../shared/messages";
+ 
 
 import { fetchSession } from "./session/session";
 import { listAllChatsBackend } from "./api/conversations";
@@ -7,7 +8,8 @@ import { listGizmoProjectsWithConversations } from "./api/gizmos";
 import { executeDeleteConversations } from "./executors/deleteConversations";
 import { executeDeleteProjects } from "./executors/deleteProjects";
 import { runLocks } from "./guards/runLocks";
-import { getActiveChatGPTTab, sendToTab } from "./util/urls";
+import { getActiveTargetTab, sendToTab } from "./util/urls";
+
 import { nowMs } from "./util/time";
 
 import { trace, traceWarn, traceError } from "./util/log";
@@ -266,7 +268,7 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
     }
 
     // fallback (optional): route unknown messages to content script
-    const tab = await getActiveChatGPTTab();
+    const tab = await getActiveTargetTab();
     if (tab?.id) {
       try {
         const res = await sendToTab(tab.id, msg as any);

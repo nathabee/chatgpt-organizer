@@ -1,4 +1,9 @@
 // src/background/session/session.ts
+import { ensureApiConfigLoaded } from "../util/apiConfig";
+import { apiAuthSessionUrl } from "../util/apiUrls";
+
+ 
+
 
 export type SessionInfo = {
   loggedIn: boolean;
@@ -7,8 +12,9 @@ export type SessionInfo = {
 };
 
 export async function fetchSession(): Promise<SessionInfo> {
+  await ensureApiConfigLoaded();
   try {
-    const resp = await fetch("https://chatgpt.com/api/auth/session", {
+    const resp = await fetch(apiAuthSessionUrl(), {
       method: "GET",
       credentials: "include",
     });

@@ -5,7 +5,9 @@ import type { ConversationItem } from "../../shared/types";
 import * as debugTrace from "../../shared/debugTrace";
 import { fetchJsonAuthed } from "../http/fetchJsonAuthed";
 import { nowMs, randInt, sleep } from "../util/time";
-import { normalizeChatHref } from "../util/urls";
+import { ensureApiConfigLoaded } from "../util/apiConfig";
+import { apiConversationsUrl, apiConversationUrl, uiConversationHref } from "../util/apiUrls";
+
 import { rowUpdatedMs } from "../util/openaiTime";
 
 
@@ -21,7 +23,7 @@ export function convoFromApiRow(row: any, gizmoId: string | null): ConversationI
   return {
     id,
     title,
-    href: normalizeChatHref(id),
+    href: uiConversationHref(id),
     gizmoId,
     createTime,
     updateTime,
@@ -50,13 +52,16 @@ export async function listAllChatsBackend(args: {
     safety++;
 
     const pageLimit = Math.max(1, Math.min(100, pageSize));
-    const url =
-      `https://chatgpt.com/backend-api/conversations` +
-      `?offset=${offset}` +
-      `&limit=${pageLimit}` +
-      `&order=updated` +
-      `&is_archived=false` +
-      `&is_starred=false`;
+    await ensureApiConfigLoaded();
+
+    const url = apiConversationsUrl({
+      offset,
+      limit: pageLimit,
+      order: "updated",
+      is_archived: false,
+      is_starred: false,
+    });
+ 
 
     const data = await fetchJsonAuthed<any>(url, accessToken);
 
@@ -153,7 +158,7 @@ export async function deleteConversation(
   id: string
 ): Promise<{ ok: boolean; status?: number; error?: string }> {
   try {
-    const resp = await fetch(`https://chatgpt.com/backend-api/conversation/${id}`, {
+    const resp = await fetch(apiConversationUrl(id), {
       method: "PATCH",
       credentials: "include",
       headers: {
