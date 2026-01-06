@@ -7,6 +7,7 @@ import { fetchJsonAuthed } from "../http/fetchJsonAuthed";
 import { nowMs, randInt, sleep } from "../util/time";
 import { ensureApiConfigLoaded } from "../util/apiConfig";
 import { apiConversationsUrl, apiConversationUrl, uiConversationHref } from "../util/apiUrls";
+import { tracedFetch } from "../util/fetch";
 
 import { rowUpdatedMs } from "../util/openaiTime";
 
@@ -158,7 +159,7 @@ export async function deleteConversation(
   id: string
 ): Promise<{ ok: boolean; status?: number; error?: string }> {
   try {
-    const resp = await fetch(apiConversationUrl(id), {
+    const resp = await tracedFetch(apiConversationUrl(id), {
       method: "PATCH",
       credentials: "include",
       headers: {

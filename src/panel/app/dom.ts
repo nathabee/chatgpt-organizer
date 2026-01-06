@@ -160,7 +160,7 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
   const debugStatusEl = document.getElementById("debugStatus") as HTMLSpanElement;
   const debugOutEl = document.getElementById("debugOut") as HTMLPreElement;
 
-  // Stats
+  // Stats 
   const btnStatsRecalc = must(document.getElementById("btnStatsRecalc"), "btnStatsRecalc") as HTMLButtonElement;
   const statsStatusEl = must(document.getElementById("statsStatus"), "statsStatus") as HTMLSpanElement;
   const statsLastCacheUpdateEl = must(document.getElementById("statsLastCacheUpdate"), "statsLastCacheUpdate") as HTMLElement;
@@ -186,6 +186,38 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
   const statsDeletesBoxEl = must(document.getElementById("statsDeletesBox"), "statsDeletesBox") as HTMLDetailsElement;
   const statsDeletedChatsEl = must(document.getElementById("statsDeletedChats"), "statsDeletedChats") as HTMLElement;
   const statsDeletedProjectsEl = must(document.getElementById("statsDeletedProjects"), "statsDeletedProjects") as HTMLElement;
+
+    // Organize
+  const organizeSourceEl = must(document.getElementById("organizeSource"), "organizeSource") as HTMLSelectElement;
+  const organizeFilterEl = must(document.getElementById("organizeFilter"), "organizeFilter") as HTMLInputElement;
+  const cbOrganizeToggleAll = must(document.getElementById("cbOrganizeToggleAll"), "cbOrganizeToggleAll") as HTMLInputElement;
+
+  const organizeSourceStatusEl = must(document.getElementById("organizeSourceStatus"), "organizeSourceStatus") as HTMLElement;
+  const organizeSourceCountEl = must(document.getElementById("organizeSourceCount"), "organizeSourceCount") as HTMLElement;
+  const organizeSelectedCountEl = must(document.getElementById("organizeSelectedCount"), "organizeSelectedCount") as HTMLElement;
+  const organizeSourceListEl = must(document.getElementById("organizeSourceList"), "organizeSourceList") as HTMLUListElement;
+
+  const organizeProjectFilterEl = must(document.getElementById("organizeProjectFilter"), "organizeProjectFilter") as HTMLInputElement;
+  const btnOrganizeClearTarget = must(document.getElementById("btnOrganizeClearTarget"), "btnOrganizeClearTarget") as HTMLButtonElement;
+
+  const organizeProjectsStatusEl = must(document.getElementById("organizeProjectsStatus"), "organizeProjectsStatus") as HTMLElement;
+  const organizeProjectsCountEl = must(document.getElementById("organizeProjectsCount"), "organizeProjectsCount") as HTMLElement;
+  const organizeTargetLabelEl = must(document.getElementById("organizeTargetLabel"), "organizeTargetLabel") as HTMLElement;
+  const organizeProjectListEl = must(document.getElementById("organizeProjectList"), "organizeProjectList") as HTMLUListElement;
+
+  const btnOrganizeMove = must(document.getElementById("btnOrganizeMove"), "btnOrganizeMove") as HTMLButtonElement;
+
+  const organizeExecOutEl = must(document.getElementById("organizeExecOut"), "organizeExecOut") as HTMLPreElement;
+  const organizeExecProgressWrapEl = must(document.getElementById("organizeExecProgressWrap"), "organizeExecProgressWrap") as HTMLDivElement;
+  const organizeExecProgressEl = must(document.getElementById("organizeExecProgress"), "organizeExecProgress") as HTMLProgressElement;
+  const organizeExecProgressTextEl = must(document.getElementById("organizeExecProgressText"), "organizeExecProgressText") as HTMLDivElement;
+
+  const organizeConfirmBoxEl = must(document.getElementById("organizeConfirmBox"), "organizeConfirmBox") as HTMLDivElement;
+  const organizeConfirmTitleEl = must(document.getElementById("organizeConfirmTitle"), "organizeConfirmTitle") as HTMLDivElement;
+  const organizeConfirmPreviewEl = must(document.getElementById("organizeConfirmPreview"), "organizeConfirmPreview") as HTMLUListElement;
+  const organizeCbConfirmEl = must(document.getElementById("organizeCbConfirm"), "organizeCbConfirm") as HTMLInputElement;
+  const organizeBtnConfirmExecute = must(document.getElementById("organizeBtnConfirmExecute"), "organizeBtnConfirmExecute") as HTMLButtonElement;
+  const organizeBtnCancelExecute = must(document.getElementById("organizeBtnCancelExecute"), "organizeBtnCancelExecute") as HTMLButtonElement;
 
 
   return {
@@ -256,6 +288,16 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
     statsActivityBoxEl, statsActivityExplainEl, statsCreatedHeatmapEl, statsLifetimeHistEl,
     statsProjectsBoxEl, statsProjectSizeHistEl, statsTopProjectsEl,
     statsDeletesBoxEl, statsDeletedChatsEl, statsDeletedProjectsEl,
+
+        // Organize ...
+    organizeSourceEl, organizeFilterEl, cbOrganizeToggleAll,
+    organizeSourceStatusEl, organizeSourceCountEl, organizeSelectedCountEl, organizeSourceListEl,
+    organizeProjectFilterEl, btnOrganizeClearTarget,
+    organizeProjectsStatusEl, organizeProjectsCountEl, organizeTargetLabelEl, organizeProjectListEl,
+    btnOrganizeMove,
+    organizeExecOutEl, organizeExecProgressWrapEl, organizeExecProgressEl, organizeExecProgressTextEl,
+    organizeConfirmBoxEl, organizeConfirmTitleEl, organizeConfirmPreviewEl, organizeCbConfirmEl,
+    organizeBtnConfirmExecute, organizeBtnCancelExecute,
 
   };
 }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ChatGPT Organizer",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Client-side tool to organize and delete your own ChatGPT conversations.",
   "author": "Nathabee",
   "homepage_url": "https://nathabee.github.io/chatgpt-organizer/",

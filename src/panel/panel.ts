@@ -70,8 +70,8 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
   const singleTab = createSingleTab(dom, bus, cache);
   const projectsTab = createProjectsTab(dom, bus, cache);
   const searchTab = createSearchTab(dom, bus, cache);
+  const organizeTab = createOrganizeTab(dom, bus, cache);
 
-  const organizeTab = createOrganizeTab(dom, bus);
   const logsTab = createLogsTab(dom, bus);
   const statsTab = createStatsTab(dom, bus, cache);
 
@@ -191,12 +191,18 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
   applyScopeToUI(scopeIso);
 
   // wire buttons
+
+  window.addEventListener("cgo:refreshAll", () => {
+  refreshAllUsingCurrentScope().catch(() => {});
+});
+
+
   dom.btnScopeChange.addEventListener("click", () => {
     openScopeDialog();
   });
 
   dom.btnScopeRefresh.addEventListener("click", () => {
-    refreshAllUsingCurrentScope().catch(() => {});
+    refreshAllUsingCurrentScope().catch(() => { });
   });
 
   dom.btnScopeCancel.addEventListener("click", () => {
@@ -214,11 +220,11 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
     pushScopeToCacheMeta(scopeIso);
     applyScopeToUI(scopeIso);
 
-    saveScope(scopeIso).catch(() => {});
+    saveScope(scopeIso).catch(() => { });
     closeScopeDialog();
 
     // validating implies refresh
-    refreshAllUsingCurrentScope().catch(() => {});
+    refreshAllUsingCurrentScope().catch(() => { });
   });
 
   // Optional: allow Enter to validate quickly when focused inside dialog

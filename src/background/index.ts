@@ -1,6 +1,6 @@
 // src/background/index.ts
 import { MSG, type AnyRequest } from "../shared/messages";
- 
+
 
 import { fetchSession } from "./session/session";
 import { listAllChatsBackend } from "./api/conversations";
@@ -9,6 +9,7 @@ import { executeDeleteConversations } from "./executors/deleteConversations";
 import { executeDeleteProjects } from "./executors/deleteProjects";
 import { runLocks } from "./guards/runLocks";
 import { getActiveTargetTab, sendToTab } from "./util/urls";
+import { executeMoveChatsToProject } from "./executors/moveChatsToProject";
 
 import { nowMs } from "./util/time";
 
@@ -30,7 +31,7 @@ function scopeYmdToSinceMs(scopeYmd: any): number | undefined {
  * Side panel behavior
  * ----------------------------------------------------------- */
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => {});
+  chrome.sidePanel?.setPanelBehavior?.({ openPanelOnActionClick: true }).catch(() => { });
 });
 
 /* -----------------------------------------------------------
@@ -266,6 +267,104 @@ chrome.runtime.onMessage.addListener((msg: AnyRequest, _sender, sendResponse) =>
         return;
       }
     }
+
+    // MOVE CONVERSATION IN PROJECTS ###this section seems totql not ok
+    // MOVE CHATS TO PROJECT
+    if (msg?.type === MSG.MOVE_CHATS_TO_PROJECT) {
+      const ids: string[] = ((msg as any).ids || []).filter(Boolean);
+      const gizmoId = String((msg as any).gizmoId || "").trim();
+      const throttleMs = Math.max(150, Math.min(5000, Number((msg as any).throttleMs ?? 400)));
+
+      if (!ids.length) {
+        sendResponse({ ok: false, error: "No ids provided." } as any);
+        return;
+      }
+      if (!gizmoId) {
+        sendResponse({ ok: false, error: "No destination gizmoId provided." } as any);
+        return;
+      }
+
+      // Reuse the same lock as delete so you can't run destructive-ish operations concurrently.
+      if (runLocks.executeRunning) {
+        sendResponse({ ok: false, error: "An execute is already running." } as any);
+        return;
+      }
+      runLocks.executeRunning = true;
+
+      const startedAt = nowMs();
+
+      try {
+        const session = await fetchSession();
+        if (!session.loggedIn || !session.accessToken) {
+          traceWarn("MOVE_CHATS_TO_PROJECT: not logged in", { meHint: session.meHint });
+
+          // Emit DONE so panel unlocks (same pattern as EXECUTE_DELETE)
+          const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          chrome.runtime.sendMessage({
+            type: MSG.MOVE_CHATS_TO_PROJECT_DONE,
+            runId,
+            total: ids.length,
+            okCount: 0,
+            failCount: ids.length,
+            elapsedMs: nowMs() - startedAt,
+            gizmoId,
+          });
+
+          sendResponse({
+            ok: true,
+            loggedIn: false,
+            meHint: session.meHint,
+            note: "Not logged in (or access token not available).",
+            results: ids.map((id) => ({ id, ok: false, error: "Not logged in" })),
+          } as any);
+          return;
+        }
+
+        trace("MOVE_CHATS_TO_PROJECT start", { count: ids.length, gizmoId, throttleMs });
+
+        // Respond immediately; progress comes via runtime messages
+        sendResponse({ ok: true } as any);
+
+        await executeMoveChatsToProject({
+          accessToken: session.accessToken,
+          ids,
+          gizmoId,
+          throttleMs,
+        });
+
+        trace("MOVE_CHATS_TO_PROJECT done", { count: ids.length, gizmoId });
+        return;
+      } catch (e: any) {
+        traceError("MOVE_CHATS_TO_PROJECT failed", e);
+
+        // Best-effort DONE (so UI doesn't hang)
+        try {
+          const runId = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+          chrome.runtime.sendMessage({
+            type: MSG.MOVE_CHATS_TO_PROJECT_DONE,
+            runId,
+            total: ids.length,
+            okCount: 0,
+            failCount: ids.length,
+            elapsedMs: 0,
+            gizmoId,
+          });
+        } catch {
+          // ignore
+        }
+
+        try {
+          sendResponse({ ok: false, error: e?.message || "Move failed." } as any);
+        } catch {
+          // ignore
+        }
+        return;
+      } finally {
+        runLocks.executeRunning = false;
+      }
+    }
+
+
 
     // fallback (optional): route unknown messages to content script
     const tab = await getActiveTargetTab();

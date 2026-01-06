@@ -57,11 +57,12 @@ import { rowUpdatedMs } from "../util/openaiTime";
 
 import { ensureDevConfigLoaded, getDevConfigSnapshot } from "../util/devConfig";
 import { apiGizmosSidebarUrl, apiGizmoConversationsUrl, uiGizmoHref } from "../util/apiUrls";
+import { tracedFetch, safePathFromUrl } from "../util/fetch";
 
 import { apiUrl } from "../util/apiUrls";
 import { getApiConfigSnapshot } from "../util/apiConfig";
 import { ensureApiConfigLoaded } from "../util/apiConfig";
- 
+  
 
 function traceEndpointLabel(path: string): string {
   // Keep traces stable and readable: show only the path, not full origin
@@ -77,14 +78,6 @@ function traceMetaBase(extra?: any) {
   };
 }
 
-function safePathFromUrl(u: string): string {
-  try {
-    const x = new URL(u);
-    return x.pathname + (x.search ? x.search : "");
-  } catch {
-    return u;
-  }
-}
 
 
 function fmtMs(ms: number | undefined): string {
@@ -113,7 +106,7 @@ export async function deleteProject(
     await ensureApiConfigLoaded();
     const { pathGizmosRoot } = getApiConfigSnapshot();
     const url = apiUrl(`${pathGizmosRoot}/${encodeURIComponent(gizmoId)}`);
-    const resp = await fetch(
+    const resp = await tracedFetch(
       url,
       {
         method: "DELETE",

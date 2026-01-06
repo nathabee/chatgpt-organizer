@@ -340,14 +340,102 @@
 
 
         <!-- =========================
-        ORGANIZE VIEW (placeholder)
-        ========================= -->
+ORGANIZE VIEW
+========================= -->
         <section id="viewOrganize" class="view" role="tabpanel" aria-labelledby="tabOrganize" hidden>
-            <p class="muted">
-                Move chats into projects. No destructive actions in this tab.
-            </p>
-            <div class="placeholder">
-                Coming next: selection → destination → execute.
+            <p class="muted">Move chats into a project. This does not delete anything.</p>
+
+            <div class="organizeGrid2x2">
+                <!-- ROW 1 / COL 1: source chats -->
+                <div class="organizePane">
+                    <div class="organizeHeader">
+                        <div class="muted">Source chats</div>
+                        <div class="organizeMeta">
+                            Found <strong id="organizeSourceCount">0</strong> · Selected <strong
+                                id="organizeSelectedCount">0</strong>
+                        </div>
+                    </div>
+
+                    <div class="row organizeTools">
+                        <label class="fieldInline">
+                            <span>Source</span>
+                            <select id="organizeSource">
+                                <option value="all" selected>All loaded (single + project chats)</option>
+                                <option value="single">Single only</option>
+                                <option value="projects">Project chats only</option>
+                            </select>
+                        </label>
+
+                        <label class="fieldInline" style="flex:1; min-width: 180px;">
+                            <span class="sr-only">Filter</span>
+                            <input id="organizeFilter" type="search" placeholder="Filter chats…" autocomplete="off" />
+                        </label>
+
+                        <label class="toggleAll" title="Toggle all visible items">
+                            <input id="cbOrganizeToggleAll" type="checkbox" />
+                            Toggle all
+                        </label>
+                    </div>
+
+                    <div id="organizeSourceStatus" class="muted"></div>
+                    <ul id="organizeSourceList" class="list"></ul>
+                </div>
+
+                <!-- ROW 1 / COL 2: destination projects -->
+                <div class="organizePane">
+                    <div class="organizeHeader">
+                        <div class="muted">Destination project</div>
+                        <div class="organizeMeta">
+                            Loaded <strong id="organizeProjectsCount">0</strong> projects · Target:
+                            <strong id="organizeTargetLabel">—</strong>
+                        </div>
+                    </div>
+
+                    <div class="row organizeTools">
+                        <label class="fieldInline" style="flex:1; min-width: 180px;">
+                            <span class="sr-only">Project filter</span>
+                            <input id="organizeProjectFilter" type="search" placeholder="Filter projects…"
+                                autocomplete="off" />
+                        </label>
+
+                        <button id="btnOrganizeClearTarget" type="button" class="subtle">Clear target</button>
+                    </div>
+
+                    <div id="organizeProjectsStatus" class="muted"></div>
+                    <ul id="organizeProjectList" class="list"></ul>
+                </div>
+
+                <!-- ROW 2 / COL 1: action + confirmation (always visible) -->
+                <div class="organizePane">
+                    <div class="row row--danger">
+                        <button id="btnOrganizeMove" type="button" class="subtle">Move to project</button>
+                    </div>
+
+                    <div id="organizeConfirmBox" class="confirmBox" hidden>
+                        <div class="confirmTitle" id="organizeConfirmTitle"></div>
+                        <ul id="organizeConfirmPreview" class="confirmPreview"></ul>
+
+                        <label class="confirm">
+                            <input id="organizeCbConfirm" type="checkbox" />
+                            I understand this will modify project membership for the selected chats.
+                        </label>
+
+                        <div class="row">
+                            <button id="organizeBtnConfirmExecute" type="button" class="subtle">Yes, move</button>
+                            <button id="organizeBtnCancelExecute" type="button">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ROW 2 / COL 2: logs + progress (always visible) -->
+                <div class="organizePane">
+                    <pre id="organizeExecOut" class="report" aria-live="polite"></pre>
+
+                    <div id="organizeExecProgressWrap" class="execProgressWrap" hidden>
+                        <progress id="organizeExecProgress" value="0" max="100"></progress>
+                        <div id="organizeExecProgressText" class="status"></div>
+                    </div>
+                </div>
             </div>
         </section>
 
@@ -369,7 +457,7 @@ LOGS VIEW
                     <label class="devRowSplit">
                         <span>Stop after N out-of-scope projects</span>
                         <input id="cfgStopAfterOutOfScope" type="number" min="0" step="1" value="3" />
-                    </label> 
+                    </label>
 
 
                     <div class="devRow">
@@ -379,7 +467,7 @@ LOGS VIEW
 
 
 
-                    
+
                 </div>
             </details>
             <hr class="devDivider" />
