@@ -1,0 +1,48 @@
+// src/background/api/gizmos.ts
+//
+// -----------------------------------------------------------------------------
+// ALGORITHM (v0.1.6+ behavior) — Scope-first, time-first, cache-clean
+// -----------------------------------------------------------------------------
+// Assumption (until proven otherwise):
+//   A conversation can be updated without any reliable "project updated" timestamp
+//   changing in the project container (gizmo).
+//
+// Consequences:
+//   - We MUST NOT rely on a project-level updated date for filtering.
+//   - The only trustworthy scope signal is conversation update_time/create_time.
+//   - The server API does not accept a "since" parameter, so we cannot filter
+//     server-side. We can only stop early client-side.
+//
+// Goals:
+//   1) Do not wait too long: stop early whenever scope makes data irrelevant.
+//   2) Do not pollute cache: only keep projects that have at least one
+//      conversation within scope.
+//   3) Limits remain guardrails: prevent "fetch forever" for large scopes.
+//
+// Behavior:
+//   - Fetch project list from /gizmos/snorlax/sidebar (no scope filtering).
+//   - For EACH project (up to limitProjects):
+//       A) Fetch page 1 of /gizmos/{id}/conversations.
+//       B) If scope is set AND the newest conversation is older than scope,
+//          SKIP this project immediately (fast exit: 1 request).
+//       C) Otherwise, page conversations newest-first until:
+//            - we encounter the first conversation older than scope (stop),
+//            - we reach perProjectLimit (guardrail),
+//            - or safety/empty/cursor stops.
+//       D) Keep only conversations within scope.
+//       E) If scope is set and we kept 0 conversations => do NOT include project.
+//
+// Notes:
+//   - We assume API returns items newest-first. If that changes, scope cutoffs
+//     become less effective, but limits still prevent runaway.
+//   - If a row has no parseable update_time/create_time and scope is set,
+//     we treat it as "out of scope" and stop paging. This is conservative and
+//     optimizes for speed + cache cleanliness. If this ever drops useful data,
+//     we can relax it after observing real payloads.
+//
+// Progress semantics:
+//   - "processedProjects" counts how many projects we have scanned.
+//   - "foundProjects" counts how many projects we KEEP (in scope).
+//   - "foundConversations" counts total conversations kept across kept projects.
+// -----------------------------------------------------------------------------
+  

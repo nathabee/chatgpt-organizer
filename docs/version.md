@@ -118,6 +118,105 @@ Read-only, zero risk.
  
 
 
+
+## v0.1.9 — Epic: Create Projects & Stabilize Tracing
+
+### Scope
+
+Introduce **project creation** and **empty-project support**, while **cleaning and standardizing tracing, logging, and API boundaries** across the background architecture.
+
+---
+
+## Goals
+
+* Enable **project creation** from Organize / Projects
+* Show **empty projects** (newly created projects have no conversations)
+* Make **trace / debug / logs reliable enough to analyze API behavior**
+* Reduce coupling and regressions by clarifying responsibilities
+
+---
+
+## Logging & Tracing (Final Model)
+
+| Layer                                               | Purpose                                     | Persistence          | Controlled by |
+| --------------------------------------------------- | ------------------------------------------- | -------------------- | ------------- |
+| **Console trace (`logTrace / logWarn / logError`)** | Dev-time flow & errors                      | No                   | `traceScope`  |
+| **Debug trace (`debugTrace`)**                      | Deep API inspection (payloads, schemas)     | Yes (storage → JSON) | Debug toggle  |
+| **Action log (`actionLog`)**                        | User-visible history (delete, move, create) | Yes (storage)        | Feature logic |
+
+### Rules (kept simple)
+
+* **Console logs** → developer feedback only
+* **Debug trace** → inspect HTTP reality
+* **Action log** → what the extension did for the user
+
+---
+
+## Architecture Rules (Enforced)
+
+### API (`api/*`)
+
+* Example: `createProjectApi`
+* Pure HTTP + parsing
+* No logging
+* No `chrome.runtime`
+* Returns structured result
+
+### Controllers (`controllers/*`)
+
+* Orchestrate multiple API calls
+* Apply scope rules
+* Emit progress / done events
+* Minimal `logTrace / logWarn`
+
+### Executors (`executors/*`)
+
+* Run destructive or long operations
+* Emit progress + done
+* Handle retries
+* Use `logTrace / logWarn / logError`
+
+### Index (`background/index.ts`)
+
+* Dispatch only
+* No HTTP knowledge
+* No parsing
+* No API details
+
+---
+
+## Key Functional Changes
+
+* **Create Project** now works using the correct `snorlax/upsert` payload
+  (including required `sharing` structure)
+* **Empty projects are now listed** (no longer filtered out)
+* API tracing made sufficient to reverse-engineer payload requirements
+* Controller logic cleaned without breaking logs or progress
+
+---
+
+## Code Structure Impact
+
+* Clear split:
+
+  * `api/`
+  * `controllers/`
+  * `executors/`
+  * `panel/`
+* Reduced cross-layer leakage
+* Fewer regressions during refactors
+
+---
+
+## Open Problem (Next Work)
+
+* Avoid full refresh after **create / move**
+* Update cache in-place and re-render (same approach as delete)
+
+---
+
+
+
 ## v0.1.8 — Epic: Organize Tab (Move Chats into Projects)
 
 ### Goals

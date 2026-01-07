@@ -18,7 +18,12 @@ export async function sendToTab<TReq extends AnyRequest, TRes>(tabId: number, ms
   return (await chrome.tabs.sendMessage(tabId, msg)) as TRes;
 }
 
-// normalizeChatHref() with the new uiConversationHref()
-// export function normalizeChatHref(id: string): string {
-//  return `https://chatgpt.com/c/${id}`;
-// }
+
+export function safePathFromUrl(u: string): string {
+  try {
+    const x = new URL(u);
+    return x.pathname + (x.search ? x.search : "");
+  } catch {
+    return u;
+  }
+}

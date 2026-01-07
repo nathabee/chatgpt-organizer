@@ -8,6 +8,8 @@ import { formatMs } from "../../app/format";
 
 import { createOrganizeModel, type OrganizeSourceMode, type SourceChat } from "./model";
 import { createOrganizeView } from "./view";
+import { createProjectBox } from "../../components/createProjectBox";
+import { requestRefreshAll } from "../../app/refreshAll"; // adjust relative path
 
 type Bus = ReturnType<typeof createBus>;
 
@@ -315,6 +317,54 @@ export function createOrganizeTab(dom: Dom, bus: Bus, cache: PanelCache) {
         setBusy(dom, false);
       });
     });
+
+    const createBox = createProjectBox({ context: "organize", compact: true });
+    dom.mountCreateProjectOrganizeEl.replaceChildren(createBox.el);
+
+    createBox.el.addEventListener("cgo:createProject", (e: Event) => {
+      const ev = e as CustomEvent<{ name: string; description: string; context: "projects" | "organize" }>;
+      void (async () => {
+        if (getBusy()) return;
+
+        const { name, description } = ev.detail;
+
+        createBox.setBusy(true);
+        createBox.setStatus("Creating…");
+
+        try {
+          const res = await chrome.runtime.sendMessage({
+            type: MSG.CREATE_PROJECT,
+            name,
+            description,
+            prompt_starters: [],
+          });
+
+          if (!res) {
+            createBox.setStatus("Create failed (no response).");
+            return;
+          }
+          if (!res.ok) {
+            createBox.setStatus(`Create failed: ${res.error || "unknown error"}`);
+            return;
+          }
+
+          createBox.setStatus("Created.");
+          createBox.reset();
+
+          // THIS is where you refresh (panel-side)
+          requestRefreshAll();
+
+          // optional: close the <details>
+          // (createBox.el as HTMLDetailsElement).open = false;
+        } catch (err: any) {
+          createBox.setStatus(`Create failed: ${err?.message || err}`);
+        } finally {
+          createBox.setBusy(false);
+        }
+      })();
+    });
+
+
 
   }
 

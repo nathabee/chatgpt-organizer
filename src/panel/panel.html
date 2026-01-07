@@ -162,10 +162,17 @@
         <!-- =========================
          PROJECTS VIEW
          ========================= -->
+        <!-- =========================
+ PROJECTS VIEW
+ ========================= -->
         <section id="viewProjects" class="view" role="tabpanel" aria-labelledby="tabProjects" hidden>
             <p class="muted">
                 Projects and their conversations (API-based)
             </p>
+
+            <!-- Create project (mounted by component) -->
+            <div id="mountCreateProjectProjects"></div>
+
 
             <div class="row row--danger">
                 <button id="btnProjectsDelete" type="button" class="danger">
@@ -185,7 +192,6 @@
                 <div id="projectsProjectsExecProgressText" class="status"></div>
             </div>
 
-
             <div id="projectsConfirmBox" class="confirmBox" hidden>
                 <div class="confirmTitle" id="projectsConfirmTitle"></div>
                 <ul id="projectsConfirmPreview" class="confirmPreview"></ul>
@@ -201,13 +207,11 @@
                 </div>
             </div>
 
-
             <div class="summary">
                 Projects: <span id="projectsCount">0</span> (including <span id="projectsChatsCount">0</span> chats)
                 · Selected chats: <span id="projectsSelectedChatsCount">0</span>
                 · Selected projects: <span id="projectsSelectedProjectsCount">0</span>
             </div>
-
 
             <ul id="projectsList" class="list"></ul>
         </section>
@@ -400,6 +404,10 @@ ORGANIZE VIEW
 
                         <button id="btnOrganizeClearTarget" type="button" class="subtle">Clear target</button>
                     </div>
+
+                    <!-- Create project (mounted by component) -->
+                    <div id="mountCreateProjectOrganize"></div>
+
 
                     <div id="organizeProjectsStatus" class="muted"></div>
                     <ul id="organizeProjectList" class="list"></ul>

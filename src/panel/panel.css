@@ -904,3 +904,67 @@ button.subtle:hover {
   max-height: 26vh;
   overflow: auto;
 }
+
+/* -------------------------
+   Create project UI
+------------------------- */
+
+.createBox {
+  margin: 10px 0 12px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px dashed rgba(0,0,0,0.18);
+  background: rgba(0,0,0,0.02);
+}
+
+.createBox > summary {
+  cursor: pointer;
+  font-weight: 600;
+  opacity: 0.9;
+  user-select: none;
+}
+
+.createGrid {
+  display: grid;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.fieldBlock {
+  display: grid;
+  gap: 6px;
+}
+
+.fieldBlock > span {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.fieldBlock input,
+.fieldBlock textarea {
+  font: inherit;
+  padding: 8px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.16);
+  background: white;
+  width: 100%;
+  resize: vertical;
+}
+
+.createActions {
+  margin-bottom: 0;
+}
+
+.createHint {
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.createHint code {
+  font-size: 11px;
+}
+
+/* slightly tighter version for Organize pane */
+.createBox--compact .createGrid {
+  gap: 8px;
+}

@@ -58,3 +58,46 @@ export type DeleteProjectsDoneEvent = {
   failCount: number;
   elapsedMs: number;
 };
+
+
+export type MoveChatsToProjectRequest = {
+  type: typeof MSG.MOVE_CHATS_TO_PROJECT;
+  ids: string[];
+  gizmoId: string;
+  throttleMs?: number;
+};
+
+export type CreateProjectRequest = {
+  type: typeof MSG.CREATE_PROJECT;
+  name: string;
+  description?: string;
+  prompt_starters?: string[]; // default []
+};
+
+export type CreateProjectProgressEvent = {
+  type: typeof MSG.CREATE_PROJECT_PROGRESS;
+  runId: string;
+  phase: "starting" | "sending" | "parsing" | "done";
+};
+
+export type CreateProjectResponse =
+  | {
+      ok: true;
+      gizmoId: string;
+      title: string;
+      href: string;
+      shortUrl?: string;
+    }
+  | { ok: false; error: string; status?: number };
+
+export type CreateProjectDoneEvent = {
+  type: typeof MSG.CREATE_PROJECT_DONE;
+  runId: string;
+  ok: boolean;
+  status?: number;
+  gizmoId?: string;
+  elapsedMs: number;
+  error?: string;
+};
+
+

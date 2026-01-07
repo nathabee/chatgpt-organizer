@@ -132,6 +132,17 @@ export function getDom() {
   const projectsSelectedProjectsCountEl = document.getElementById("projectsSelectedProjectsCount") as HTMLElement;
 
   const projectsListEl = document.getElementById("projectsList") as HTMLUListElement;
+ 
+   // Create project mounts (reusable component)
+  const mountCreateProjectProjectsEl = must(
+    document.getElementById("mountCreateProjectProjects"),
+    "mountCreateProjectProjects"
+  ) as HTMLDivElement;
+
+  const mountCreateProjectOrganizeEl = must(
+    document.getElementById("mountCreateProjectOrganize"),
+    "mountCreateProjectOrganize"
+  ) as HTMLDivElement;
 
   // Logs
   const logsLimitEl = document.getElementById("logsLimit") as HTMLInputElement;
@@ -218,8 +229,7 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
   const organizeCbConfirmEl = must(document.getElementById("organizeCbConfirm"), "organizeCbConfirm") as HTMLInputElement;
   const organizeBtnConfirmExecute = must(document.getElementById("organizeBtnConfirmExecute"), "organizeBtnConfirmExecute") as HTMLButtonElement;
   const organizeBtnCancelExecute = must(document.getElementById("organizeBtnCancelExecute"), "organizeBtnCancelExecute") as HTMLButtonElement;
-
-
+ 
   return {
     tabSingle, tabProjects, viewSingle, viewProjects,
     tabOrganize, tabSearch, tabLogs, tabStats,
@@ -263,7 +273,10 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
     projectsConfirmBoxEl, projectsConfirmTitleEl, projectsConfirmPreviewEl, projectsCbConfirmEl,
     projectsBtnConfirmExecute, projectsBtnCancelExecute,
     projectsCountEl, projectsChatsCountEl, projectsSelectedChatsCountEl, projectsSelectedProjectsCountEl,
-    projectsListEl,
+    projectsListEl, 
+     mountCreateProjectProjectsEl,
+    mountCreateProjectOrganizeEl,
+
 
     // Logs config
     cfgTraceScopeEl,
@@ -297,7 +310,8 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
     btnOrganizeMove,
     organizeExecOutEl, organizeExecProgressWrapEl, organizeExecProgressEl, organizeExecProgressTextEl,
     organizeConfirmBoxEl, organizeConfirmTitleEl, organizeConfirmPreviewEl, organizeCbConfirmEl,
-    organizeBtnConfirmExecute, organizeBtnCancelExecute,
+    organizeBtnConfirmExecute, organizeBtnCancelExecute, 
+ 
 
   };
 }

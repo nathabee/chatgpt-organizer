@@ -1,21 +1,30 @@
-// src/background/util/log.ts 
+// src/background/util/log.ts
 import { getDevConfigSnapshot } from "./devConfig";
 
-export function trace(...args: any[]) {
-  if (getDevConfigSnapshot().traceScope) {
-    console.log("[CGO]", ...args);
-  }
+function prefix(level: string) {
+  return `[CGO][${level}]`;
 }
 
-export function traceWarn(...args: any[]) {
-  if (getDevConfigSnapshot().traceScope) {
-    console.warn("[CGO]", ...args);
-  }
+function traceOn(): boolean {
+  return !!getDevConfigSnapshot().traceScope;
 }
 
-/**
- * Errors are ALWAYS logged (even when trace is off).
- */
-export function traceError(...args: any[]) {
-  console.error("[CGO]", ...args);
+// Trace/info only when traceScope is enabled
+export function logTrace(...args: any[]) {
+  if (!traceOn()) return;
+  console.log(prefix("trace"), ...args);
+}
+
+export function logInfo(...args: any[]) {
+  if (!traceOn()) return;
+  console.log(prefix("info"), ...args);
+}
+
+// Warn/errors are ALWAYS
+export function logWarn(...args: any[]) {
+  console.warn(prefix("warn"), ...args);
+}
+
+export function logError(...args: any[]) {
+  console.error(prefix("error"), ...args);
 }

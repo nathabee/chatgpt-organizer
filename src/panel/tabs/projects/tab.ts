@@ -11,6 +11,8 @@ import { getBusy, setBusy } from "../../app/state";
 import { createProjectsModel } from "./model";
 import { createProjectsView } from "./view";
 import { incDeletedChats, incDeletedProjects } from "../../app/statsStore";
+import { createProjectBox } from "../../components/createProjectBox";
+import { requestRefreshAll } from "../../app/refreshAll"; // adjust relative path
 
 type Bus = ReturnType<typeof createBus>;
 
@@ -274,7 +276,7 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       if (ok) {
         model.removeChatEverywhere(id);
         cache.removeChat(id);
-        incDeletedChats(1).catch(() => {});
+        incDeletedChats(1).catch(() => { });
         rerender();
       }
 
@@ -293,7 +295,7 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
             chatTitle: title,
             meta: { attempt, elapsedMs, lastOpMs },
           })
-          .catch(() => {});
+          .catch(() => { });
       }
       return;
     }
@@ -320,7 +322,7 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
           ok: failCount === 0,
           meta: { total, okCount, failCount, elapsedMs },
         })
-        .catch(() => {});
+        .catch(() => { });
 
       failureLogged = 0;
 
@@ -400,7 +402,7 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
         );
         model.removeProject(gizmoId);
         cache.removeProject(gizmoId);
-        incDeletedProjects(1).catch(() => {});
+        incDeletedProjects(1).catch(() => { });
         rerender();
       } else {
         view.appendExecOut(
@@ -423,7 +425,7 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
               projectTitle: name,
               meta: { elapsedMs, lastOpMs },
             })
-            .catch(() => {});
+            .catch(() => { });
         }
       }
 
@@ -472,6 +474,54 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
         setBusy(dom, false);
       });
     });
+
+    const createBox = createProjectBox({ context: "projects" });
+    dom.mountCreateProjectProjectsEl.replaceChildren(createBox.el);
+
+    createBox.el.addEventListener("cgo:createProject", (e: Event) => {
+      const ev = e as CustomEvent<{ name: string; description: string; context: "projects" | "organize" }>;
+      void (async () => {
+        if (getBusy()) return;
+
+        const { name, description } = ev.detail;
+
+        createBox.setBusy(true);
+        createBox.setStatus("Creating…");
+
+        try {
+          const res = await chrome.runtime.sendMessage({
+            type: MSG.CREATE_PROJECT,
+            name,
+            description,
+            prompt_starters: [],
+          });
+
+          if (!res) {
+            createBox.setStatus("Create failed (no response).");
+            return;
+          }
+          if (!res.ok) {
+            createBox.setStatus(`Create failed: ${res.error || "unknown error"}`);
+            return;
+          }
+
+          createBox.setStatus("Created.");
+          createBox.reset();
+
+          // THIS is where you refresh (panel-side)
+          requestRefreshAll();
+
+          // optional: close the <details>
+          // (createBox.el as HTMLDetailsElement).open = false;
+        } catch (err: any) {
+          createBox.setStatus(`Create failed: ${err?.message || err}`);
+        } finally {
+          createBox.setBusy(false);
+        }
+      })();
+    });
+
+
   }
 
   return {
@@ -483,7 +533,7 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
     mount() {
       /* no auto fetch */
     },
-    unmount() {},
+    unmount() { },
     bind,
     dispose() {
       off();
