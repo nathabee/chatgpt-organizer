@@ -138,6 +138,7 @@ function panelAssetsPlugin(): Plugin {
 
 export default defineConfig({
   root: __dirname,
+  base: "/cgo-demo/",
 
   // IMPORTANT: enable the plugins (trace -> swap -> assets)
   plugins: [tracePlatformResolves(), seamSwapPlugin(), panelAssetsPlugin()],

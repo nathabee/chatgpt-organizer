@@ -58,6 +58,22 @@ npx serve dist
 
 If something works in this mode, it will work on your VPS as static files too.
 
+
+## create a release
+the demo will be release at the same time than the extension (this is the same code, so when the extension update , it make sense to update the demo)
+
+```bash
+./scripts/release-all.sh
+```
+
+This script will:
+* verify VERSION
+* build extension zip (your existing script)
+* build demo zip (the demo script we added)
+* publish the GitHub release + extension zip (your existing script)
+* upload the demo zip to the same release
+
+
 ## Deploy on your VPS
 
 Build the demo and publish the contents of `demo/dist/` at a stable URL, for example:
@@ -65,6 +81,82 @@ Build the demo and publish the contents of `demo/dist/` at a stable URL, for exa
 * `https://beelab-web.nathabee.de/cgo-demo/`
 
 How you deploy is up to you (nginx static, docker web, etc.). The demo is static output + JS bundles.
+
+You only copy the **static build output** available on :
+
+
+So:
+
+* **NO** `demo/node_modules` in `web`
+* **NO** `demo/src` in `web`
+* **NO** `vite.config.ts`, `package.json`, etc. in `web`
+* **YES** `demo/dist` *contents* copied into `web/public/cgo-demo/`
+
+### How `web/` should look after
+
+```
+web/
+  app/
+  public/
+    beelab.png
+    beelab.svg
+
+    cgo-demo/             <= this is our new service
+      index.html
+      assets/
+        index-XXXX.js
+        panel-YYYY.js
+      __cgo/
+        panel.html
+        panel.css
+      (optional) favicon.ico
+```
+
+### What you do in practice
+
+1. Build the demo **in the extension repo**:
+
+```bash
+cd /path/to/chatgpt-organizer/demo
+npm ci
+npm run build
+```
+
+2. Copy build output into your BeeLab web public folder:
+
+```bash
+rm -rf /path/to/docker/beelab/web/public/cgo-demo
+mkdir -p /path/to/docker/beelab/web/public/cgo-demo
+cp -a dist/* /path/to/docker/beelab/web/public/cgo-demo/
+```
+
+Now the demo is available at:
+
+* `https://beelab-web.nathabee.de/cgo-demo/`
+
+### One critical requirement
+
+Your demo must be built with the correct base path so assets resolve under `/cgo-demo/`.
+
+In `demo/vite.config.ts`, set:
+
+```ts
+export default defineConfig({
+  base: "/cgo-demo/",
+  // ...
+});
+```
+
+Otherwise it may try to load `/assets/...` from the site root.
+
+### Do you need to “reinstall node_modules and dist” on the VPS?
+
+* On the VPS you only need **the files inside `web/public/cgo-demo/`** at runtime.
+* You only need `npm ci && npm run build` on the VPS **if you’re building there**.
+* If you build locally and copy the output, the VPS does **not** need demo node_modules at all.
+
+If you want, I can give you a small deploy script that builds + copies in one command (and doesn’t touch anything else in `web/`).
+
 
 ## Embed the demo in WordPress (recommended)
 

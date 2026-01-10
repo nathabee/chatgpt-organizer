@@ -12,9 +12,9 @@ async function boot() {
   const root = document.getElementById("cgo-demo-root");
   if (!root) throw new Error("Missing #cgo-demo-root");
 
-  ensureCss("/__cgo/panel.css");           // ✅ correct
+  ensureCss("/__cgo/panel.css");      
 
-  const html = await fetch("/__cgo/panel.html").then((r) => r.text());  // ✅ correct
+  const html = await fetch("/__cgo/panel.html").then((r) => r.text());  
   root.innerHTML = html;
 
   await import("../../src/panel/panel");   // no .ts

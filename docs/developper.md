@@ -135,11 +135,19 @@ npm run build
 git add -A
 git commit -m "vx.y.z"
 git push origin main
-./scripts/tag-version.sh
-./scripts/build-zip.sh
-./scripts/publish-release-zip.sh
 
+## create a release
+ 
+./scripts/release-all.sh
 ```
+
+release-all.sh script will:
+* verify VERSION
+* build extension zip (your existing script)
+* build demo zip (the demo script we added)
+* publish the GitHub release + extension zip (your existing script)
+* upload the demo zip to the same release
+ 
 
 
 ### Bump version

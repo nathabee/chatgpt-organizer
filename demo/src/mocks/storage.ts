@@ -4,7 +4,7 @@ export type StorageChanges = Record<string, StorageChange>;
 export type StorageChangedHandler = (changes: StorageChanges, areaName: string) => void;
 
 
-console.log("[cgo-demo] mock storage loaded");
+// console.log("[cgo-demo] mock storage loaded");
 
 
 const mem = new Map<string, any>();

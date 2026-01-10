@@ -5,7 +5,7 @@ import { DEMO } from "./data";
 import { emitEvent } from "./runtime";
 import type { ConversationItem, ProjectItem } from "../../../src/shared/types";
 
-console.log("[cgo-demo] mock handlers loaded");
+// console.log("[cgo-demo] mock handlers loaded");
 
 function now() {
   return Date.now();

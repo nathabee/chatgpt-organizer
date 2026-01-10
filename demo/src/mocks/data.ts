@@ -1,6 +1,6 @@
 // demo/src/mocks/data.ts
 
-console.log("[cgo-demo] mock data loaded");
+// console.log("[cgo-demo] mock data loaded");
 
 export const DEMO = {
   projects: [
