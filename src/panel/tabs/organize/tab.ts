@@ -10,6 +10,7 @@ import { createOrganizeModel, type OrganizeSourceMode, type SourceChat } from ".
 import { createOrganizeView } from "./view";
 import { createProjectBox } from "../../components/createProjectBox";
 import { requestRefreshAll } from "../../app/refreshAll"; // adjust relative path
+import { runtimeSend } from "../../platform/runtime";
 
 type Bus = ReturnType<typeof createBus>;
 
@@ -49,14 +50,13 @@ export function createOrganizeTab(dom: Dom, bus: Bus, cache: PanelCache) {
     startMoveProgress(ids.length);
     setBusy(dom, true);
 
-    chrome.runtime
-      .sendMessage({
-        type: MSG.MOVE_CHATS_TO_PROJECT,
-        ids,
-        gizmoId,
-        throttleMs: 400,
-      })
-      .catch(() => null);
+    runtimeSend({
+      type: MSG.MOVE_CHATS_TO_PROJECT,
+      ids,
+      gizmoId,
+      throttleMs: 400,
+    }).catch(() => null);
+
   }
 
   // bus listener (similar to projects delete)
@@ -332,12 +332,13 @@ export function createOrganizeTab(dom: Dom, bus: Bus, cache: PanelCache) {
         createBox.setStatus("Creating…");
 
         try {
-          const res = await chrome.runtime.sendMessage({
+          const res = await runtimeSend({
             type: MSG.CREATE_PROJECT,
             name,
             description,
             prompt_starters: [],
           });
+
 
           if (!res) {
             createBox.setStatus("Create failed (no response).");

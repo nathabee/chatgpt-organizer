@@ -11,13 +11,14 @@ import * as actionLog from "../../../shared/actionLog";
 import * as debugTrace from "../../../shared/debugTrace";
 import type { DevConfig } from "../../../shared/devConfig";
 import { DEV_CONFIG_KEY, DEFAULT_DEV_CONFIG } from "../../../shared/devConfig";
+import { storageGet, storageSet } from "../../../shared/platform/storage";
 
 type Bus = ReturnType<typeof createBus>;
 
 
 async function loadDevConfig(): Promise<DevConfig> {
-  const obj = await chrome.storage.local.get(DEV_CONFIG_KEY);
-  const raw = obj[DEV_CONFIG_KEY] as Partial<DevConfig> | undefined;
+  const obj = await storageGet(DEV_CONFIG_KEY);
+  const raw = (obj as any)[DEV_CONFIG_KEY] as Partial<DevConfig> | undefined;
 
   return {
     traceScope: raw?.traceScope ?? DEFAULT_DEV_CONFIG.traceScope,
@@ -28,9 +29,11 @@ async function loadDevConfig(): Promise<DevConfig> {
   };
 }
 
+
 async function saveDevConfig(next: DevConfig): Promise<void> {
-  await chrome.storage.local.set({ [DEV_CONFIG_KEY]: next });
+  await storageSet({ [DEV_CONFIG_KEY]: next });
 }
+
 
 async function applyConfigToUI(dom: Dom) {
   if (!dom.cfgTraceScopeEl || !dom.cfgStopAfterOutOfScopeEl) return;

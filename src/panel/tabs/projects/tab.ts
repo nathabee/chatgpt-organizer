@@ -13,7 +13,7 @@ import { createProjectsView } from "./view";
 import { incDeletedChats, incDeletedProjects } from "../../app/statsStore";
 import { createProjectBox } from "../../components/createProjectBox";
 import { requestRefreshAll } from "../../app/refreshAll"; // adjust relative path
-
+import { runtimeSend } from "../../platform/runtime";
 type Bus = ReturnType<typeof createBus>;
 
 export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
@@ -98,15 +98,16 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       uiMaxChatsPerProject,
     });
 
-    const res = await chrome.runtime
-      .sendMessage({
-        type: MSG.LIST_GIZMO_PROJECTS,
-        limit: limitProjects,
-        conversationsPerGizmo,
-        perProjectLimit,
-        scopeYmd,
-      })
-      .catch(() => null);
+    
+    const res = await runtimeSend({
+      type: MSG.LIST_GIZMO_PROJECTS,
+      limit: limitProjects,
+      conversationsPerGizmo,
+      perProjectLimit,
+      scopeYmd,
+    }).catch(() => null);
+
+
 
     setBusy(dom, false);
 
@@ -185,13 +186,15 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
     if (!ids.length) return;
     startChatDeleteProgress(ids.length);
     setBusy(dom, true);
-    chrome.runtime.sendMessage({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 }).catch(() => null);
+    runtimeSend({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 }).catch(() => null);
+
   }
 
   async function executeDeleteProjects(gizmoIds: string[]) {
     if (!gizmoIds.length) return;
     startProjectDeleteProgress(gizmoIds.length);
-    chrome.runtime.sendMessage({ type: MSG.DELETE_PROJECTS, gizmoIds }).catch(() => null);
+    runtimeSend({ type: MSG.DELETE_PROJECTS, gizmoIds }).catch(() => null);
+
   }
 
   async function runExecute() {
@@ -489,12 +492,13 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
         createBox.setStatus("Creating…");
 
         try {
-          const res = await chrome.runtime.sendMessage({
+          const res = await runtimeSend({
             type: MSG.CREATE_PROJECT,
             name,
             description,
             prompt_starters: [],
           });
+
 
           if (!res) {
             createBox.setStatus("Create failed (no response).");

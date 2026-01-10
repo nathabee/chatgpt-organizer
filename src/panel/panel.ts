@@ -12,7 +12,7 @@ import { createOrganizeTab } from "./tabs/organize/tab";
 import { createSearchTab } from "./tabs/search/tab";
 import { createLogsTab } from "./tabs/logs/tab";
 import { createStatsTab } from "./tabs/stats/tab";
-
+import { storageGet, storageSet } from "../shared/platform/storage";
 import { getBusy } from "./app/state";
 
 const SCOPE_KEY = "cgo.scopeUpdatedSince"; // YYYY-MM-DD
@@ -141,7 +141,7 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
   }
 
   async function loadScope(): Promise<string> {
-    const res = await chrome.storage.local.get([SCOPE_KEY]).catch(() => ({} as any));
+    const res = await storageGet([SCOPE_KEY]).catch(() => ({} as any));
     const raw = (res as any)?.[SCOPE_KEY];
     if (typeof raw === "string" && isValidIsoDay(raw)) return raw;
 
@@ -149,9 +149,11 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
     return toIsoDay(minusMonths(new Date(), 3));
   }
 
+
   async function saveScope(iso: string) {
-    await chrome.storage.local.set({ [SCOPE_KEY]: iso }).catch(() => null);
+    await storageSet({ [SCOPE_KEY]: iso }).catch(() => null);
   }
+
 
   async function refreshAllUsingCurrentScope() {
     if (getBusy()) return;
@@ -193,8 +195,8 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
   // wire buttons
 
   window.addEventListener("cgo:refreshAll", () => {
-  refreshAllUsingCurrentScope().catch(() => {});
-});
+    refreshAllUsingCurrentScope().catch(() => { });
+  });
 
 
   dom.btnScopeChange.addEventListener("click", () => {

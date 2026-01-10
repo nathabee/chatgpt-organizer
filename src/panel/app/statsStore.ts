@@ -1,5 +1,6 @@
 // src/panel/app/statsStore.ts
 
+import { storageGet, storageSet } from "../../shared/platform/storage";
 
 export const STATS_KEY = "cgo_stats_v1";
 
@@ -15,11 +16,11 @@ function norm(n: unknown): number {
 
 export async function getStats(): Promise<StatsStored> {
   try {
-    const res = await chrome.storage.local.get(STATS_KEY);
-    const raw = (res?.[STATS_KEY] || {}) as Partial<StatsStored>;
+    const res = await storageGet(STATS_KEY);
+    const raw = (res as any)?.[STATS_KEY] || {};
     return {
-      deletedChats: norm(raw.deletedChats),
-      deletedProjects: norm(raw.deletedProjects),
+      deletedChats: norm((raw as any).deletedChats),
+      deletedProjects: norm((raw as any).deletedProjects),
     };
   } catch {
     return { deletedChats: 0, deletedProjects: 0 };
@@ -27,13 +28,14 @@ export async function getStats(): Promise<StatsStored> {
 }
 
 export async function setStats(next: StatsStored): Promise<void> {
-  await chrome.storage.local.set({
+  await storageSet({
     [STATS_KEY]: {
       deletedChats: norm(next.deletedChats),
       deletedProjects: norm(next.deletedProjects),
     } satisfies StatsStored,
   });
 }
+
 
 export async function incDeletedChats(by = 1): Promise<StatsStored> {
   const cur = await getStats();

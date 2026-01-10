@@ -12,6 +12,7 @@ import { getBusy, setBusy } from "../../app/state";
 import { createSingleModel } from "./model";
 import { createSingleView } from "./view";
 import { incDeletedChats } from "../../app/statsStore";
+import { runtimeSend } from "../../platform/runtime";
 
 type Bus = ReturnType<typeof createBus>;
 
@@ -76,9 +77,8 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
 
     console.log("[CGO][scope] panel->background LIST_ALL_CHATS", { scopeYmd, limit, pageSize: 50 });
 
-    const res = await chrome.runtime
-      .sendMessage({ type: MSG.LIST_ALL_CHATS, limit, pageSize: 50, scopeYmd })
-      .catch(() => null);
+    const res = await runtimeSend({ type: MSG.LIST_ALL_CHATS, limit, pageSize: 50, scopeYmd }).catch(() => null);
+
 
     setBusy(dom, false);
 
@@ -135,7 +135,8 @@ export function createSingleTab(dom: Dom, bus: Bus, cache: PanelCache) {
     setBusy(dom, true);
 
     // fire & forget: progress comes via runtime events
-    chrome.runtime.sendMessage({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 }).catch(() => null);
+    runtimeSend({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 }).catch(() => null);
+
   }
 
   function onToggleAll() {

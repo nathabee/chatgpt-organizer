@@ -1,5 +1,6 @@
-// src/panel/app/bus.ts
+// src/panel/app/bus.ts 
 import type { AnyEvent } from "../../shared/messages";
+import { runtimeOnMessageAdd, runtimeOnMessageRemove } from "../platform/runtime";
 
 type Handler = (msg: AnyEvent) => void;
 
@@ -12,9 +13,14 @@ export function createBus() {
   }
 
   function start() {
-    chrome.runtime.onMessage.addListener((msg: AnyEvent) => {
+    const listener = (msg: AnyEvent) => {
       for (const h of handlers) h(msg);
-    });
+    };
+
+    runtimeOnMessageAdd(listener);
+
+    // optional: expose cleanup if you ever need it
+    // return () => runtimeOnMessageRemove(listener);
   }
 
   return { on, start };

@@ -2,12 +2,18 @@
 import type { ProjectItem } from "../types";
 import { MSG } from "./msg";
 
-/* LIST PROJECTS */
+/* LIST PROJECTS */ 
 export type ListGizmoProjectsRequest = {
   type: typeof MSG.LIST_GIZMO_PROJECTS;
+
   limit?: number; // default 50
   conversationsPerGizmo?: number; // default 5
+
+  // NEW (keep aligned with panel/background behavior)
+  perProjectLimit?: number; // max conversations to fetch per project (default in background)
+  scopeYmd?: string; // "YYYY-MM-DD" (empty/undefined means no scope filter)
 };
+
 
 export type ListGizmoProjectsResponse =
   | { ok: true; projects: ProjectItem[] }

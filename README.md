@@ -232,6 +232,7 @@ This is the **intended installation path for normal users**.
 
 ## Development (optional)
 
+### extension
 Only needed if you want to modify or build the extension yourself.
 
 ```bash
@@ -247,16 +248,17 @@ dist/
 
 Load the extension from `dist/` via **Load unpacked**.
 
+### mok to present the extension in wordpress
 ---
 
 ## Status
 
-**v0.1.5 — Active development**
+**Active development**
 
+v0.1.10 —  Demo version (Standalone Panel Simulation)
 Core architecture is stable.
 Scope-based retrieval and cache-driven inspection are now in place.
-
-Placeholder tabs are intentional and visible so future features slot in without rewrites.
+Supported tabs : single chat, projects, organize, logs, stats 
 
 ---
 

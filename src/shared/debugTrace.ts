@@ -1,4 +1,6 @@
 // src/shared/debugTrace.ts
+import { storageGet, storageSet, storageRemove } from "./platform/storage";
+
 
 export type DebugTraceEntry = {
   id: string; // unique
@@ -20,11 +22,7 @@ const TRACE_KEY = "cgo.debugTrace";
 const ENABLED_KEY = "cgo.debugTrace.enabled";
 const DEFAULT_MAX = 2000;
 
-function ensureChromeStorage() {
-  if (typeof chrome === "undefined" || !chrome.storage?.local) {
-    throw new Error("chrome.storage.local is not available in this context.");
-  }
-}
+ 
 
 function makeId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -35,20 +33,19 @@ function clampInt(n: number, min: number, max: number): number {
 }
 
 async function getRaw(): Promise<DebugTraceEntry[]> {
-  ensureChromeStorage();
-  const res = await chrome.storage.local.get(TRACE_KEY);
+  const res = await storageGet(TRACE_KEY);
   const v = (res as any)?.[TRACE_KEY];
   return Array.isArray(v) ? (v as DebugTraceEntry[]) : [];
 }
 
+
 async function setRaw(entries: DebugTraceEntry[]): Promise<void> {
-  ensureChromeStorage();
-  await chrome.storage.local.set({ [TRACE_KEY]: entries });
+  await storageSet({ [TRACE_KEY]: entries });
 }
 
+
 export async function isEnabled(): Promise<boolean> {
-  ensureChromeStorage();
-  const res = await chrome.storage.local.get(ENABLED_KEY);
+  const res = await storageGet(ENABLED_KEY);
   return !!(res as any)?.[ENABLED_KEY];
 }
 
@@ -58,12 +55,16 @@ export async function isEnabled(): Promise<boolean> {
  * - wipes the entire debug trace
  */
 export async function setEnabled(next: boolean): Promise<void> {
-  ensureChromeStorage();
-  await chrome.storage.local.set({ [ENABLED_KEY]: !!next });
+  await storageSet({ [ENABLED_KEY]: !!next });
   if (!next) {
-    await chrome.storage.local.remove(TRACE_KEY);
+    await storageRemove(TRACE_KEY);
   }
 }
+
+export async function clear(): Promise<void> {
+  await storageRemove(TRACE_KEY);
+}
+
 
 export type ListOptions = {
   limit?: number; // default 200
@@ -115,10 +116,7 @@ export async function list(opts?: ListOptions): Promise<ListResult> {
   return { total, items };
 }
 
-export async function clear(): Promise<void> {
-  ensureChromeStorage();
-  await chrome.storage.local.remove(TRACE_KEY);
-}
+ 
 
 export async function exportJson(opts?: { pretty?: boolean }): Promise<string> {
   const all = await getRaw();

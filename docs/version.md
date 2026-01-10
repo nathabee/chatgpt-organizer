@@ -116,9 +116,150 @@ Read-only, zero risk.
 
 ## PATCHES
  
+Here is a clean, **project-grade epic** you can drop directly into `version.md` or your planning docs. It reflects exactly what you built (no marketing fluff, no wishful thinking).
 
+---
 
+## v0.1.10 — Epic: Demo version (Standalone Panel Simulation)
 
+### Scope
+
+Deliver a **standalone demo version** of **ChatGPT Organizer (CGO)** that runs the **real panel code** outside the browser extension environment.
+
+The demo must:
+
+* Run in a normal web browser (no extension APIs required)
+* Use the **real CGO panel code** from `src/`
+* Replace Chrome-specific APIs with **mocked platform seams**
+* Be buildable as **static assets** (`demo/dist`)
+* Be embeddable on a website (e.g. via iframe in WordPress)
+
+This demo is intended for:
+
+* Public presentation
+* Documentation
+* GitHub Pages / VPS hosting
+* Product explanation without requiring users to install the extension
+
+It is **not** a production replacement for the extension.
+
+---
+
+### Goals
+
+#### 1. Platform seam isolation
+
+* Replace:
+
+  * `src/panel/platform/runtime.ts`
+  * `src/shared/platform/storage.ts`
+* With demo mocks:
+
+  * `demo/src/mocks/runtime.ts`
+  * `demo/src/mocks/storage.ts`
+* Achieved via Vite resolve / plugin logic (no code changes in `src/`)
+
+#### 2. Real panel code execution
+
+* Load and execute:
+
+  * `src/panel/panel.ts`
+* Without modification
+* All relative imports must continue to work unchanged
+
+#### 3. Panel UI reuse
+
+* Reuse the real extension UI:
+
+  * `src/panel/panel.html`
+  * `src/panel/panel.css`
+* Strip extension-only `<script src="../panel.js">` references
+* Serve / emit these files into the demo build output
+
+#### 4. Functional UI simulation
+
+* Tabs must work:
+
+  * Single
+  * Projects
+  * Organize
+  * Search
+  * Logs
+  * Stats
+* Buttons, routing, state updates must behave as in the extension
+* Data is provided by **mock handlers**, not real ChatGPT APIs
+
+#### 5. Deterministic mock data
+
+* Provide predictable demo content:
+
+  * Conversations
+  * Projects
+  * Logs
+  * Stats
+* Scope filtering (`Updated since`) must function against mock data
+* Cache updates must correctly refresh the UI
+
+#### 6. Independent build output
+
+* `npm run build` must produce a fully standalone demo in `demo/dist`
+* Demo must run with:
+
+  * `npm run preview`
+  * or a dumb static server (`npx serve dist`)
+* No dependency on:
+
+  * extension runtime
+  * source files
+  * Vite dev server
+
+#### 7. Web embedding support
+
+* Demo must be embeddable via iframe
+* Designed to be hosted at a stable URL (e.g. BeeLab VPS)
+* Compatible with WordPress embedding via shortcode or block
+
+---
+
+### Explicit Non-Goals
+
+* ❌ No real ChatGPT account access
+* ❌ No authentication
+* ❌ No browser extension APIs
+* ❌ No background service worker
+* ❌ No data persistence beyond mock storage
+* ❌ No API compatibility guarantees
+
+---
+
+### Deliverables
+
+* `demo/` folder with:
+
+  * Vite config
+  * Mock platform implementations
+  * Mock data + handlers
+* Working demo accessible via browser
+* Documentation explaining:
+
+  * How the demo works
+  * How to build/test
+  * How to embed in WordPress
+
+---
+
+### Exit Criteria
+
+This epic is complete when:
+
+* The demo UI loads and behaves correctly in a browser
+* Mock runtime and storage are confirmed (no Chrome API usage)
+* Conversations and projects are visible and interactive
+* `demo/dist` runs standalone
+* Demo is published and linked from GitHub
+
+---
+ 
 ## v0.1.9 — Epic: Create Projects & Stabilize Tracing
 
 ### Scope

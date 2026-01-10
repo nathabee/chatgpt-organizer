@@ -7,6 +7,9 @@ import { createStatsModel } from "./model";
 import { createStatsView } from "./view";
 import { STATS_KEY, getStats } from "../../app/statsStore";
 
+import type { StorageChanges } from "../../../shared/platform/storage";
+import { storageOnChangedAdd, storageOnChangedRemove } from "../../../shared/platform/storage";
+
 type Bus = ReturnType<typeof createBus>;
 
 export function createStatsTab(dom: Dom, _bus: Bus, cache: PanelCache) {
@@ -32,7 +35,7 @@ export function createStatsTab(dom: Dom, _bus: Bus, cache: PanelCache) {
   }
 
   function bindStorageListener() {
-    const handler = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+    const handler = (changes: StorageChanges, area: string) => {
       if (area !== "local") return;
       if (!changes[STATS_KEY]) return;
 
@@ -41,8 +44,8 @@ export function createStatsTab(dom: Dom, _bus: Bus, cache: PanelCache) {
         .catch(() => view.setStatus("Stats storage update failed"));
     };
 
-    chrome.storage.onChanged.addListener(handler);
-    return () => chrome.storage.onChanged.removeListener(handler);
+    storageOnChangedAdd(handler);
+    return () => storageOnChangedRemove(handler);
   }
 
   function bind() {

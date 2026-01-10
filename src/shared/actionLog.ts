@@ -1,4 +1,9 @@
 // src/shared/actionLog.ts
+
+import { storageGet, storageSet, storageRemove } from "./platform/storage";
+
+
+
 export type ActionLogKind =
   | "delete_chat"
   | "delete_project"
@@ -40,11 +45,7 @@ export type ActionLogEntry = {
 const STORAGE_KEY = "cgo.actionLog"; 
 const DEFAULT_MAX = 5000;
 
-function ensureChromeStorage() {
-  if (typeof chrome === "undefined" || !chrome.storage?.local) {
-    throw new Error("chrome.storage.local is not available in this context.");
-  }
-}
+ 
 
 function makeId(): string {
   // stable enough: timestamp + random
@@ -56,17 +57,17 @@ function toArray<T>(x: T | T[]): T[] {
 }
 
 async function getRaw(): Promise<ActionLogEntry[]> {
-  ensureChromeStorage();
-  const res = await chrome.storage.local.get(STORAGE_KEY);
+  const res = await storageGet(STORAGE_KEY);
   const v = (res as any)?.[STORAGE_KEY];
   if (!Array.isArray(v)) return [];
   return v as ActionLogEntry[];
 }
 
+
 async function setRaw(entries: ActionLogEntry[]): Promise<void> {
-  ensureChromeStorage();
-  await chrome.storage.local.set({ [STORAGE_KEY]: entries });
+  await storageSet({ [STORAGE_KEY]: entries });
 }
+
 
 function clampInt(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.floor(n)));
@@ -162,9 +163,9 @@ export async function trim(opts: { keepLast?: number; beforeTs?: number }): Prom
 }
 
 export async function clear(): Promise<void> {
-  ensureChromeStorage();
-  await chrome.storage.local.remove(STORAGE_KEY);
+  await storageRemove(STORAGE_KEY);
 }
+
 
 export async function exportJson(opts?: { pretty?: boolean }): Promise<string> {
   const all = await getRaw();
