@@ -8,7 +8,6 @@ function tracePlatformResolves(): Plugin {
     name: "cgo-trace-platform-resolves",
     enforce: "pre",
     async resolveId(source, importer, options) {
-      // log only interesting specifiers
       if (
         source.includes("panel/platform/runtime") ||
         source.includes("shared/platform/storage") ||
@@ -21,7 +20,7 @@ function tracePlatformResolves(): Plugin {
         console.log("[cgo-trace] resolved :", r?.id);
         console.log("----");
       }
-      return null; // tracing only
+      return null;
     },
   };
 }
@@ -45,16 +44,8 @@ function seamSwapPlugin(): Plugin {
 
       const id = clean(r.id);
 
-      // Swap based on the *resolved absolute id*
-      if (id.includes("/src/panel/platform/runtime")) {
-        console.log("[cgo-swap] runtime :", id, "->", mockRuntime);
-        return mockRuntime;
-      }
-
-      if (id.includes("/src/shared/platform/storage")) {
-        console.log("[cgo-swap] storage :", id, "->", mockStorage);
-        return mockStorage;
-      }
+      if (id.includes("/src/panel/platform/runtime")) return mockRuntime;
+      if (id.includes("/src/shared/platform/storage")) return mockStorage;
 
       return null;
     },
@@ -81,8 +72,9 @@ function panelAssetsPlugin(): Plugin {
       ""
     );
 
-    // rewrite any panel.css link to demo served css
-    html = html.replace(/href=["'][^"']*panel\.css["']/gi, 'href="/__cgo/panel.css"');
+    // Make panel.css reference relative so Vite "base" works (e.g. /cgo-demo/)
+    // This ends up as /cgo-demo/__cgo/panel.css when base is "/cgo-demo/"
+    html = html.replace(/href=["'][^"']*panel\.css["']/gi, 'href="__cgo/panel.css"');
 
     return html;
   }
@@ -98,18 +90,21 @@ function panelAssetsPlugin(): Plugin {
 
   return {
     name: "cgo-panel-assets",
+
+    // DEV only: serve assets (production uses the emitted files)
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
         if (!req.url) return next();
 
-        if (req.url === "/__cgo/panel.html") {
+        // Respect Vite base automatically by also matching ".../__cgo/..."
+        if (req.url.endsWith("/__cgo/panel.html")) {
           res.statusCode = 200;
           res.setHeader("Content-Type", "text/html; charset=utf-8");
           res.end(assertHtml());
           return;
         }
 
-        if (req.url === "/__cgo/panel.css") {
+        if (req.url.endsWith("/__cgo/panel.css")) {
           const css = readOrNull(panelCss);
           if (!css) {
             res.statusCode = 404;
@@ -125,30 +120,33 @@ function panelAssetsPlugin(): Plugin {
         next();
       });
     },
+
+    // BUILD: emit into dist
     generateBundle() {
       this.emitFile({ type: "asset", fileName: "__cgo/panel.html", source: assertHtml() });
 
       const css = readOrNull(panelCss);
-      if (css) {
-        this.emitFile({ type: "asset", fileName: "__cgo/panel.css", source: css });
-      }
+      if (css) this.emitFile({ type: "asset", fileName: "__cgo/panel.css", source: css });
     },
   };
 }
 
-export default defineConfig({
-  root: __dirname,
-  base: "/cgo-demo/",
-
-  // IMPORTANT: enable the plugins (trace -> swap -> assets)
-  plugins: [tracePlatformResolves(), seamSwapPlugin(), panelAssetsPlugin()],
-
-  server: {
-    fs: { allow: [path.resolve(__dirname, "..")] },
-  },
-
-  build: {
-    outDir: "dist",
-    emptyOutDir: true,
-  },
+export default defineConfig(({ command }) => {
+  const isDev = command === "serve"; // vite dev server
+  return {
+    root: __dirname,
+    base: "/cgo-demo/",
+    plugins: [
+      ...(isDev ? [tracePlatformResolves()] : []),
+      seamSwapPlugin(),
+      panelAssetsPlugin(),
+    ],
+    server: {
+      fs: { allow: [path.resolve(__dirname, "..")] },
+    },
+    build: {
+      outDir: "dist",
+      emptyOutDir: true,
+    },
+  };
 });

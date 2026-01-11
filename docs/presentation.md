@@ -84,17 +84,23 @@ The extension lives entirely in the **ChatGPT side panel**.
 Each tab has a single, explicit responsibility.
 
 ### Search tab
-![ChatGPT Organizer UI search tab](./screenshots/screenshot-chatgpt-organizer-search.png)
+![ChatGPT Organizer UI search tab](./screenshots/screenshot-cgo-search.png)
 
 ### Projects tab
-![ChatGPT Organizer UI project tab](./screenshots/screenshot-chatgpt-organizer-projects.png)
+![ChatGPT Organizer UI project tab](./screenshots/screenshot-cgo-projects.png)
+
+### Organize tab**
+![ChatGPT Organizer UI organize tab](./screenshots/screenshot-cgo-organize.png)
+
+### Single tab**
+![ChatGPT Organizer UI single chat tab](./screenshots/screenshot-cgo-singles.png)
 
 ### Logs tab
-![ChatGPT Organizer UI logs and debug tab](./screenshots/screenshot-chatgpt-organizer-logs.png)
+![ChatGPT Organizer UI logs and debug tab](./screenshots/screenshot-cgo-logs.png)
 
 ### Stats tab
-![ChatGPT Organizer UI stats tab — snapshot](./screenshots/screenshot-chatgpt-organizer-stats-1.png)
-![ChatGPT Organizer UI stats tab — activity](./screenshots/screenshot-chatgpt-organizer-stats-2.png)
+![ChatGPT Organizer UI stats tab — snapshot](./screenshots/screenshot-cgo-stats-1.png)
+![ChatGPT Organizer UI stats tab — activity](./screenshots/screenshot-cgo-stats-2.png)
 
 The side panel is organized into **explicit tabs**, each with a single responsibility.
 

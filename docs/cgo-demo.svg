@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="logo" xmlns="http://www.w3.org/2000/svg"
+     width="512" height="160" viewBox="0 0 512 160" role="img" aria-label="BeeLab">
+  <title>BeeLab</title>
+
+  <style><![CDATA[
+    /* Colors */
+    .django { fill: #111111; }
+    .ml     { fill: #D50000; }
+    .powered{ fill: #2496ED; }
+
+    /* Outline draw setup (initial state). We animate with SMIL below. */
+    .stroke-draw {
+      fill: transparent;
+      stroke-width: 2px;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+      stroke-dasharray: 1200;
+      stroke-dashoffset: 1200;
+      paint-order: stroke fill;
+    }
+  ]]></style>
+
+  <rect width="100%" height="100%" fill="none"/>
+
+  <!-- Wordmark -->
+  <text x="256" y="70" text-anchor="middle" dominant-baseline="central"
+        font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif"
+        font-size="64" font-weight="800" letter-spacing="1.5">
+    <!-- "Bee" -->
+    <tspan class="django stroke-draw" stroke="#111111">C G O 
+    <!-- Draw 0–0.8s (0→0.1 of 8s), hold to 6.0s (0.75), reset by 8s -->
+    <animate attributeName="stroke-dashoffset" dur="8s" repeatCount="indefinite"
+            values="1200;0;0;1200"
+            keyTimes="0;0.1;0.75;1"/>
+
+    <!-- Fill 0.6–1.0s (0.075→0.125), hold to 6.0s (0.75), clear at 8s -->
+    <animate attributeName="fill" dur="8s" repeatCount="indefinite"
+            values="transparent;transparent;#111111;#111111;transparent"
+            keyTimes="0;0.075;0.125;0.75;1"/>
+
+
+    </tspan>
+
+     
+    <tspan class="ml stroke-draw" stroke="#D50000">demo
+    <!-- Draw 0.1–0.9s (0.0125→0.1125), hold, reset -->
+    <animate attributeName="stroke-dashoffset" dur="8s" repeatCount="indefinite"
+            values="1200;0;0;1200"
+            keyTimes="0;0.1125;0.75;1"/>
+
+    <!-- Fill 0.85–1.25s (0.10625→0.15625), hold, clear -->
+    <animate attributeName="fill" dur="8s" repeatCount="indefinite"
+            values="transparent;transparent;#D50000;#D50000;transparent"
+            keyTimes="0;0.10625;0.15625;0.75;1"/>
+
+
+    </tspan>
+  </text>
+
+
+  <!-- Tagline -->
+  <text id="tagline" x="256" y="0" text-anchor="middle" dominant-baseline="central"
+        font-family="Inter, system-ui, sans-serif"
+        font-size="28" font-weight="600" letter-spacing="1" opacity="0">
+    <tspan class="powered">ChatGPT Organizer</tspan>
+    <!-- Fade in -->
+    <animate attributeName="opacity" from="0" to="1"
+             begin="1.2s" dur="0.6s" fill="freeze"/>
+    <!-- Slide down to y=120 -->
+    <animate attributeName="y" from="0" to="120"
+             begin="1.2s" dur="0.6s" fill="freeze"/>
+  </text>
+
+  
+ 
+</svg>

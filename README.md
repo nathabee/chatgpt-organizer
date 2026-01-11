@@ -44,17 +44,23 @@ No server. No sync. No automation behind your back.
 ## UI Overview
 
 **Search tab**
-![ChatGPT Organizer UI search tab](docs/screenshots/screenshot-chatgpt-organizer-search.png)
+![ChatGPT Organizer UI search tab](docs/screenshots/screenshot-cgo-search.png)
 
 **Projects tab**
-![ChatGPT Organizer UI project tab](docs/screenshots/screenshot-chatgpt-organizer-projects.png)
+![ChatGPT Organizer UI project tab](docs/screenshots/screenshot-cgo-projects.png)
+
+**Organize tab**
+![ChatGPT Organizer UI organize tab](docs/screenshots/screenshot-cgo-organize.png)
+
+**Single tab**
+![ChatGPT Organizer UI single chat tab](docs/screenshots/screenshot-cgo-singles.png)
 
 **Logs tab**
-![ChatGPT Organizer UI logs and debug tab](docs/screenshots/screenshot-chatgpt-organizer-logs.png)
+![ChatGPT Organizer UI logs and debug tab](docs/screenshots/screenshot-cgo-logs.png)
 
 **Stats tab**
-![ChatGPT Organizer UI stats tab 1](docs/screenshots/screenshot-chatgpt-organizer-stats-1.png)
-![ChatGPT Organizer UI stats tab 2](docs/screenshots/screenshot-chatgpt-organizer-stats-2.png)
+![ChatGPT Organizer UI stats tab 1](docs/screenshots/screenshot-cgo-stats-1.png)
+![ChatGPT Organizer UI stats tab 2](docs/screenshots/screenshot-cgo-stats-2.png)
 
 The side panel is organized into **explicit tabs**, each with a single responsibility.
 
@@ -208,7 +214,7 @@ You **do not need to be a developer** to install ChatGPT Organizer.
 
 1. Go to the **GitHub Releases** page
 
-2. Download the latest **ZIP archive**
+2. Download the latest **ZIP archive** (chatgpt-organizer-x.y.y.zip, do NOT choose the demo)
 
 3. Extract it somewhere on your computer
 
@@ -255,10 +261,67 @@ Load the extension from `dist/` via **Load unpacked**.
 
 **Active development**
 
-v0.1.10 —  Demo version (Standalone Panel Simulation)
+v0.1.11 —  Demo version (Standalone Panel Simulation)
 Core architecture is stable.
 Scope-based retrieval and cache-driven inspection are now in place.
-Supported tabs : single chat, projects, organize, logs, stats 
+Supported tabs : single chat, projects, organize, logs, search, stats 
+ 
+---
+
+## Demo version (what it is — and what it is NOT)
+
+Alongside the extension, this project also provides a **Demo version**.
+
+### What the demo is
+
+* A **web-based simulation** of the ChatGPT Organizer UI
+* Runs the **real panel code** in a normal browser page
+* Uses **mock data** (no ChatGPT account, no cookies, no API access)
+* Designed for:
+
+  * previewing the UI
+  * testing workflows
+  * documentation and screenshots
+  * WordPress / website embedding
+
+### What the demo is NOT
+
+* ❌ Not a browser extension
+* ❌ Not connected to your ChatGPT account
+* ❌ Cannot read, modify, or access real chats
+* ❌ Not installable via `chrome://extensions`
+
+### How to access the demo
+
+The demo is distributed as a **separate ZIP** in the same GitHub Release:
+
+* `chatgpt-organizer-demo-x.y.y.zip`
+
+You do **not** install this ZIP as an extension.
+
+Instead, it is meant to be:
+
+* served as a **static website**
+* embedded in another site (for example via an iframe)
+
+See `demo/README.md` for:
+<a href="./demo/README.md">
+  <img src="./docs/cgo-demo.svg" alt="CGO Demo Docs" width="300" style="vertical-align:middle;">
+</a>
+
+* local testing
+* production hosting
+* WordPress embedding
+
+### Quick mental model
+
+| Component     | Purpose                               |
+| ------------- | ------------------------------------- |
+| Extension ZIP | Real usage with your ChatGPT account  |
+| Demo ZIP      | UI simulation for preview & embedding |
+
+If you just want to **use ChatGPT Organizer** → install the **extension ZIP**.
+If you want to **see how it works** → open the **demo**.
 
 ---
 
