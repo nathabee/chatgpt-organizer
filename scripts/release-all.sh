@@ -67,15 +67,17 @@ echo "Copied demo build to $DOCS_DEMO"
 # 4) Commit + push docs demo (only if changed)
 echo
 echo "== 4) Commit + push docs demo =="
-if [[ -n "$(git status --porcelain docs/cgo-demo docs/index.html 2>/dev/null)" ]]; then
-  git add docs/cgo-demo docs/index.html 2>/dev/null || true
-  [[ -n "$DOCS_COMMIT_MSG" ]] || DOCS_COMMIT_MSG="docs(demo): publish cgo-demo ${ver}"
-  git commit -m "$DOCS_COMMIT_MSG"
-  git push origin HEAD
-  echo "Committed + pushed docs demo: $DOCS_COMMIT_MSG"
-else
+
+git add -A -- docs/cgo-demo docs/index.html
+
+if git diff --cached --quiet; then
   echo "No docs changes to commit."
+else
+  git commit -m "docs(demo): publish cgo-demo ${ver}"
+  git push origin HEAD
+  echo "Committed + pushed docs demo for ${ver}"
 fi
+
 
 # 5) Publish GitHub release + upload extension zip
 echo
