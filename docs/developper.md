@@ -133,12 +133,16 @@ npm run build
 # continue coding if needed (version already correct)
 
 git add -A
+git status
+
+# check that you are just commiting what you want
+
 git commit -m "vx.y.z"
 git push origin main
 
 ## create a release
  
-./scripts/release-all.sh
+./scripts/release-all.sh 
 ```
 
 release-all.sh script will:

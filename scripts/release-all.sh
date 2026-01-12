@@ -13,64 +13,78 @@ need npm
 need zip
 need gh
 
+DOCS_COMMIT_MSG="${1:-}"
+
 [[ -f VERSION ]] || die "VERSION file missing"
 ver="$(tr -d ' \t\r\n' < VERSION)"
 [[ -n "$ver" ]] || die "VERSION is empty"
 tag="v${ver}"
-
-# Guard: clean tree (so tags/releases map to a reproducible commit)
-[[ -z "$(git status --porcelain)" ]] || die "Working tree not clean. Commit/stash first."
 
 echo "=== CGO release-all ==="
 echo "Version: $ver"
 echo "Tag:     $tag"
 echo
 
+# 0) Guard: refuse unrelated local changes (only allow docs demo paths to be touched by this script)
+dirty_outside_allowed="$(
+  git status --porcelain |
+    awk '{
+      p=$2;
+      if (p ~ /^docs\/cgo-demo(\/|$)/) next;
+      if (p == "docs/index.html") next;
+      # ignore these if they appear as build byproducts
+      if (p ~ /^(dist|demo\/dist|release)(\/|$)/) next;
+      print;
+    }'
+)"
+[[ -z "$dirty_outside_allowed" ]] || {
+  echo "Unrelated local changes detected:"
+  echo "$dirty_outside_allowed"
+  die "Commit/stash these first, then rerun."
+}
+
+# 1) Build extension zip
 echo "== 1) Build extension zip =="
 ./scripts/build-zip.sh
 
+# 2) Build demo zip (also produces demo/dist)
 echo
 echo "== 2) Build demo zip =="
 ./demo/scripts/build-demo-zip.sh
 
+# 3) Copy demo/dist -> docs/cgo-demo for GitHub Pages
 echo
-echo "== 2.5) Publish demo to GitHub Pages (docs/cgo-demo) =="
-
+echo "== 3) Publish demo to GitHub Pages (docs/cgo-demo) =="
 DEMO_DIST="demo/dist"
 DOCS_DEMO="docs/cgo-demo"
-
 [[ -d "$DEMO_DIST" ]] || die "Missing $DEMO_DIST (demo build failed?)"
 
 rm -rf "$DOCS_DEMO"
 mkdir -p "$DOCS_DEMO"
-
-# Preserve timestamps & permissions
 cp -a "$DEMO_DIST"/. "$DOCS_DEMO"/
-
 echo "Copied demo build to $DOCS_DEMO"
 
+# 4) Commit + push docs demo (only if changed)
 echo
-echo "== 2.6) Commit GitHub Pages demo (docs/cgo-demo) =="
-
+echo "== 4) Commit + push docs demo =="
 if [[ -n "$(git status --porcelain docs/cgo-demo docs/index.html 2>/dev/null)" ]]; then
   git add docs/cgo-demo docs/index.html 2>/dev/null || true
-
-  # Commit message is deterministic (no prompt needed)
-  git commit -m "docs(demo): publish cgo-demo ${ver}"
-
-  # Push so the tag/release points to a commit that exists on origin
+  [[ -n "$DOCS_COMMIT_MSG" ]] || DOCS_COMMIT_MSG="docs(demo): publish cgo-demo ${ver}"
+  git commit -m "$DOCS_COMMIT_MSG"
   git push origin HEAD
-  echo "Committed + pushed docs demo for ${ver}"
+  echo "Committed + pushed docs demo: $DOCS_COMMIT_MSG"
 else
   echo "No docs changes to commit."
 fi
 
+# 5) Publish GitHub release + upload extension zip
 echo
-echo "== 3) Publish GitHub release + upload extension zip =="
+echo "== 5) Publish GitHub release + upload extension zip =="
 ./scripts/publish-release-zip.sh
 
+# 6) Upload demo zip to same release
 echo
-echo "== 4) Upload demo zip to same release =="
+echo "== 6) Upload demo zip to same release =="
 ./demo/scripts/publish-demo-zip.sh
 
 echo
