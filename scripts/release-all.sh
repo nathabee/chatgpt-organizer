@@ -34,6 +34,23 @@ echo "== 2) Build demo zip =="
 ./demo/scripts/build-demo-zip.sh
 
 echo
+echo "== 2.5) Publish demo to GitHub Pages (docs/cgo-demo) =="
+
+DEMO_DIST="demo/dist"
+DOCS_DEMO="docs/cgo-demo"
+
+[[ -d "$DEMO_DIST" ]] || die "Missing $DEMO_DIST (demo build failed?)"
+
+rm -rf "$DOCS_DEMO"
+mkdir -p "$DOCS_DEMO"
+
+# Preserve timestamps & permissions
+cp -a "$DEMO_DIST"/. "$DOCS_DEMO"/
+
+echo "Copied demo build to $DOCS_DEMO"
+
+
+echo
 echo "== 3) Publish GitHub release + upload extension zip =="
 ./scripts/publish-release-zip.sh
 

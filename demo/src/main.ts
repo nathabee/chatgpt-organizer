@@ -1,11 +1,23 @@
 // demo/src/main.ts
 
+ 
+
+
 function getBasePath(): string {
-  // If hosted at https://host/cgo-demo/..., base becomes "/cgo-demo/"
-  // If hosted at https://host/, base becomes "/"
-  const p = window.location.pathname;
-  return p.endsWith("/") ? p : p.replace(/\/[^/]*$/, "/");
+  // Vite injects this based on `base` in vite.config.ts
+  // - "./" becomes something like "/cgo-demo/" at runtime when served from that folder
+  // - on GitHub pages it becomes "/repo/cgo-demo/"
+  let b = import.meta.env.BASE_URL || "/";
+  if (!b.endsWith("/")) b += "/";
+  return b;
 }
+
+
+
+
+
+
+
 
 function joinBase(base: string, rel: string): string {
   // base ends with "/", rel may start with "/"

@@ -44,6 +44,7 @@ function seamSwapPlugin(): Plugin {
 
       const id = clean(r.id);
 
+      // Swap the real seams for mocks in the demo build/dev server
       if (id.includes("/src/panel/platform/runtime")) return mockRuntime;
       if (id.includes("/src/shared/platform/storage")) return mockStorage;
 
@@ -66,14 +67,14 @@ function panelAssetsPlugin(): Plugin {
   }
 
   function sanitizePanelHtml(html: string): string {
-    // remove extension bundle script
+    // Remove extension bundle script
     html = html.replace(
       /<script\s+type=["']module["']\s+src=["'][^"']*panel\.js["']\s*>\s*<\/script>\s*/gi,
       ""
     );
 
-    // Make panel.css reference relative so Vite "base" works (e.g. /cgo-demo/)
-    // This ends up as /cgo-demo/__cgo/panel.css when base is "/cgo-demo/"
+    // Ensure panel.css is referenced relatively so it works no matter where the demo is hosted
+    // (GitHub Pages subpath, /cgo-demo/, /chatgpt-organizer/cgo-demo/, etc.)
     html = html.replace(/href=["'][^"']*panel\.css["']/gi, 'href="__cgo/panel.css"');
 
     return html;
@@ -96,7 +97,7 @@ function panelAssetsPlugin(): Plugin {
       server.middlewares.use((req, res, next) => {
         if (!req.url) return next();
 
-        // Respect Vite base automatically by also matching ".../__cgo/..."
+        // Works regardless of base because we match the suffix
         if (req.url.endsWith("/__cgo/panel.html")) {
           res.statusCode = 200;
           res.setHeader("Content-Type", "text/html; charset=utf-8");
@@ -135,7 +136,10 @@ export default defineConfig(({ command }) => {
   const isDev = command === "serve"; // vite dev server
   return {
     root: __dirname,
-    base: "/cgo-demo/",
+
+    // Key change: portable build (works under any folder on GitHub Pages or BeeLab)
+    base: "./",
+
     plugins: [
       ...(isDev ? [tracePlatformResolves()] : []),
       seamSwapPlugin(),
