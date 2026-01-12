@@ -22,7 +22,7 @@ body {
   display: flex;
   flex-direction: column;
 }
-
+ 
 
 
 
@@ -409,4 +409,84 @@ label {
 
 #backToTop:hover {
   opacity: 1;
+}
+
+
+/***************************************************/
+/* HERO: demo preview + intro */
+/***************************************************/
+.hero {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  margin-bottom: 1.25rem;
+  padding: 1rem;
+  background: rgba(255,255,255,0.45);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+}
+
+.hero-title {
+  margin: 0 0 0.5rem 0;
+}
+
+.hero-lead {
+  margin: 0 0 0.9rem 0;
+  line-height: 1.5;
+  max-width: 60ch;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin: 0.25rem 0 0.75rem 0;
+}
+
+.button-like.secondary {
+  background-color: #ffffff;
+  border: 1px solid rgba(0,0,0,0.12);
+}
+
+.button-like.secondary:hover {
+  background-color: #ffb980;
+  border-color: transparent;
+}
+
+.hero-note {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* Demo preview frame */
+.demo-frame {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+  box-shadow: 0 0 10px rgba(0,0,0,0.06);
+}
+
+/* Keep a stable preview height without jumping */
+.demo-frame iframe {
+  width: 100%;
+  height: 520px; /* preview size */
+  border: 0;
+  display: block;
+}
+
+/* Responsive: stack on narrow screens */
+@media (max-width: 1100px) {
+  .container { max-width: 92%; }
+}
+
+@media (max-width: 900px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+  .demo-frame iframe {
+    height: 520px;
+  }
 }

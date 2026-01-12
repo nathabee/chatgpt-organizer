@@ -68,15 +68,18 @@ echo "Copied demo build to $DOCS_DEMO"
 echo
 echo "== 4) Commit + push docs demo =="
 
-git add -A -- docs/cgo-demo docs/index.html
+# Stage docs output (force add in case a .gitignore rule matches)
+git add -f -A -- docs/cgo-demo docs/index.html 2>/dev/null || true
 
-if git diff --cached --quiet; then
-  echo "No docs changes to commit."
-else
+# If staging produced changes, commit + push
+if ! git diff --cached --quiet; then
   git commit -m "docs(demo): publish cgo-demo ${ver}"
   git push origin HEAD
   echo "Committed + pushed docs demo for ${ver}"
+else
+  echo "No docs changes to commit."
 fi
+
 
 
 # 5) Publish GitHub release + upload extension zip
