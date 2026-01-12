@@ -1,0 +1,693 @@
+<!doctype html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <link rel="stylesheet" href="__cgo/panel.css" />
+    <title>ChatGPT Organizer</title>
+</head>
+
+<body>
+    <div class="wrap">
+        <h1>ChatGPT Organizer</h1>
+
+        <!-- Global scope (applies to Single + Projects fetch) -->
+        <div class="scopeBar" role="region" aria-label="Data scope and cache">
+            <div class="scopeTop">
+                <div class="scopeLeft">
+                    <span class="muted">Scope:</span>
+                    <strong id="scopeLabel">Updated since —</strong>
+                </div>
+
+                <div class="scopeRight">
+                    <button id="btnScopeChange" type="button" class="subtle" title="Change scope date">
+                        Change…
+                    </button>
+                    <button id="btnScopeRefresh" type="button" class="subtle" title="Refresh data using current scope">
+                        Refresh
+                    </button>
+                </div>
+            </div>
+
+            <!-- Always visible: status + cache snapshot -->
+            <div class="scopeLoading" aria-live="polite">
+                <span id="singleStatus" class="status">Idle</span>
+                <span id="projectsStatus" class="status">Idle</span>
+
+            </div>
+
+            <!-- Collapsible: limits + list actions -->
+            <details class="scopeControls" id="scopeControls">
+                <summary>Fetch info and settings</summary>
+
+                <div class="row scopeMeta">
+                    <span class="muted">Cache:</span>
+                    <span class="scopeMetaItem">Single: <strong id="scopeLoadedSingles">0</strong></span>
+                    <span class="scopeMetaSep"> </span>
+                    <span class="scopeMetaItem">Projects: <strong id="scopeLoadedProjects">0</strong></span>
+                    <span class="scopeMetaSep"> </span>
+                    <span class="scopeMetaItem">Project chats: <strong id="scopeLoadedProjectChats">0</strong></span>
+                </div>
+
+
+                <div class="row scopeRow">
+                    <label class="fieldInline">
+                        <span>Single limit</span>
+                        <input id="singleLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
+                    </label>
+
+                    <button id="btnListSingle" type="button" class="subtle is-hidden">List single</button>
+                </div>
+
+                <div class="row scopeRow">
+                    <label class="fieldInline">
+                        <span>Projects limit</span>
+                        <input id="projectsLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Chats / project</span>
+                        <input id="projectsChatsLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
+                    </label>
+
+                    <button id="btnListProjects" type="button" class="subtle is-hidden">List projects</button>
+                </div>
+
+                <div class="muted scopeHint" id="scopeLimitsHint">
+                    Limits apply to fetch + cache (Search/Stats use the cache).
+                </div>
+            </details>
+        </div>
+
+
+
+
+        <div class="tabs" role="tablist" aria-label="CGO Tabs">
+            <button id="tabSingle" class="tab is-active" role="tab" aria-selected="true" type="button">
+                Single Chats
+            </button>
+
+            <button id="tabProjects" class="tab" role="tab" aria-selected="false" type="button">
+                Projects
+            </button>
+
+            <button id="tabOrganize" class="tab" role="tab" aria-selected="false" type="button">
+                Organize
+            </button>
+
+            <button id="tabSearch" class="tab" role="tab" aria-selected="false" type="button">
+                Search
+            </button>
+
+            <button id="tabLogs" class="tab" role="tab" aria-selected="false" type="button">
+                Logs
+            </button>
+
+
+            <button id="tabStats" class="tab" role="tab" aria-selected="false" type="button">
+                Stats
+            </button>
+        </div>
+
+
+        <!-- =========================
+         SINGLE CHATS VIEW
+         ========================= -->
+        <section id="viewSingle" class="view is-active" role="tabpanel" aria-labelledby="tabSingle">
+            <p class="muted">
+                Chats not attached to a Project.
+            </p>
+
+            <div class="row row--select">
+                <label class="toggleAll">
+                    <input id="cbSingleToggleAll" type="checkbox" />
+                    Toggle all
+                </label>
+            </div>
+
+            <div class="row row--danger">
+                <button id="btnSingleDelete" type="button" class="danger">Delete selected (execute)</button>
+            </div>
+
+            <pre id="singleExecOut" class="report" aria-live="polite"></pre>
+
+            <div id="singleExecProgressWrap" class="execProgressWrap" hidden>
+                <progress id="singleExecProgress" value="0" max="100"></progress>
+                <div id="singleExecProgressText" class="status"></div>
+            </div>
+
+            <div id="singleConfirmBox" class="confirmBox" hidden>
+                <div class="confirmTitle" id="singleConfirmTitle"></div>
+                <ul id="singleConfirmPreview" class="confirmPreview"></ul>
+
+                <label class="confirm">
+                    <input id="singleCbConfirm" type="checkbox" />
+                    I understand this can’t be undone here.
+                </label>
+
+                <div class="row">
+                    <button id="singleBtnConfirmExecute" type="button" class="danger">Yes, delete</button>
+                    <button id="singleBtnCancelExecute" type="button">Cancel</button>
+                </div>
+            </div>
+
+            <div class="summary">
+                Found <span id="singleCount">0</span> · Selected: <span id="singleSelectedCount">0</span>
+            </div>
+
+            <ul id="singleList" class="list"></ul>
+        </section>
+
+        <!-- =========================
+         PROJECTS VIEW
+         ========================= -->
+        <!-- =========================
+ PROJECTS VIEW
+ ========================= -->
+        <section id="viewProjects" class="view" role="tabpanel" aria-labelledby="tabProjects" hidden>
+            <p class="muted">
+                Projects and their conversations (API-based)
+            </p>
+
+            <!-- Create project (mounted by component) -->
+            <div id="mountCreateProjectProjects"></div>
+
+
+            <div class="row row--danger">
+                <button id="btnProjectsDelete" type="button" class="danger">
+                    Delete selected projects + chats (execute)
+                </button>
+            </div>
+
+            <pre id="projectsExecOut" class="report" aria-live="polite"></pre>
+
+            <div id="projectsChatsExecProgressWrap" class="execProgressWrap" hidden>
+                <progress id="projectsChatsExecProgress" value="0" max="100"></progress>
+                <div id="projectsChatsExecProgressText" class="status"></div>
+            </div>
+
+            <div id="projectsProjectsExecProgressWrap" class="execProgressWrap" hidden>
+                <progress id="projectsProjectsExecProgress" value="0" max="100"></progress>
+                <div id="projectsProjectsExecProgressText" class="status"></div>
+            </div>
+
+            <div id="projectsConfirmBox" class="confirmBox" hidden>
+                <div class="confirmTitle" id="projectsConfirmTitle"></div>
+                <ul id="projectsConfirmPreview" class="confirmPreview"></ul>
+
+                <label class="confirm">
+                    <input id="projectsCbConfirm" type="checkbox" />
+                    I understand this can’t be undone here.
+                </label>
+
+                <div class="row">
+                    <button id="projectsBtnConfirmExecute" type="button" class="danger">Yes, delete</button>
+                    <button id="projectsBtnCancelExecute" type="button">Cancel</button>
+                </div>
+            </div>
+
+            <div class="summary">
+                Projects: <span id="projectsCount">0</span> (including <span id="projectsChatsCount">0</span> chats)
+                · Selected chats: <span id="projectsSelectedChatsCount">0</span>
+                · Selected projects: <span id="projectsSelectedProjectsCount">0</span>
+            </div>
+
+            <ul id="projectsList" class="list"></ul>
+        </section>
+
+
+
+
+        <!-- =========================
+        SEARCH VIEW  
+        ========================= -->
+        <section id="viewSearch" class="view" role="tabpanel" aria-labelledby="tabSearch" hidden>
+            <p class="muted">Search chats, filter, and bulk move results into projects.</p>
+
+            <!-- TOP BAR -->
+            <div class="row searchTopRow">
+                <label class="sr-only" for="searchQuery">Search</label>
+                <input id="searchQuery" type="search" placeholder="Search…" autocomplete="off" />
+
+                <button id="btnSearchClear" type="button">Clear</button>
+                <button id="btnSearchResetFilters" type="button" class="subtle">Reset filters</button>
+
+                <!-- moved here from Info -->
+                <button id="btnSearchListSingle" type="button" class="is-hidden"> <!--  class="subtle"> -->
+                    List single
+                </button>
+                <button id="btnSearchListProjects" type="button" class="is-hidden"> <!--  class="subtle"> -->
+                    List projects
+                </button>
+            </div>
+
+            <!-- EXTRA FILTERS -->
+            <details class="searchBox" id="searchExtra" role="group">
+                <summary>Extra filters</summary>
+
+                <div class="row searchFilters">
+                    <label class="fieldInline">
+                        <span>Scope</span>
+                        <select id="searchScope">
+                            <option value="all" selected>All</option>
+                            <option value="single">Single</option>
+                            <option value="projects">Projects</option>
+                        </select>
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Archived</span>
+                        <select id="searchArchived">
+                            <option value="include" selected>Include</option>
+                            <option value="exclude">Exclude</option>
+                            <option value="only">Only</option>
+                        </select>
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Updated</span>
+                        <select id="searchUpdatedWithin">
+                            <option value="any" selected>Any</option>
+                            <option value="24h">24h</option>
+                            <option value="7d">7d</option>
+                            <option value="30d">30d</option>
+                            <option value="1y">1y</option>
+                        </select>
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Created</span>
+                        <select id="searchCreatedWithin">
+                            <option value="any" selected>Any</option>
+                            <option value="24h">24h</option>
+                            <option value="7d">7d</option>
+                            <option value="30d">30d</option>
+                            <option value="1y">1y</option>
+                        </select>
+                    </label>
+                </div>
+
+                <div class="row searchFilters">
+                    <label class="fieldInline">
+                        <span>Updated after</span>
+                        <input id="searchUpdatedAfter" type="date" />
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Updated before</span>
+                        <input id="searchUpdatedBefore" type="date" />
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Created after</span>
+                        <input id="searchCreatedAfter" type="date" />
+                    </label>
+
+                    <label class="fieldInline">
+                        <span>Created before</span>
+                        <input id="searchCreatedBefore" type="date" />
+                    </label>
+                </div>
+            </details>
+
+            <!-- INFO -->
+            <details class="searchBox" id="searchInfoBox" role="group">
+                <summary>Info</summary>
+
+                <div class="searchInfoText muted">
+                    Search works on the locally loaded cache.
+                    Increase limits in <strong>Single</strong> or <strong>Projects</strong>, then list again.
+                </div>
+
+                <div class="searchInfoMeta">
+                    <div>Loaded:
+                        <strong id="searchLoadedSingles">0</strong> single ·
+                        <strong id="searchLoadedProjects">0</strong> projects ·
+                        <strong id="searchLoadedProjectChats">0</strong> project chats
+
+                    </div>
+
+                    <div class="muted" id="searchInfoLimits"></div>
+
+                    <div>
+                        Results: <strong id="searchResultsCount">0</strong>
+                    </div>
+
+                    <div id="searchStatus" class="muted"></div>
+                </div>
+            </details>
+
+            <!-- RESULTS -->
+            <ul id="searchResults" class="list"></ul>
+        </section>
+
+
+        <!-- =========================
+ORGANIZE VIEW
+========================= -->
+        <section id="viewOrganize" class="view" role="tabpanel" aria-labelledby="tabOrganize" hidden>
+            <p class="muted">Move chats into a project. This does not delete anything.</p>
+
+            <div class="organizeGrid2x2">
+                <!-- ROW 1 / COL 1: source chats -->
+                <div class="organizePane">
+                    <div class="organizeHeader">
+                        <div class="muted">Source chats</div>
+                        <div class="organizeMeta">
+                            Found <strong id="organizeSourceCount">0</strong> · Selected <strong
+                                id="organizeSelectedCount">0</strong>
+                        </div>
+                    </div>
+
+                    <div class="row organizeTools">
+                        <label class="fieldInline">
+                            <span>Source</span>
+                            <select id="organizeSource">
+                                <option value="all" selected>All loaded (single + project chats)</option>
+                                <option value="single">Single only</option>
+                                <option value="projects">Project chats only</option>
+                            </select>
+                        </label>
+
+                        <label class="fieldInline" style="flex:1; min-width: 180px;">
+                            <span class="sr-only">Filter</span>
+                            <input id="organizeFilter" type="search" placeholder="Filter chats…" autocomplete="off" />
+                        </label>
+
+                        <label class="toggleAll" title="Toggle all visible items">
+                            <input id="cbOrganizeToggleAll" type="checkbox" />
+                            Toggle all
+                        </label>
+                    </div>
+
+                    <div id="organizeSourceStatus" class="muted"></div>
+                    <ul id="organizeSourceList" class="list"></ul>
+                </div>
+
+                <!-- ROW 1 / COL 2: destination projects -->
+                <div class="organizePane">
+                    <div class="organizeHeader">
+                        <div class="muted">Destination project</div>
+                        <div class="organizeMeta">
+                            Loaded <strong id="organizeProjectsCount">0</strong> projects · Target:
+                            <strong id="organizeTargetLabel">—</strong>
+                        </div>
+                    </div>
+
+                    <div class="row organizeTools">
+                        <label class="fieldInline" style="flex:1; min-width: 180px;">
+                            <span class="sr-only">Project filter</span>
+                            <input id="organizeProjectFilter" type="search" placeholder="Filter projects…"
+                                autocomplete="off" />
+                        </label>
+
+                        <button id="btnOrganizeClearTarget" type="button" class="subtle">Clear target</button>
+                    </div>
+
+                    <!-- Create project (mounted by component) -->
+                    <div id="mountCreateProjectOrganize"></div>
+
+
+                    <div id="organizeProjectsStatus" class="muted"></div>
+                    <ul id="organizeProjectList" class="list"></ul>
+                </div>
+
+                <!-- ROW 2 / COL 1: action + confirmation (always visible) -->
+                <div class="organizePane">
+                    <div class="row row--danger">
+                        <button id="btnOrganizeMove" type="button" class="subtle">Move to project</button>
+                    </div>
+
+                    <div id="organizeConfirmBox" class="confirmBox" hidden>
+                        <div class="confirmTitle" id="organizeConfirmTitle"></div>
+                        <ul id="organizeConfirmPreview" class="confirmPreview"></ul>
+
+                        <label class="confirm">
+                            <input id="organizeCbConfirm" type="checkbox" />
+                            I understand this will modify project membership for the selected chats.
+                        </label>
+
+                        <div class="row">
+                            <button id="organizeBtnConfirmExecute" type="button" class="subtle">Yes, move</button>
+                            <button id="organizeBtnCancelExecute" type="button">Cancel</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ROW 2 / COL 2: logs + progress (always visible) -->
+                <div class="organizePane">
+                    <pre id="organizeExecOut" class="report" aria-live="polite"></pre>
+
+                    <div id="organizeExecProgressWrap" class="execProgressWrap" hidden>
+                        <progress id="organizeExecProgress" value="0" max="100"></progress>
+                        <div id="organizeExecProgressText" class="status"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <!-- =========================
+LOGS VIEW
+========================= -->
+        <section id="viewLogs" class="view" role="tabpanel" aria-labelledby="tabLogs" hidden>
+
+            <details id="devConfigDetails" class="devConfig">
+                <summary>Configuration</summary>
+
+                <div class="devConfigGrid">
+                    <label class="devRow">
+                        <input id="cfgTraceScope" type="checkbox" />
+                        <span>Trace scope (console)</span>
+                    </label>
+
+                    <label class="devRowSplit">
+                        <span>Stop after N out-of-scope projects</span>
+                        <input id="cfgStopAfterOutOfScope" type="number" min="0" step="1" value="3" />
+                    </label>
+
+
+                    <div class="devRow">
+                        <button id="btnCfgResetDefaults" type="button">Reset defaults</button>
+                        <span id="cfgStatus" class="muted"></span>
+                    </div>
+
+
+
+
+                </div>
+            </details>
+            <hr class="devDivider" />
+
+
+            <p class="muted">
+                Audit log is always-on. Debug trace is optional and can be wiped instantly.
+            </p>
+
+            <!-- AUDIT -->
+            <h3>Audit log</h3>
+
+            <div class="row">
+                <label class="fieldInline">
+                    <span>Show</span>
+                    <input id="logsLimit" type="number" inputmode="numeric" min="10" step="10" value="200" />
+                </label>
+
+                <button id="btnLogsRefresh" type="button">Refresh</button>
+                <span id="logsStatus" class="status">Idle</span>
+            </div>
+
+            <div class="row">
+                <label class="fieldInline">
+                    <span>Trim keep last</span>
+                    <input id="logsTrimKeep" type="number" inputmode="numeric" min="0" step="100" value="2000" />
+                </label>
+
+                <button id="btnLogsTrim" type="button">Trim</button>
+                <button id="btnLogsExport" type="button">Export JSON</button>
+                <button id="btnLogsClear" type="button" class="danger">Clear</button>
+            </div>
+
+            <pre id="logsOut" class="report" aria-live="polite"></pre>
+
+            <!-- DEBUG TRACE -->
+            <h3>Debug trace</h3>
+
+            <div class="row">
+                <label class="confirm" style="margin-right: auto;">
+                    <input id="logsCbDebug" type="checkbox" />
+                    Debug enabled (OFF wipes all debug traces)
+                </label>
+
+                <label class="fieldInline">
+                    <span>Show</span>
+                    <input id="debugLimit" type="number" inputmode="numeric" min="10" step="10" value="200" />
+                </label>
+
+                <button id="btnDebugRefresh" type="button">Refresh debug</button>
+                <button id="btnDebugExport" type="button">Export debug JSON</button>
+                <button id="btnDebugClear" type="button" class="danger">Clear debug</button>
+                <span id="debugStatus" class="status">Idle</span>
+            </div>
+
+            <pre id="debugOut" class="report" aria-live="polite"></pre>
+        </section>
+
+
+
+
+        <!-- =========================
+        STATS VIEW  
+        ========================= -->
+        <section id="viewStats" class="view" role="tabpanel" aria-labelledby="tabStats" hidden>
+            <p class="muted">
+                Read-only statistics computed from the currently loaded cache (Single + Projects).
+                Increase limits and list again to include more history.
+            </p>
+
+            <!-- Top row: actions + status -->
+            <div class="row statsTopRow">
+                <button id="btnStatsRecalc" type="button" class="subtle">Recalculate</button>
+                <span id="statsStatus" class="status">Idle</span>
+                <span class="muted" style="margin-left:auto;">
+                    Last cache update: <strong id="statsLastCacheUpdate">—</strong>
+                </span>
+            </div>
+
+
+            <!-- Snapshot totals (collapsed by default, like Search filters/info) -->
+            <details class="statsBox" id="statsSnapshotBox" role="group">
+                <summary>Snapshot totals</summary>
+
+                <div class="statsGrid">
+                    <div class="statsCard">
+                        <div class="muted">Single chats</div>
+                        <div class="statsBig" id="statsSingleChats">0</div>
+                    </div>
+
+                    <div class="statsCard">
+                        <div class="muted">Projects</div>
+                        <div class="statsBig" id="statsProjects">0</div>
+                    </div>
+
+                    <div class="statsCard">
+                        <div class="muted">Project chats</div>
+                        <div class="statsBig" id="statsProjectChats">0</div>
+                    </div>
+
+                    <div class="statsCard">
+                        <div class="muted">Total chats</div>
+                        <div class="statsBig" id="statsTotalChats">0</div>
+                    </div>
+
+                    <div class="statsCard">
+                        <div class="muted">Archived</div>
+                        <div class="statsBig" id="statsArchivedChats">0</div>
+                    </div>
+
+                    <div class="statsCard">
+                        <div class="muted">Avg chats / project</div>
+                        <div class="statsBig" id="statsAvgChatsPerProject">0</div>
+                    </div>
+                </div>
+
+                <div class="statsMeta muted" id="statsLimitsHint">
+                    Limits: —
+                </div>
+            </details>
+
+            <!-- Activity (collapsed) -->
+            <details class="statsBox" id="statsActivityBox" role="group">
+                <summary>Activity</summary>
+
+                <div class="muted statsExplain" id="statsActivityExplain">
+                    Based on createTime/updateTime fields in loaded chats. Missing timestamps are ignored.
+                </div>
+
+                <!-- Placeholder containers for future rendering (heatmap, histograms, bars) -->
+                <div class="statsGraphBox">
+                    <div class="statsGraphTitle">Created chats per day (loaded data)</div>
+                    <div id="statsCreatedHeatmap" class="statsGraphPlaceholder">
+                        Coming next: GitHub-style activity grid.
+                    </div>
+                </div>
+
+                <div class="statsGraphBox">
+                    <div class="statsGraphTitle">Chat lifetime distribution (update - create)</div>
+                    <div id="statsLifetimeHist" class="statsGraphPlaceholder">
+                        Coming next: histogram buckets (0d / 1–2d / 3–7d / 8–30d / 30d+).
+                    </div>
+                </div>
+            </details>
+
+            <!-- Project structure (collapsed) -->
+            <details class="statsBox" id="statsProjectsBox" role="group">
+                <summary>Projects structure</summary>
+
+                <div class="statsGraphBox">
+                    <div class="statsGraphTitle">Project size distribution (loaded chats per project)</div>
+                    <div id="statsProjectSizeHist" class="statsGraphPlaceholder">
+                        Coming next: histogram.
+                    </div>
+                </div>
+
+                <div class="statsGraphBox">
+                    <div class="statsGraphTitle">Top projects by loaded chats</div>
+                    <div id="statsTopProjects" class="statsGraphPlaceholder">
+                        Coming next: bar list.
+                    </div>
+                </div>
+            </details>
+
+            <!-- Deletes (persistent counters, collapsed) -->
+            <details class="statsBox" id="statsDeletesBox" role="group">
+                <summary>Deletes (this device)</summary>
+
+                <div class="row statsDeletesRow">
+                    <div>Deleted chats: <strong id="statsDeletedChats">0</strong></div>
+                    <div>Deleted projects: <strong id="statsDeletedProjects">0</strong></div>
+                </div>
+
+                <div class="muted statsExplain">
+                    These counters are stored in extension storage. Everything else in Stats is derived from the current
+                    cache.
+                </div>
+            </details>
+
+
+
+
+        </section>
+
+
+
+        <!-- Scope dialog -->
+        <dialog id="scopeDialog" class="scopeDialog" aria-labelledby="scopeDialogTitle">
+            <form method="dialog" class="scopeDialogForm">
+                <h2 id="scopeDialogTitle" class="scopeDialogTitle">Set scope</h2>
+
+                <p class="muted">
+                    This scope controls what data will be fetched. Changing it will require a refresh.
+                </p>
+
+                <label class="fieldInline">
+                    <span>Updated since</span>
+                    <input id="scopeDate" type="date" />
+                </label>
+
+                <div class="scopeDialogHint">
+                    Validating will refresh Single + Projects and may take a while.
+                </div>
+
+                <div class="row scopeDialogActions">
+                    <button id="btnScopeCancel" type="button">Cancel</button>
+                    <button id="btnScopeApply" type="button" class="subtle">Validate &amp; refresh</button>
+                </div>
+            </form>
+        </dialog>
+    </div>
+
+    </body>
+
+</html>

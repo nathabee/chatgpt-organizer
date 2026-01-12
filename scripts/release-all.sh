@@ -49,6 +49,21 @@ cp -a "$DEMO_DIST"/. "$DOCS_DEMO"/
 
 echo "Copied demo build to $DOCS_DEMO"
 
+echo
+echo "== 2.6) Commit GitHub Pages demo (docs/cgo-demo) =="
+
+if [[ -n "$(git status --porcelain docs/cgo-demo docs/index.html 2>/dev/null)" ]]; then
+  git add docs/cgo-demo docs/index.html 2>/dev/null || true
+
+  # Commit message is deterministic (no prompt needed)
+  git commit -m "docs(demo): publish cgo-demo ${ver}"
+
+  # Push so the tag/release points to a commit that exists on origin
+  git push origin HEAD
+  echo "Committed + pushed docs demo for ${ver}"
+else
+  echo "No docs changes to commit."
+fi
 
 echo
 echo "== 3) Publish GitHub release + upload extension zip =="

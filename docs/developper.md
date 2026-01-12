@@ -145,6 +145,7 @@ release-all.sh script will:
 * verify VERSION
 * build extension zip (your existing script)
 * build demo zip (the demo script we added)
+* copy the demo into github page /docs/demo-cgo
 * publish the GitHub release + extension zip (your existing script)
 * upload the demo zip to the same release
  

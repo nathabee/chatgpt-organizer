@@ -116,11 +116,11 @@ web/
 
 * `chatgpt-organizer-demo-x.y.z.zip`
 
-2. Unzip it somewhere (it contains a `dist/` folder):
+2. Unzip it somewhere  :
 
 ```bash
 unzip chatgpt-organizer-demo-x.y.z.zip -d /tmp/cgo-demo
-ls /tmp/cgo-demo/dist
+ls /tmp/cgo-demo/
 ```
 
 3. Copy build output into your BeeLab `web` public folder:
@@ -128,7 +128,7 @@ ls /tmp/cgo-demo/dist
 ```bash
 rm -rf /path/to/docker/beelab/web/public/cgo-demo
 mkdir -p /path/to/docker/beelab/web/public/cgo-demo
-cp -a /tmp/cgo-demo/dist/* /path/to/docker/beelab/web/public/cgo-demo/
+cp -a /tmp/cgo-demo /path/to/docker/beelab/web/public/
 ```
 
 4. modify  /path/to/docker/beelab/web/next.config.mjs
