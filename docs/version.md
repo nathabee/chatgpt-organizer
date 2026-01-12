@@ -120,6 +120,14 @@ Here is a clean, **project-grade epic** you can drop directly into `version.md` 
 
 ---
 
+## v0.1.11 to v0.1.15  — Epic: Demo deployment in beelab and in githubpage
+
+### Scope
+* demo version correction to enable deployment beelab or in github page
+* user-manual docs creation
+* docs adaptation to show the demo
+---
+
 ## v0.1.10 — Epic: Demo version (Standalone Panel Simulation)
 
 ### Scope

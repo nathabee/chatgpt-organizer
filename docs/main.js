@@ -371,7 +371,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Optional: load a default doc on first visit
- loadMarkdown("presentation.md");
+ loadMarkdown("user-manual.md");
 });
 
 // 4) Back/Forward support
