@@ -1,8 +1,4 @@
-// demo/src/mocks/data.ts
-
-
-
-export const DEMO = {
+{
   "projects": [
     {
       "gizmoId": "g-wp",
@@ -1678,5 +1674,3 @@ export const DEMO = {
     }
   ]
 }
-;
- 
