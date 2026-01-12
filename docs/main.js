@@ -268,9 +268,11 @@ function loadChecklist() {
  
 
 function scrollToContent() {
-  const contentDiv = document.getElementById("content");
-  contentDiv.scrollIntoView({ behavior: "smooth" });
+  const wrap = document.getElementById("contentWrap");
+  if (!wrap) return;
+  wrap.scrollTo({ top: 0, behavior: "smooth" });
 }
+
 
 async function loadMarkdown(filePath, anchor = "") {
   // Normalize to absolute URL within the site

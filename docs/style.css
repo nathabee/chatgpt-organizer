@@ -1,31 +1,41 @@
 /***************************************************/
-/* general */
+/* Base */
 /***************************************************/
+:root {
+  --bg: #4a6486;
+  --card: #e7e2d8;
+  --accent: #5c6297;
+  --accentHover: #ffb980;
+  --panelBg: rgba(255, 255, 255, 0.45);
+  --border: rgba(0, 0, 0, 0.08);
+  --shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  --shadowSoft: 0 0 10px rgba(0, 0, 0, 0.06);
+}
 
-/* Page background inspired by SVG colors */
+* { box-sizing: border-box; }
+
 body {
-  /*ckground: linear-gradient(to right, #5F5F5F 0%, #f8f0e0 40%, #363535 100%);*/
-  background: #4a6486;
-  margin: 10;
+  background: var(--bg);
+  margin: 0;
   font-family: sans-serif;
 }
 
-/* Main container with white background */
+/* Main page container */
 .container {
-  max-width: 65%;
+  max-width: 92%;
   margin: 0 auto;
-  background: #e7e2d8;
+  background: var(--card);
   padding: 1.5rem;
-  box-shadow: 0 0 10px rgba(0,0,0,0.05);
-  border-radius: 5x;
-  min-height: 100vh; /* 🔥 force full screen height */
+  box-shadow: var(--shadow);
+  border-radius: 10px;
+  min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
- 
 
-
-
+/***************************************************/
+/* Header */
+/***************************************************/
 .header {
   display: flex;
   justify-content: space-between;
@@ -39,19 +49,7 @@ body {
   display: flex;
   align-items: center;
   gap: 1rem;
-}
-
-.header-left h1 {
-  font-size: 1.8rem;
-  margin: 0;
-}
-
-.logo {
-  height: 120px;
-  width: auto;
-  display: block;
-  margin: 0 auto 1rem auto;
-
+  overflow: visible !important;
 }
 
 .translate-box {
@@ -60,116 +58,116 @@ body {
   white-space: nowrap;
 }
 
-
-h1 {
-  text-align: center;
-  margin-bottom: 1rem;
-}
-
-h2, h3 {
-  position: relative;
-  display: inline-block;
-  padding-bottom: 0.2rem;
-}
-
-/*
-h2::after, h3::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 4px;
-  width: 100%;
-  background-color: #5c6297;
-  opacity: 0.5;
-  border-radius: 2px;
-}
-*/
+/***************************************************/
+/* Typography */
+/***************************************************/
+h1 { text-align: center; margin: 0 0 1rem 0; }
+h2, h3 { position: relative; display: inline-block; padding-bottom: 0.2rem; }
 
 hr {
   border: none;
   height: 4px;
-  background: #5c6297;
+  background: var(--accent);
   margin: 2rem 0;
   border-radius: 2px;
 }
 
-.menu {
-  display: flex;
-  justify-content: center;
-  gap: 1rem;
-  margin-bottom: 2rem;
-}
-
-button {
-  background-color: #5c6297;
-  color: black;
+/***************************************************/
+/* Buttons */
+/***************************************************/
+button,
+.button-like {
+  background-color: var(--accent);
+  color: #000;
   font-weight: bold;
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease;
-}
-
-button:hover {
-  background-color: #ffb980;
-}
-
-.button-like {
-  background-color: #5c6297;
-  color: black;
-  font-weight: bold;
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
+  text-decoration: none;
   display: inline-block;
-  transition: background-color 0.2s ease;
 }
 
+button:hover,
 .button-like:hover {
-  background-color: #ffb980;
+  background-color: var(--accentHover);
 }
 
-.button-like input[type="file"] {
-  display: none;
+.button-like input[type="file"] { display: none; }
+
+/***************************************************/
+/* Two-column layout */
+/***************************************************/
+.layout {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr; /* demo wider */
+  gap: 1.25rem;
+  align-items: start;
+  margin-top: 1rem;
 }
 
-
-#content {
-  background-color: white;
+/* Left + right panels */
+.left, .right {
+  background: var(--panelBg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
   padding: 1rem;
-  border-radius: 10px;
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
 }
 
-label {
-  display: block;
-  margin: 0.4rem 0;
+/* Panel titles / lead */
+.panel-title { margin: 0 0 0.6rem 0; }
+.panel-lead {
+  margin: 0 0 0.8rem 0;
+  line-height: 1.5;
+  max-width: 75ch;
 }
 
-.note-field {
-  display: block;
+.panel-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.9rem;
+}
+
+/* Demo frame (big) */
+.demo-frame {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.12);
+  background: #fff;
+  box-shadow: var(--shadowSoft);
+}
+
+.demo-frame iframe {
   width: 100%;
-  box-sizing: border-box;
-  margin-top: 0.5rem;
-  padding: 0.4rem;
-  font-size: 1rem;
+  height: 78vh;
+  min-height: 720px;
+  border: 0;
+  display: block;
 }
 
+/* Right column docs scroll area */
+#contentWrap {
+  margin-top: 1rem;
+  max-height: calc(100vh - 260px);
+  overflow: auto;
+  padding-right: 0.25rem;
+}
 
 /***************************************************/
-/* Markdown content styling */
+/* Content card */
 /***************************************************/
-/* Keep #content as the card */
 #content {
-  background-color: white;
+  background-color: #fff;
   padding: 1rem;
   border-radius: 10px;
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Make markdown flat inside it */
+/***************************************************/
+/* Markdown content */
+/***************************************************/
 .markdown {
   font-family: Georgia, serif;
   background: transparent;
@@ -178,35 +176,12 @@ label {
   box-shadow: none;
 }
 
-/*
-.markdown {
-  font-family: Georgia, serif;
-  background: #ffffff;
-  padding: 1rem;
-  border-radius: 10px;
-  line-height: 1.6;
-  box-shadow: 0 0 6px rgba(0, 0, 0, 0.1);
-  max-width: 100%;
-  overflow-x: auto;
-}
-*/
-
-
 .markdown h1,
 .markdown h2,
 .markdown h3 {
   margin-top: 1.5em;
   color: #333;
 }
-.markdown h2::after,
-.markdown h3::after {
-  background-color: #5c6297;
-  color: #000;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  margin-top: 2rem;
-}
-
 
 .markdown ul,
 .markdown ol {
@@ -242,9 +217,7 @@ label {
   text-align: left;
 }
 
-.markdown th {
-  background-color: #f0f0f0;
-}
+.markdown th { background-color: #f0f0f0; }
 
 .markdown a {
   color: #0055cc;
@@ -253,24 +226,18 @@ label {
 
 .markdown a:hover {
   text-decoration: underline;
-  color: #5c6297;
+  color: var(--accent);
 }
- 
 
-/* Markdown images: never exceed container, and cap absolute size */
+/* Markdown images: cap size */
 .markdown img {
   display: block;
   max-width: 100%;
   height: auto;
-
-  /* this is the key: prevent “wallpaper screenshots” */
   width: min(100%, 900px);
-
   margin: 0.75rem auto;
   border-radius: 10px;
- 
   border: 1px solid rgba(0, 0, 0, 0.10);
- 
   cursor: zoom-in;
 }
 
@@ -279,41 +246,33 @@ label {
   width: min(100%, 1200px);
 }
 
+/***************************************************/
+/* Checklist (kept as-is, but deduped) */
+/***************************************************/
+label { display: block; margin: 0.4rem 0; }
 
-/***************************************************/
-/* Check list                                      */
-/***************************************************/
-.checklist {
-  list-style: none;
-  padding-left: 0;
+.note-field {
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.4rem;
+  font-size: 1rem;
 }
+
+.checklist { list-style: none; padding-left: 0; }
 
 .checklist li {
   margin: 0.4rem 0;
   line-height: 1.5;
 }
 
-
-.checklist-section h2::after,
-.checklist-section h3::after {
-  background-color: #5c6297;
-  color: #000;
-  padding: 0.4rem 0.8rem;
-  border-radius: 6px;
-  margin-top: 2rem;
-}
-
-
 .checklist-item {
   margin-bottom: 1.5rem;
   border-bottom: 1px dashed #ddd;
   padding-bottom: 0.8rem;
-} 
-
-.checklist-item p {
-  margin-bottom: 0.4rem;
 }
 
+.checklist-item p { margin-bottom: 0.4rem; }
 
 .checklist-item label {
   display: inline-flex;
@@ -323,9 +282,7 @@ label {
   white-space: nowrap;
 }
 
-.checklist-item input[type="radio"] {
-  margin-right: 0.4rem;
-}
+.checklist-item input[type="radio"] { margin-right: 0.4rem; }
 
 .description-field {
   font-size: 0.9rem;
@@ -336,30 +293,24 @@ label {
   border-radius: 4px;
 }
 
-
-
-/* ############################## 
-    CSS animation
-  ############################## */
-
-/* Make the SVG scale and not be clipped */
+/***************************************************/
+/* Logo animation */
+/***************************************************/
 #logo {
   display: block;
-  width: min(92vw, 520px);  /* responsive width, cap at ~520px */
+  width: min(92vw, 520px);
   height: auto;
-  overflow: visible;        /* IMPORTANT: allow tagline to render outside intrinsic box */
+  overflow: visible;
 }
 
-/* If your header or header-left had overflow: hidden; remove it */
-.header, .header-left, .logo { overflow: visible !important; }
+/* ensure nothing clips the svg */
+.header, .header-left { overflow: visible !important; }
 
-/* Colors */
-#logo .django { fill: #111111; }
-#logo .ml     { fill: #D50000; }
+#logo .first { fill: #111111; }
+#logo .second     { fill: #D50000; }
 #logo .powered{ fill: #2496ED; }
 
-/* Draw-in effect, then fill */
-#logo .django, #logo .ml {
+#logo .first, #logo .second {
   stroke: currentColor;
   paint-order: stroke fill;
   stroke-width: 2px;
@@ -369,31 +320,37 @@ label {
   stroke-dasharray: 1200;
   stroke-dashoffset: 1200;
 }
-#logo .django { color:#111; animation: draw 1.2s ease-out forwards, fill-django .6s ease-out forwards .9s; }
-#logo .ml     { color:#D50000; animation: draw 1.2s ease-out .15s forwards, fill-ml .6s ease-out 1.05s forwards; }
 
-/* Tagline fades up */
+#logo .first {
+  color: #111;
+  animation: draw 1.2s ease-out forwards, fill-first .6s ease-out forwards .9s;
+}
+
+#logo .second {
+  color: #D50000;
+  animation: draw 1.2s ease-out .15s forwards, fill-second .6s ease-out 1.05s forwards;
+}
+
 #logo #tagline {
   opacity: 0;
   transform: translate(256,0);
   animation: tagline .6s ease-out 1.2s forwards;
 }
 
-/* Hover polish */
 #logo { transition: transform .2s ease, filter .2s ease; will-change: transform; }
 #logo:hover { transform: translateY(-2px); filter: drop-shadow(0 2px 6px rgba(0,0,0,.08)); }
 
 @keyframes draw { to { stroke-dashoffset: 0; } }
-@keyframes fill-django { to { fill: #111111; } }
-@keyframes fill-ml     { to { fill: #D50000; } }
+@keyframes fill-first { to { fill: #111111; } }
+@keyframes fill-second     { to { fill: #D50000; } }
 @keyframes tagline     { to { opacity: 1; transform: translate(256,120); } }
 
-
-
-/* go back button */
+/***************************************************/
+/* Back to top */
+/***************************************************/
 #backToTop {
   position: fixed;
-  left: 10px;
+  right: 10px;
   bottom: 20px;
   z-index: 1000;
   padding: 0.5rem 1rem;
@@ -407,86 +364,17 @@ label {
   transition: opacity 0.3s;
 }
 
-#backToTop:hover {
-  opacity: 1;
-}
-
+#backToTop:hover { opacity: 1; }
 
 /***************************************************/
-/* HERO: demo preview + intro */
+/* Responsive */
 /***************************************************/
-.hero {
-  display: grid;
-  grid-template-columns: 1.05fr 1fr;
-  gap: 1.25rem;
-  margin-top: 1rem;
-  margin-bottom: 1.25rem;
-  padding: 1rem;
-  background: rgba(255,255,255,0.45);
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 12px;
-}
-
-.hero-title {
-  margin: 0 0 0.5rem 0;
-}
-
-.hero-lead {
-  margin: 0 0 0.9rem 0;
-  line-height: 1.5;
-  max-width: 60ch;
-}
-
-.hero-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-  margin: 0.25rem 0 0.75rem 0;
-}
-
-.button-like.secondary {
-  background-color: #ffffff;
-  border: 1px solid rgba(0,0,0,0.12);
-}
-
-.button-like.secondary:hover {
-  background-color: #ffb980;
-  border-color: transparent;
-}
-
-.hero-note {
-  margin: 0.25rem 0 0 0;
-  font-size: 0.9rem;
-  opacity: 0.8;
-}
-
-/* Demo preview frame */
-.demo-frame {
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid rgba(0,0,0,0.12);
-  background: #fff;
-  box-shadow: 0 0 10px rgba(0,0,0,0.06);
-}
-
-/* Keep a stable preview height without jumping */
-.demo-frame iframe {
-  width: 100%;
-  height: 520px; /* preview size */
-  border: 0;
-  display: block;
-}
-
-/* Responsive: stack on narrow screens */
 @media (max-width: 1100px) {
-  .container { max-width: 92%; }
+  .container { max-width: 96%; }
 }
 
 @media (max-width: 900px) {
-  .hero {
-    grid-template-columns: 1fr;
-  }
-  .demo-frame iframe {
-    height: 520px;
-  }
+  .layout { grid-template-columns: 1fr; }
+  #contentWrap { max-height: none; overflow: visible; }
+  .demo-frame iframe { height: 70vh; min-height: 600px; }
 }

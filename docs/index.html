@@ -35,8 +35,8 @@
             <text text-anchor="middle" dominant-baseline="central"
               font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Noto Sans', 'Helvetica Neue', Arial, sans-serif"
               font-size="64" font-weight="800" letter-spacing="1.5">
-              <tspan class="django">C G</tspan>
-              <tspan class="ml">O</tspan>
+              <tspan class="first">C G</tspan>
+              <tspan class="second">O</tspan>
             </text>
           </g>
           <g id="tagline" transform="translate(256,120)">
@@ -48,6 +48,11 @@
         </svg>
 
       </div>
+
+      <p style="margin-top: 1rem;">
+      🔗 View the full source code and documentation on
+      <a href="https://github.com/nathabee/chatgpt-organizer" target="_blank">GitHub Repository</a>
+    </p>
 
       <div class="translate-box">
         🌐 Translate: <span id="google_translate_element"></span>
@@ -68,88 +73,61 @@
 
 
 
-    <p style="margin-top: 1rem;">
-      🔗 View the full source code and documentation on
-      <a href="https://github.com/nathabee/chatgpt-organizer" target="_blank">GitHub Repository</a>
-    </p>
+    <div class="layout">
+      <!-- LEFT: DEMO -->
+      <aside class="left">
+        <h2 class="panel-title">Interactive Demo</h2>
 
-    <!-- HERO: demo preview + quick intro -->
-    <section class="hero">
-      <div class="hero-left">
-        <h2 class="hero-title">Interactive Demo</h2>
-
-        <p class="hero-lead">
-          Explore the CGO interface safely. The demo runs the real panel UI with mocked data.
-          No ChatGPT account access. No extension APIs.
+        <p class="panel-lead">
+          Real CGO panel UI with mocked data. No ChatGPT account access. No extension APIs.
         </p>
 
-        <div class="hero-actions">
-          <a class="button-like" href="./cgo-demo/" target="_blank" rel="noopener noreferrer">
-            Open demo (new tab)
-          </a>
+        <div class="demo-frame demo-frame--tall">
+          <iframe src="./cgo-demo/" title="CGO Demo" loading="lazy" referrerpolicy="no-referrer"></iframe>
+        </div>
+      </aside>
 
-          <a class="button-like secondary" href="presentation.md">
-            Read presentation
-          </a>
+      <!-- RIGHT: DOCS (old system) -->
+      <main class="right">
+        <h2 class="panel-title">
+          <img src="./icon.svg" alt="CGO Icon" width="50" style="vertical-align:middle; margin-right:12px;">
+          Project Documentation
+        </h2>
+
+        <div class="doc-list">
+          <details open>
+            <summary><strong>🧭 Overview</strong></summary>
+            <ul>
+              <li><a href="presentation.md">📖 Project Presentation</a></li>
+              <li><a href="version.md">Version description</a></li>
+              <li><a href="architecture.md">Architecture</a></li>
+            </ul>
+          </details>
+
+          <details>
+            <summary><strong>💻 Installation</strong></summary>
+            <ul>
+              <li><a href="installation.md">☁️ Installation</a></li>
+            </ul>
+          </details>
+
+          <details>
+            <summary><strong>Development</strong></summary>
+            <ul>
+              <li><a href="developper.md">📄 Developper Tipps</a></li>
+            </ul>
+          </details>
         </div>
 
-        <p class="hero-note">
-          Tip: the demo is best in a full tab. The preview is intentionally smaller.
-        </p>
-      </div>
-
-      <div class="hero-right">
-        <div class="demo-frame">
-          <iframe src="./cgo-demo/" title="CGO Demo Preview" loading="lazy" referrerpolicy="no-referrer"></iframe>
+        <!-- IMPORTANT: new scroll container for docs -->
+        <div id="contentWrap">
+          <div id="content"></div>
         </div>
-      </div>
-    </section>
-
-
-
-
-
-    <h2><img src="./icon.svg" alt="CGO Icon" width="60" style="vertical-align:middle; margin-right:20px;"> Project
-      Documentation</h2>
-    <div class="doc-list">
-
-      <details>
-        <summary><strong>🧭 Overview</strong></summary>
-        <ul>
-          <li><a href="presentation.md">📖 Project Presentation</a></li>
-          <li><a href="version.md">Version description</a></li>
-          <li><a href="architecture.md">Architecture</a></li>
-        </ul>
-      </details>
-
-      <details>
-        <summary><strong>💻 Installation</strong></summary>
-        <ul>
-          <li><a href="installation.md">☁️ Installation</a></li>
-        </ul>
-      </details>
-
-
-      <details>
-        <summary><strong>Development</strong></summary>
-        <ul>
-          <li><a href="developper.md">📄 Developper Tipps </a></li>
-        </ul>
-      </details>
-
-
-
+      </main>
     </div>
 
+    <script src="main.js"></script>
 
-
-
-
-
-    <div id="content"></div>
-  </div>
-
-  <script src="main.js"></script>
 
 
 
