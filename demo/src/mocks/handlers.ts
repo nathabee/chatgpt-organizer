@@ -6,6 +6,18 @@ import { emitEvent } from "./runtime";
 import type { ConversationItem, ProjectItem } from "../../../src/shared/types";
 
 // console.log("[cgo-demo] mock handlers loaded");
+function scopeToTs(scopeYmd: string | undefined): number {
+  if (!scopeYmd) return -Infinity;
+  // Interpret YYYY-MM-DD as UTC midnight (stable across machines)
+  return Date.parse(`${scopeYmd}T00:00:00.000Z`);
+}
+
+function convTs(c: any): number {
+  const t = c?.updateTime || c?.createTime;
+  const ms = typeof t === "string" ? Date.parse(t) : NaN;
+  return Number.isFinite(ms) ? ms : 0;
+}
+
 
 function now() {
   return Date.now();
@@ -22,11 +34,28 @@ export async function handleRequest(req: AnyRequest): Promise<any> {
         foundConversations: 0,
       } as any);
 
-      // simulate work
       await sleep(150);
 
-      const totalProjects = DEMO.projects.length;
-      const totalConversations = DEMO.projects.reduce((acc, p) => acc + (p.conversations?.length || 0), 0);
+      const scopeYmd = (req as any).scopeYmd as string | undefined;
+      const limitProjects = Number((req as any).limit ?? (req as any).limitProjects ?? 50);
+      const perProjectLimit = Number((req as any).perProjectLimit ?? 50);
+
+      const since = scopeToTs(scopeYmd);
+
+      // Filter conversations inside projects by scope
+      const projects = (DEMO.projects as any[])
+        .map((p) => {
+          const convs = (p.conversations ?? [])
+            .filter((c: any) => convTs(c) >= since)
+            .sort((a: any, b: any) => convTs(b) - convTs(a))
+            .slice(0, perProjectLimit);
+
+          return { ...p, conversations: convs };
+        }) 
+        .slice(0, limitProjects);
+
+      const totalProjects = projects.length;
+      const totalConversations = projects.reduce((acc, p) => acc + (p.conversations?.length || 0), 0);
 
       emitEvent({
         type: MSG.LIST_GIZMO_PROJECTS_DONE,
@@ -35,8 +64,9 @@ export async function handleRequest(req: AnyRequest): Promise<any> {
         elapsedMs: now() - t0,
       } as any);
 
-      return { ok: true, projects: DEMO.projects };
+      return { ok: true, projects };
     }
+
 
     case MSG.LIST_ALL_CHATS: {
       const t0 = now();
@@ -44,14 +74,26 @@ export async function handleRequest(req: AnyRequest): Promise<any> {
       emitEvent({ type: MSG.LIST_ALL_CHATS_PROGRESS, found: 0 } as any);
       await sleep(120);
 
+      const scopeYmd = (req as any).scopeYmd as string | undefined;
+      const pageSize = Number((req as any).pageSize ?? 50);
+      const limit = Number((req as any).limit ?? pageSize);
+
+      const since = scopeToTs(scopeYmd);
+
+      const filtered = (DEMO.singles as any[])
+        .filter((c) => convTs(c) >= since)
+        .sort((a, b) => convTs(b) - convTs(a))
+        .slice(0, limit);
+
       emitEvent({
         type: MSG.LIST_ALL_CHATS_DONE,
-        total: DEMO.singles.length,
+        total: filtered.length,
         elapsedMs: now() - t0,
       } as any);
 
-      return { ok: true, conversations: DEMO.singles };
+      return { ok: true, conversations: filtered };
     }
+
 
     case MSG.EXECUTE_DELETE: {
       const ids = (req as any).ids as string[];
@@ -124,13 +166,48 @@ export async function handleRequest(req: AnyRequest): Promise<any> {
     }
 
     case MSG.CREATE_PROJECT: {
-      return {
-        ok: true,
-        gizmoId: `g-${now()}`,
-        title: (req as any).name || "New Project",
-        href: "#",
+      emitEvent({ type: MSG.CREATE_PROJECT_PROGRESS, status: "creating" } as any);
+      await sleep(120);
+
+      const gizmoId = `g-${Math.random().toString(16).slice(2, 10)}`;
+
+      const name = String((req as any).name ?? "").trim();
+      const title = name || "Untitled project";
+
+      const href = `https://chatgpt.com/g/${gizmoId}`;
+
+      // Persist into demo in-memory store so manual refresh will include it.
+      // NOTE: LIST_GIZMO_PROJECTS currently filters out projects with 0 conversations.
+      // So we add a single demo conversation so it will show up immediately.
+      const demoConvId = `pc-${Math.random().toString(16).slice(2, 10)}`;
+
+      const newProject: ProjectItem = {
+        gizmoId,
+        title,
+        href,
+        conversations: [
+          {
+            id: demoConvId,
+            title: `Welcome to ${title}`,
+            href: `https://chatgpt.com/c/${demoConvId}`,
+            gizmoId,
+            // satisfy convTs() filter
+            updateTime: new Date().toISOString(),
+            createTime: new Date().toISOString(),
+          } as any,
+        ],
       };
+
+      // Insert at top
+      (DEMO.projects as any[]).unshift(newProject as any);
+
+      emitEvent({ type: MSG.CREATE_PROJECT_DONE, ok: true, gizmoId, title, href } as any);
+
+      // Return response (NO refresh, NO list)
+      return { ok: true, gizmoId, title, href };
     }
+
+
 
     case MSG.DELETE_PROJECTS: {
       const gizmoIds = (req as any).gizmoIds as string[];
@@ -174,12 +251,26 @@ export async function handleRequest(req: AnyRequest): Promise<any> {
 function sleep(ms: number) {
   return new Promise<void>((r) => setTimeout(r, ms));
 }
- 
 
+
+
+/*
 export function makeMockAllChatsResponse(_req: any) {
   const conversations: ConversationItem[] = [
-    { id: "c1", title: "Demo chat 1", updatedAt: Date.now(), gizmoId: "" },
-    { id: "c2", title: "Demo chat 2", updatedAt: Date.now() - 86400000, gizmoId: "" },
+    {
+      id: "c1",
+      title: "Demo chat 1",
+      href: "https://chatgpt.com/c/c1",
+      gizmoId: null,
+      updateTime: new Date().toISOString(),
+    },
+    {
+      id: "c2",
+      title: "Demo chat 2",
+      href: "https://chatgpt.com/c/c2",
+      gizmoId: null,
+      updateTime: new Date(Date.now() - 86400000).toISOString(),
+    },
   ];
   return { ok: true as const, conversations };
 }
@@ -187,13 +278,22 @@ export function makeMockAllChatsResponse(_req: any) {
 export function makeMockProjectsResponse(_req: any) {
   const projects: ProjectItem[] = [
     {
-      gizmoId: "p1",
+      gizmoId: "g-p-1",
       title: "Demo Project A",
-      description: "Mock project",
+      href: "#",
       conversations: [
-        { id: "pc1", title: "Project chat 1", updatedAt: Date.now(), gizmoId: "p1" } as any,
+        {
+          id: "pc1",
+          title: "Project chat 1",
+          href: "https://chatgpt.com/c/pc1",
+          gizmoId: "g-p-1",
+          updateTime: new Date().toISOString(),
+        },
       ],
-    } as any,
+    },
   ];
   return { ok: true as const, projects };
 }
+
+*/
+

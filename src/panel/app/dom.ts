@@ -8,6 +8,9 @@ export function getDom() {
     return el;
   }
 
+  const rootEl = must(document.getElementById("cgoRoot"), "cgoRoot") as HTMLDivElement;
+
+
   // Global scope
   const scopeLabelEl = must(document.getElementById("scopeLabel"), "scopeLabel") as HTMLElement;
   const btnScopeChange = must(document.getElementById("btnScopeChange"), "btnScopeChange") as HTMLButtonElement;
@@ -132,8 +135,8 @@ export function getDom() {
   const projectsSelectedProjectsCountEl = document.getElementById("projectsSelectedProjectsCount") as HTMLElement;
 
   const projectsListEl = document.getElementById("projectsList") as HTMLUListElement;
- 
-   // Create project mounts (reusable component)
+
+  // Create project mounts (reusable component)
   const mountCreateProjectProjectsEl = must(
     document.getElementById("mountCreateProjectProjects"),
     "mountCreateProjectProjects"
@@ -156,11 +159,14 @@ export function getDom() {
 
   const logsOutEl = document.getElementById("logsOut") as HTMLPreElement;
   // Logs config 
-const cfgTraceScopeEl = document.getElementById("cfgTraceScope") as HTMLInputElement | null;
-const cfgStopAfterOutOfScopeEl = document.getElementById("cfgStopAfterOutOfScope") as HTMLInputElement | null;
-const btnCfgResetDefaults = document.getElementById("btnCfgResetDefaults") as HTMLButtonElement | null;
-const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
+  const cfgTraceScopeEl = document.getElementById("cfgTraceScope") as HTMLInputElement | null;
+  const cfgStopAfterOutOfScopeEl = document.getElementById("cfgStopAfterOutOfScope") as HTMLInputElement | null;
+  const btnCfgResetDefaults = document.getElementById("btnCfgResetDefaults") as HTMLButtonElement | null;
+  const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
 
+  const cfgActionLogMaxEl = document.getElementById("cfgActionLogMax") as HTMLInputElement | null;
+  const cfgDebugTraceMaxEl = document.getElementById("cfgDebugTraceMax") as HTMLInputElement | null;
+  const cfgFailureLogsPerRunEl = document.getElementById("cfgFailureLogsPerRun") as HTMLInputElement | null;
 
   // Debug trace 
   const logsCbDebugEl = document.getElementById("logsCbDebug") as HTMLInputElement;
@@ -198,7 +204,7 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
   const statsDeletedChatsEl = must(document.getElementById("statsDeletedChats"), "statsDeletedChats") as HTMLElement;
   const statsDeletedProjectsEl = must(document.getElementById("statsDeletedProjects"), "statsDeletedProjects") as HTMLElement;
 
-    // Organize
+  // Organize
   const organizeSourceEl = must(document.getElementById("organizeSource"), "organizeSource") as HTMLSelectElement;
   const organizeFilterEl = must(document.getElementById("organizeFilter"), "organizeFilter") as HTMLInputElement;
   const cbOrganizeToggleAll = must(document.getElementById("cbOrganizeToggleAll"), "cbOrganizeToggleAll") as HTMLInputElement;
@@ -229,8 +235,10 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
   const organizeCbConfirmEl = must(document.getElementById("organizeCbConfirm"), "organizeCbConfirm") as HTMLInputElement;
   const organizeBtnConfirmExecute = must(document.getElementById("organizeBtnConfirmExecute"), "organizeBtnConfirmExecute") as HTMLButtonElement;
   const organizeBtnCancelExecute = must(document.getElementById("organizeBtnCancelExecute"), "organizeBtnCancelExecute") as HTMLButtonElement;
- 
+
   return {
+    rootEl,
+
     tabSingle, tabProjects, viewSingle, viewProjects,
     tabOrganize, tabSearch, tabLogs, tabStats,
     viewOrganize, viewSearch, viewLogs, viewStats,
@@ -273,8 +281,8 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
     projectsConfirmBoxEl, projectsConfirmTitleEl, projectsConfirmPreviewEl, projectsCbConfirmEl,
     projectsBtnConfirmExecute, projectsBtnCancelExecute,
     projectsCountEl, projectsChatsCountEl, projectsSelectedChatsCountEl, projectsSelectedProjectsCountEl,
-    projectsListEl, 
-     mountCreateProjectProjectsEl,
+    projectsListEl,
+    mountCreateProjectProjectsEl,
     mountCreateProjectOrganizeEl,
 
 
@@ -283,6 +291,9 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
     cfgStopAfterOutOfScopeEl,
     btnCfgResetDefaults,
     cfgStatusEl,
+    cfgActionLogMaxEl,
+    cfgDebugTraceMaxEl,
+    cfgFailureLogsPerRunEl,
 
     // Logs (audit)
     logsLimitEl, btnLogsRefresh, logsStatusEl,
@@ -302,7 +313,7 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
     statsProjectsBoxEl, statsProjectSizeHistEl, statsTopProjectsEl,
     statsDeletesBoxEl, statsDeletedChatsEl, statsDeletedProjectsEl,
 
-        // Organize ...
+    // Organize ...
     organizeSourceEl, organizeFilterEl, cbOrganizeToggleAll,
     organizeSourceStatusEl, organizeSourceCountEl, organizeSelectedCountEl, organizeSourceListEl,
     organizeProjectFilterEl, btnOrganizeClearTarget,
@@ -310,8 +321,8 @@ const cfgStatusEl = document.getElementById("cfgStatus") as HTMLElement | null;
     btnOrganizeMove,
     organizeExecOutEl, organizeExecProgressWrapEl, organizeExecProgressEl, organizeExecProgressTextEl,
     organizeConfirmBoxEl, organizeConfirmTitleEl, organizeConfirmPreviewEl, organizeCbConfirmEl,
-    organizeBtnConfirmExecute, organizeBtnCancelExecute, 
- 
+    organizeBtnConfirmExecute, organizeBtnCancelExecute,
+
 
   };
 }

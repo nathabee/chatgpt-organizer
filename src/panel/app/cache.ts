@@ -161,6 +161,67 @@ export function createPanelCache() {
     if (state.projects.length !== before) emit();
   }
 
+  function insertProject(p: ProjectItem, opts?: { limitProjects?: number; chatsPerProject?: number }) {
+    // Avoid duplicates
+    const exists = state.projects.some((x) => x.gizmoId === p.gizmoId);
+    const next = exists ? state.projects : [p, ...state.projects];
+
+    // Reuse setProjects so meta stays consistent
+    setProjects(next, opts ?? {
+      limitProjects: state.meta.projectsLimit,
+      chatsPerProject: state.meta.projectsChatsLimit,
+    });
+  }
+
+  function moveChatsToProject(args: {
+    ids: string[];
+    targetProjectId: string;
+    metaById?: Map<string, { title?: string; href?: string }>;
+  }) {
+    const { ids, targetProjectId, metaById } = args;
+    const idSet = new Set(ids);
+
+    // 1) singles: remove
+    const nextSingles = state.singleChats.filter((c) => !idSet.has(c.id));
+
+    // 2) projects: remove everywhere + add to target
+    const nextProjects = state.projects.map((p) => ({
+      ...p,
+      conversations: (p.conversations || []).filter((c) => !idSet.has(c.id)),
+    }));
+
+    const target = nextProjects.find((p) => p.gizmoId === targetProjectId);
+    if (target) {
+      const existing = new Set((target.conversations || []).map((c) => c.id));
+      const convos = target.conversations || [];
+
+      for (const id of ids) {
+        if (existing.has(id)) continue;
+        const meta = metaById?.get(id);
+
+        convos.push({
+          id,
+          gizmoId: targetProjectId,
+          title: meta?.title || "Untitled",
+          href: meta?.href || "#",
+        } as any);
+      }
+
+      target.conversations = convos;
+
+      // Optional: keep under UI cap if you want
+      const cap = state.meta.projectsChatsLimit;
+      if (typeof cap === "number" && cap > 0) {
+        target.conversations = target.conversations.slice(0, cap);
+      }
+    }
+
+    // 3) commit via existing setters (keeps meta + emits once each)
+    setProjects(nextProjects, { limitProjects: state.meta.projectsLimit, chatsPerProject: state.meta.projectsChatsLimit });
+    setSingleChats(nextSingles, { limit: state.meta.singleLimit });
+  }
+
+
   return {
     // read
     getSnapshot,
@@ -174,6 +235,8 @@ export function createPanelCache() {
     removeChat,
     removeProject,
     setScopeUpdatedSince,
+    insertProject,
+    moveChatsToProject,
   };
 }
 

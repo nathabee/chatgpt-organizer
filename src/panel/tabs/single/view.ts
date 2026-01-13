@@ -64,7 +64,7 @@ export function createSingleView(dom: Dom) {
   function renderList(args: {
     chats: ConversationItem[];
     selected: Set<string>;
-    isBusy: boolean;
+    isBusy(): boolean;
     onToggleChat(id: string, checked: boolean): void;
   }) {
     const { chats, selected, isBusy, onToggleChat } = args;
@@ -83,8 +83,13 @@ export function createSingleView(dom: Dom) {
       cb.type = "checkbox";
       cb.className = "deleteCb";
       cb.checked = selected.has(c.id);
+
       cb.addEventListener("change", () => {
-        if (isBusy) return;
+        if (isBusy()) {
+          // revert UI change
+          cb.checked = selected.has(c.id);
+          return;
+        }
         onToggleChat(c.id, cb.checked);
         li.classList.toggle("selected", cb.checked);
       });

@@ -1,8 +1,28 @@
 // src/panel/tabs/projects/view.ts
 import type { Dom } from "../../app/dom";
 import type { ProjectItem } from "../../../shared/types";
+import * as debugTrace from "../../../shared/debugTrace";
 
 export function createProjectsView(dom: Dom) {
+  const openProjects = new Set<string>();
+
+  function rememberOpenState() {
+    openProjects.clear();
+    dom.projectsListEl.querySelectorAll("li.projectCard").forEach((li) => {
+      const gid = (li as HTMLElement).dataset["gizmoId"] || "";
+      const details = li.querySelector("details");
+      if (gid && details?.open) openProjects.add(gid);
+    });
+  }
+
+  function restoreOpenState() {
+    dom.projectsListEl.querySelectorAll("li.projectCard").forEach((li) => {
+      const gid = (li as HTMLElement).dataset["gizmoId"] || "";
+      const details = li.querySelector("details") as HTMLDetailsElement | null;
+      if (gid && details) details.open = openProjects.has(gid);
+    });
+  }
+
   function setStatus(s: string) {
     dom.projectsStatusEl.textContent = s;
   }
@@ -60,11 +80,11 @@ export function createProjectsView(dom: Dom) {
     projects: ProjectItem[];
     selectedProjectIds: Set<string>;
     selectedProjectChatIds: Set<string>;
-    isBusy: boolean;
+    isBusy(): boolean;
     onToggleProject(p: ProjectItem, checked: boolean): void;
     onToggleChat(p: ProjectItem, chatId: string, checked: boolean): void;
-    afterProjectToggle(): void; // rerender needed
-    afterChatToggle(): void;    // just counts
+    afterProjectToggle(): void;
+    afterChatToggle(): void;
   }) {
     const {
       projects,
@@ -73,10 +93,11 @@ export function createProjectsView(dom: Dom) {
       isBusy,
       onToggleProject,
       onToggleChat,
-        afterProjectToggle,
-        afterChatToggle,
+      afterProjectToggle,
+      afterChatToggle,
     } = args;
 
+    rememberOpenState();
     dom.projectsListEl.innerHTML = "";
 
     for (const p of projects) {
@@ -109,8 +130,19 @@ export function createProjectsView(dom: Dom) {
       const pickCb = document.createElement("input");
       pickCb.type = "checkbox";
       pickCb.checked = selectedProjectIds.has(p.gizmoId);
+
       pickCb.addEventListener("change", () => {
-        if (isBusy) return;
+        // Selection must remain usable even while busy.
+        // If user toggles during busy, we record a persisted dev trace (only when enabled).
+        if (isBusy()) {
+          void debugTrace.append({
+            scope: "projects",
+            kind: "debug",
+            message: "ui:toggleProject while busy",
+            meta: { gizmoId: p.gizmoId, checked: pickCb.checked },
+          });
+        }
+
         onToggleProject(p, pickCb.checked);
         afterProjectToggle();
       });
@@ -149,11 +181,30 @@ export function createProjectsView(dom: Dom) {
         cb.checked = forced || selectedProjectChatIds.has(c.id);
 
         cb.addEventListener("change", () => {
-          if (isBusy) return;
+          // If the project is selected, chat selection is forced on.
+          // (User can’t uncheck an individual chat while the whole project is selected.)
           if (selectedProjectIds.has(p.gizmoId)) {
             cb.checked = true;
+            if (isBusy()) {
+              void debugTrace.append({
+                scope: "projects",
+                kind: "debug",
+                message: "ui:toggleChat blocked (project forced) while busy",
+                meta: { gizmoId: p.gizmoId, chatId: c.id },
+              });
+            }
             return;
           }
+
+          if (isBusy()) {
+            void debugTrace.append({
+              scope: "projects",
+              kind: "debug",
+              message: "ui:toggleChat while busy",
+              meta: { gizmoId: p.gizmoId, chatId: c.id, checked: cb.checked },
+            });
+          }
+
           onToggleChat(p, c.id, cb.checked);
           afterChatToggle();
         });
@@ -188,6 +239,8 @@ export function createProjectsView(dom: Dom) {
 
       dom.projectsListEl.appendChild(li);
     }
+
+    restoreOpenState();
   }
 
   function renderConfirmPreview(args: {

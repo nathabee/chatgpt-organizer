@@ -9,38 +9,14 @@ import { createLogsView } from "./view";
 
 import * as actionLog from "../../../shared/actionLog";
 import * as debugTrace from "../../../shared/debugTrace";
-import type { DevConfig } from "../../../shared/devConfig";
-import { DEV_CONFIG_KEY, DEFAULT_DEV_CONFIG } from "../../../shared/devConfig";
-import { storageGet, storageSet } from "../../../shared/platform/storage";
+import {
+  ensureDevConfigLoaded,
+  getDevConfigSnapshot,
+  setDevConfig,
+  resetDevConfigDefaults,
+} from "../../../shared/devConfigStore";
 
 type Bus = ReturnType<typeof createBus>;
-
-
-async function loadDevConfig(): Promise<DevConfig> {
-  const obj = await storageGet(DEV_CONFIG_KEY);
-  const raw = (obj as any)[DEV_CONFIG_KEY] as Partial<DevConfig> | undefined;
-
-  return {
-    traceScope: raw?.traceScope ?? DEFAULT_DEV_CONFIG.traceScope,
-    stopAfterOutOfScopeProjects:
-      typeof raw?.stopAfterOutOfScopeProjects === "number" && raw.stopAfterOutOfScopeProjects >= 0
-        ? Math.floor(raw.stopAfterOutOfScopeProjects)
-        : DEFAULT_DEV_CONFIG.stopAfterOutOfScopeProjects,
-  };
-}
-
-
-async function saveDevConfig(next: DevConfig): Promise<void> {
-  await storageSet({ [DEV_CONFIG_KEY]: next });
-}
-
-
-async function applyConfigToUI(dom: Dom) {
-  if (!dom.cfgTraceScopeEl || !dom.cfgStopAfterOutOfScopeEl) return;
-  const cfg = await loadDevConfig();
-  dom.cfgTraceScopeEl.checked = cfg.traceScope;
-  dom.cfgStopAfterOutOfScopeEl.value = String(cfg.stopAfterOutOfScopeProjects);
-}
 
 function setCfgStatus(dom: Dom, text: string) {
   if (!dom.cfgStatusEl) return;
@@ -50,22 +26,37 @@ function setCfgStatus(dom: Dom, text: string) {
   }, 1200);
 }
 
-async function readUI(dom: Dom): Promise<DevConfig> {
-  const prev = await loadDevConfig();
+async function applyConfigToUI(dom: Dom) {
+  // Config UI is optional in some builds
+  if (!dom.cfgTraceScopeEl || !dom.cfgStopAfterOutOfScopeEl) return;
+
+  await ensureDevConfigLoaded();
+  const cfg = getDevConfigSnapshot();
+
+  dom.cfgTraceScopeEl.checked = !!cfg.traceScope;
+  dom.cfgStopAfterOutOfScopeEl.value = String(cfg.stopAfterOutOfScopeProjects ?? 0);
+}
+
+async function readCfgFromUI(dom: Dom) {
+  await ensureDevConfigLoaded();
+  const prev = getDevConfigSnapshot();
+
+  // If config UI is missing, return previous snapshot as-is
   if (!dom.cfgTraceScopeEl || !dom.cfgStopAfterOutOfScopeEl) return prev;
 
   const stopN = Math.max(0, Math.floor(Number(dom.cfgStopAfterOutOfScopeEl.value || "0")));
-  return {
+  const next = {
+    ...prev,
     traceScope: !!dom.cfgTraceScopeEl.checked,
     stopAfterOutOfScopeProjects: Number.isFinite(stopN) ? stopN : prev.stopAfterOutOfScopeProjects,
   };
+
+  return next;
 }
 
 export function createLogsTab(dom: Dom, _bus: Bus) {
   const model = createLogsModel();
   const view = createLogsView(dom);
-
-   
 
   async function refreshAudit() {
     view.setAuditStatus("Loading…");
@@ -206,80 +197,78 @@ export function createLogsTab(dom: Dom, _bus: Bus) {
     // audit
     dom.btnLogsRefresh.addEventListener("click", () => {
       if (getBusy()) return;
-      refreshAudit().catch(() => { });
+      refreshAudit().catch(() => {});
     });
 
     dom.btnLogsTrim.addEventListener("click", () => {
       if (getBusy()) return;
-      doTrimAudit().catch(() => { });
+      doTrimAudit().catch(() => {});
     });
 
     dom.btnLogsClear.addEventListener("click", () => {
       if (getBusy()) return;
-      doClearAudit().catch(() => { });
+      doClearAudit().catch(() => {});
     });
 
     dom.btnLogsExport.addEventListener("click", () => {
       if (getBusy()) return;
-      doExportAudit().catch(() => { });
+      doExportAudit().catch(() => {});
     });
 
     // debug
     dom.logsCbDebugEl.addEventListener("change", () => {
       if (getBusy()) return;
-      setDebug(dom.logsCbDebugEl.checked).catch(() => { });
+      setDebug(dom.logsCbDebugEl.checked).catch(() => {});
     });
 
     dom.btnDebugRefresh.addEventListener("click", () => {
       if (getBusy()) return;
-      refreshDebug().catch(() => { });
+      refreshDebug().catch(() => {});
     });
 
     dom.btnDebugClear.addEventListener("click", () => {
       if (getBusy()) return;
-      doClearDebug().catch(() => { });
+      doClearDebug().catch(() => {});
     });
 
     dom.btnDebugExport.addEventListener("click", () => {
       if (getBusy()) return;
-      doExportDebug().catch(() => { });
+      doExportDebug().catch(() => {});
     });
+
     // config (optional)
     if (dom.cfgTraceScopeEl && dom.cfgStopAfterOutOfScopeEl && dom.btnCfgResetDefaults) {
       dom.cfgTraceScopeEl.addEventListener("change", async () => {
-        const cfg = await readUI(dom);
-        await saveDevConfig(cfg);
+        const cfg = await readCfgFromUI(dom);
+        await setDevConfig(cfg);
         setCfgStatus(dom, "Saved");
       });
 
       dom.cfgStopAfterOutOfScopeEl.addEventListener("change", async () => {
-        const cfg = await readUI(dom);
-        await saveDevConfig(cfg);
-        dom.cfgStopAfterOutOfScopeEl!.value = String(cfg.stopAfterOutOfScopeProjects);
+        const cfg = await readCfgFromUI(dom);
+        await setDevConfig(cfg);
+        await applyConfigToUI(dom); // normalize back into input
         setCfgStatus(dom, "Saved");
       });
 
       dom.btnCfgResetDefaults.addEventListener("click", async () => {
-        await saveDevConfig(DEFAULT_DEV_CONFIG);
+        await resetDevConfigDefaults();
         await applyConfigToUI(dom);
         setCfgStatus(dom, "Reset");
       });
     }
-
-
   }
 
   return {
     id: "logs" as const,
     bind,
     mount() {
-      bootDebugToggle().catch(() => { });
-      refreshAudit().catch(() => { });
-      refreshDebug().catch(() => { });
-      applyConfigToUI(dom).catch(() => { });
-
+      bootDebugToggle().catch(() => {});
+      refreshAudit().catch(() => {});
+      refreshDebug().catch(() => {});
+      applyConfigToUI(dom).catch(() => {});
     },
-    unmount() { },
-    dispose() { },
+    unmount() {},
+    dispose() {},
   };
 }

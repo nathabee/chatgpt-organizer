@@ -112,11 +112,48 @@ Read-only, zero risk.
 
 
 
----
+--- 
 
-## PATCHES
- 
-Here is a clean, **project-grade epic** you can drop directly into `version.md` or your planning docs. It reflects exactly what you built (no marketing fluff, no wishful thinking).
+## v0.1.16 → v0.1.17 — Epic: Execution stability, logging discipline, demo parity
+
+### Scope
+
+Stabilization and cleanup release focused on correctness, not new features.
+
+### What was done
+
+- **Busy / execution semantics**
+  - Clarified: *one user action = one busy window*
+  - Removed implicit nesting assumptions
+  - Consistent use of `setBusy`, `getBusy`, `withBusy`
+
+- **Event isolation between tabs**
+  - Prevented cross-tab handling of delete/move progress events
+  - Each tab now processes only the runs it initiated
+
+- **Logging & tracing discipline**
+  - Enforced CGO logging architecture (trace / debug / action log)
+  - Removed reliance on ad-hoc `console.log` in extension logic
+  - Demo logging identifiedF kept strictly for demo runtime only
+
+- **Demo build correctness**
+  - Fixed version mismatch during testing (0.1.16 vs 0.1.17)
+  - Demo is now Chrome-free and TypeScript-checked
+  - Platform seams (runtime, storage) correctly mocked
+
+- **Limits & configuration audit**
+  - Identified all hardcoded limits (logs, debug, failure caps)
+  - Confirmed which are configurable vs hard-capped
+  - Refactor deferred to a dedicated follow-up epic
+
+### Outcome
+
+- More predictable UI behavior
+- Correct execution reports per tab
+- Reliable debugging via structured logs
+- Demo accurately reflects extension behavior
+
+
 
 ---
 

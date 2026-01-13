@@ -14,6 +14,7 @@ import { createLogsTab } from "./tabs/logs/tab";
 import { createStatsTab } from "./tabs/stats/tab";
 import { storageGet, storageSet } from "../shared/platform/storage";
 import { getBusy } from "./app/state";
+import * as debugTrace from "../shared/debugTrace";
 
 const SCOPE_KEY = "cgo.scopeUpdatedSince"; // YYYY-MM-DD
 
@@ -157,6 +158,13 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
 
   async function refreshAllUsingCurrentScope() {
     if (getBusy()) return;
+    void debugTrace.append({
+      scope: "panel",
+      kind: "debug",
+      message: "refreshAll:start",
+    });
+
+
 
     singleTab.refresh();
     const ok1 = await waitNotBusy();
@@ -164,6 +172,13 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
 
     projectsTab.refresh();
     await waitNotBusy();
+
+    void debugTrace.append({
+      scope: "panel",
+      kind: "debug",
+      message: "refreshAll:done",
+    });
+
   }
 
   function openScopeDialog() {
@@ -194,9 +209,37 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
 
   // wire buttons
 
-  window.addEventListener("cgo:refreshAll", () => {
-    refreshAllUsingCurrentScope().catch(() => { });
+  window.addEventListener("cgo:refreshAll", (e: Event) => {
+    const ev = e as CustomEvent<{ reason?: string }>;
+    const reason = ev.detail?.reason ?? "unknown";
+
+    void debugTrace.append({
+      scope: "panel",
+      kind: "debug",
+      message: "event:cgo:refreshAll",
+      meta: { reason },
+    });
+
+    if (reason !== "user") {
+      void debugTrace.append({
+        scope: "panel",
+        kind: "debug",
+        message: "event:cgo:refreshAll blocked (reason != user)",
+        meta: { reason },
+      });
+      return;
+    }
+
+    refreshAllUsingCurrentScope().catch((err) => {
+      void debugTrace.append({
+        scope: "panel",
+        kind: "error",
+        message: "refreshAllUsingCurrentScope failed",
+        error: String((err as any)?.message || err),
+      });
+    });
   });
+
 
 
   dom.btnScopeChange.addEventListener("click", () => {

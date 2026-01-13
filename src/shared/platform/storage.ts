@@ -4,7 +4,7 @@
  * Demo build will alias this module to an in-memory or localStorage-backed implementation.
  */
 
-console.log("[cgo-demo] original storage loaded");
+// console.log("[cgo] original storage loaded");
 
 
 

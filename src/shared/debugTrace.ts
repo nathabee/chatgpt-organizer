@@ -1,12 +1,13 @@
 // src/shared/debugTrace.ts
 import { storageGet, storageSet, storageRemove } from "./platform/storage";
+import { ensureDevConfigLoaded, getDevConfigSnapshot } from "./devConfigStore";
 
 
 export type DebugTraceEntry = {
   id: string; // unique
   ts: number; // Date.now()
 
-  scope: "background" | "panel" | "single" | "projects" | "organize" | "search" | "stats" | "logs";
+  scope: "background" | "panel" | "single" | "projects" | "organize" | "search" | "stats" | "logs" | "demo";
   kind: "debug" | "info" | "error";
 
   message: string;
@@ -22,7 +23,7 @@ const TRACE_KEY = "cgo.debugTrace";
 const ENABLED_KEY = "cgo.debugTrace.enabled";
 const DEFAULT_MAX = 2000;
 
- 
+
 
 function makeId(): string {
   return `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -87,7 +88,14 @@ export async function append(
   const enabled = await isEnabled();
   if (!enabled) return { total: 0 };
 
-  const max = clampInt(opts?.max ?? DEFAULT_MAX, 100, 50000);
+  let max = opts?.max;
+  if (typeof max !== "number") {
+    await ensureDevConfigLoaded();
+    max = getDevConfigSnapshot().debugTraceMax;
+  }
+  max = clampInt(max ?? DEFAULT_MAX, 100, 50000);
+
+
   const incoming = (Array.isArray(entryOrEntries) ? entryOrEntries : [entryOrEntries]).map((e) => ({
     ...e,
     id: makeId(),
@@ -116,7 +124,7 @@ export async function list(opts?: ListOptions): Promise<ListResult> {
   return { total, items };
 }
 
- 
+
 
 export async function exportJson(opts?: { pretty?: boolean }): Promise<string> {
   const all = await getRaw();

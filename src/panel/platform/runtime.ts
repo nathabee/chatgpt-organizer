@@ -3,7 +3,7 @@ import type { AnyEvent } from "../../shared/messages";
 import type { AnyRequest } from "../../shared/messages/requests";
 
 
-console.log("[cgo-demo] original runtime loaded");
+// console.log("[cgo-demo] original runtime loaded");
 
 /**
  * Panel runtime wrapper.

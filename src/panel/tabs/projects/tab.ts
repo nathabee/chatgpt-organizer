@@ -2,18 +2,20 @@
 import { MSG, type AnyEvent } from "../../../shared/messages";
 import type { ProjectItem } from "../../../shared/types";
 import * as actionLog from "../../../shared/actionLog";
-import type { PanelCache } from "../../app/cache";
+import * as debugTrace from "../../../shared/debugTrace";
 
+import type { PanelCache } from "../../app/cache";
 import type { Dom } from "../../app/dom";
-import type { createBus } from "../../app/bus"; // adjust if export differs
+import type { createBus } from "../../app/bus";
 import { clampInt, formatMs } from "../../app/format";
-import { getBusy, setBusy } from "../../app/state";
+import { getBusy, setBusy, withBusy } from "../../app/state";
 import { createProjectsModel } from "./model";
 import { createProjectsView } from "./view";
 import { incDeletedChats, incDeletedProjects } from "../../app/statsStore";
 import { createProjectBox } from "../../components/createProjectBox";
-import { requestRefreshAll } from "../../app/refreshAll"; // adjust relative path
 import { runtimeSend } from "../../platform/runtime";
+import { ensureDevConfigLoaded, getDevConfigSnapshot } from "../../../shared/devConfigStore";
+
 type Bus = ReturnType<typeof createBus>;
 
 export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
@@ -25,23 +27,20 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
   let execOk = 0;
   let execFail = 0;
   let execTotal = 0;
+  let execActive = false; // only handle EXECUTE_DELETE events when Projects initiated the run
 
   // project delete progress state
   let projectRunId: string | null = null;
   let projOk = 0;
   let projFail = 0;
   let projTotal = 0;
-  let failureLogged = 0;
-  const MAX_FAILURE_LOGS_PER_RUN = 50;
 
-  // IMPORTANT:
-  // Scope source of truth is the panel controller (panel.ts) which pushed it into cache meta.
-  // Do NOT read scope from the dialog input as the main source; it can contain unvalidated edits.
+  let failureLogged = 0;
+  let maxFailureLogsPerRun = 50;
+
   function getScopeYmd(): string {
     const fromCache = typeof cache.getScopeUpdatedSince === "function" ? cache.getScopeUpdatedSince() : "";
     if (fromCache) return fromCache;
-
-    // fallback only (should rarely be needed)
     return dom.scopeDateEl?.value || "";
   }
 
@@ -59,82 +58,19 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       projects: model.projects,
       selectedProjectIds: model.selectedProjectIds,
       selectedProjectChatIds: model.selectedProjectChatIds,
-      isBusy: getBusy(),
+      isBusy: () => getBusy(),
       onToggleProject: (p, checked) => model.toggleProjectSelection(p, checked),
       onToggleChat: (_p, chatId, checked) => model.toggleChatSelection(chatId, checked),
       afterProjectToggle: () => {
         refreshCounts();
-        rerender(); // needed to reflect forced checkboxes
+        rerender();
       },
       afterChatToggle: () => {
-        refreshCounts(); // no rerender => <details> stays open
+        refreshCounts();
       },
     });
 
     refreshCounts();
-  }
-
-  async function listProjects() {
-    view.showConfirm(false);
-    view.writeExecOut("");
-
-    view.setStatus("Projects loading… 0 project(s), 0 chat(s)");
-    setBusy(dom, true);
-
-    const limitProjects = clampInt(dom.projectsLimitEl.value, 1, 5000, 50);
-    const uiMaxChatsPerProject = clampInt(dom.projectsChatsLimitEl.value, 1, 5000, 200);
-
-    // Scope is global and stored in cache meta by panel.ts
-    const scopeYmd = getScopeYmd(); // "YYYY-MM-DD" or ""
-
-    const conversationsPerGizmo = 5; // sidebar hint only
-    const perProjectLimit = clampInt(dom.projectsChatsLimitEl.value, 1, 50000, 5000);
-
-    console.log("[CGO][scope] panel->background LIST_GIZMO_PROJECTS", {
-      scopeYmd,
-      limitProjects,
-      conversationsPerGizmo,
-      perProjectLimit,
-      uiMaxChatsPerProject,
-    });
-
-    
-    const res = await runtimeSend({
-      type: MSG.LIST_GIZMO_PROJECTS,
-      limit: limitProjects,
-      conversationsPerGizmo,
-      perProjectLimit,
-      scopeYmd,
-    }).catch(() => null);
-
-
-
-    setBusy(dom, false);
-
-    if (!res) {
-      view.setStatus("Projects loading failed (no response).");
-      return;
-    }
-    if (!res.ok) {
-      view.setStatus(`Projects loading failed: ${res.error}`);
-      return;
-    }
-
-    const raw = (res.projects || []) as ProjectItem[];
-    model.setProjects(
-      raw.map((p) => ({
-        ...p,
-        conversations: (p.conversations || []).slice(0, uiMaxChatsPerProject),
-      }))
-    );
-
-    cache.setProjects(model.projects, {
-      limitProjects,
-      chatsPerProject: uiMaxChatsPerProject,
-    });
-
-    rerender();
-    view.setStatus("");
   }
 
   function openConfirm() {
@@ -143,6 +79,7 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
 
     if (!selectedChats.length && !selectedProjects.length) {
       view.writeExecOut("Nothing selected.");
+      view.showConfirm(false);
       return;
     }
 
@@ -155,49 +92,91 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
     view.showConfirm(true);
   }
 
-  function startChatDeleteProgress(total: number) {
-    execRunId = null;
-    execOk = 0;
-    execFail = 0;
-    execTotal = total;
-    failureLogged = 0;
-
-    view.showChatsExecProgress(true);
-    dom.projectsChatsExecProgressEl.max = total;
-    dom.projectsChatsExecProgressEl.value = 0;
-    dom.projectsChatsExecProgressTextEl.textContent = `Deleting chats… 0/${total}`;
-    view.setStatus("Deleting chats…");
+  function resetChatRunUi() {
+    view.showChatsExecProgress(false);
   }
 
-  function startProjectDeleteProgress(total: number) {
-    projectRunId = null;
-    projOk = 0;
-    projFail = 0;
-    projTotal = total;
-    failureLogged = 0;
-
-    view.showProjectsExecProgress(true);
-    dom.projectsProjectsExecProgressEl.max = total;
-    dom.projectsProjectsExecProgressEl.value = 0;
-    dom.projectsProjectsExecProgressTextEl.textContent = `Deleting projects… 0/${total}`;
+  function resetProjectRunUi() {
+    view.showProjectsExecProgress(false);
   }
 
-  async function executeDeleteConversationIds(ids: string[]) {
-    if (!ids.length) return;
-    startChatDeleteProgress(ids.length);
-    setBusy(dom, true);
-    runtimeSend({ type: MSG.EXECUTE_DELETE, ids, throttleMs: 600 }).catch(() => null);
+  async function listProjects() {
+    await withBusy(dom, async () => {
+      view.showConfirm(false);
+      view.writeExecOut("");
+      view.setStatus("Projects loading… 0 project(s), 0 chat(s)");
 
+      const limitProjects = clampInt(dom.projectsLimitEl.value, 1, 5000, 50);
+      const uiMaxChatsPerProject = clampInt(dom.projectsChatsLimitEl.value, 1, 5000, 200);
+
+      const scopeYmd = getScopeYmd();
+
+      const conversationsPerGizmo = 5;
+      const perProjectLimit = clampInt(dom.projectsChatsLimitEl.value, 1, 50000, 5000);
+
+      void debugTrace.append({
+        scope: "projects",
+        kind: "debug",
+        message: "listProjects:start",
+        meta: { limitProjects, uiMaxChatsPerProject, conversationsPerGizmo, perProjectLimit, scopeYmd },
+      });
+
+      const res = await runtimeSend({
+        type: MSG.LIST_GIZMO_PROJECTS,
+        limit: limitProjects,
+        conversationsPerGizmo,
+        perProjectLimit,
+        scopeYmd,
+      }).catch((err) => {
+        void debugTrace.append({
+          scope: "projects",
+          kind: "error",
+          message: "listProjects:runtimeSend failed",
+          error: String((err as any)?.message || err),
+        });
+        return null;
+      });
+
+      if (!res) {
+        view.setStatus("Projects loading failed (no response).");
+        return;
+      }
+      if (!res.ok) {
+        view.setStatus(`Projects loading failed: ${res.error}`);
+        void debugTrace.append({
+          scope: "projects",
+          kind: "error",
+          message: "listProjects:failed",
+          error: String(res.error || "unknown error"),
+        });
+        return;
+      }
+
+      const raw = (res.projects || []) as ProjectItem[];
+      model.setProjects(
+        raw.map((p) => ({
+          ...p,
+          conversations: (p.conversations || []).slice(0, uiMaxChatsPerProject),
+        }))
+      );
+
+      cache.setProjects(model.projects, { limitProjects, chatsPerProject: uiMaxChatsPerProject });
+
+      rerender();
+      view.setStatus("");
+
+      void debugTrace.append({
+        scope: "projects",
+        kind: "debug",
+        message: "listProjects:done",
+        meta: { projects: model.projects.length, chats: model.getTotalChats(), limitProjects, uiMaxChatsPerProject },
+      });
+    });
   }
 
-  async function executeDeleteProjects(gizmoIds: string[]) {
-    if (!gizmoIds.length) return;
-    startProjectDeleteProgress(gizmoIds.length);
-    runtimeSend({ type: MSG.DELETE_PROJECTS, gizmoIds }).catch(() => null);
+  function startDeleteRuns() {
+    if (getBusy()) return;
 
-  }
-
-  async function runExecute() {
     const selectedChats = Array.from(model.selectedProjectChatIds);
     const selectedProjects = Array.from(model.selectedProjectIds);
 
@@ -206,43 +185,117 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       return;
     }
 
-    // Keep plan for later project deletion (after chat deletes)
-    (window as any).__cgo_projectsDeletePlan = { selectedProjects };
-
-    view.writeExecOut("");
-    view.appendExecOut(`EXECUTE: deleting ${selectedChats.length} conversation(s)…`);
-    if (selectedProjects.length) {
-      view.appendExecOut(`Then attempting to delete ${selectedProjects.length} project(s) (only if empty).`);
+    if (!dom.projectsCbConfirmEl.checked) {
+      view.writeExecOut("Blocked: tick the confirmation checkbox.");
+      return;
     }
 
-    await executeDeleteConversationIds(selectedChats);
+    view.showConfirm(false);
+    view.writeExecOut("");
+
+    resetChatRunUi();
+    resetProjectRunUi();
+
+    failureLogged = 0;
+
+    // event-driven run: busy stays on until DONE(s)
+    setBusy(dom, true);
+
+    void debugTrace.append({
+      scope: "projects",
+      kind: "debug",
+      message: "deleteRuns:start",
+      meta: { selectedChats: selectedChats.length, selectedProjects: selectedProjects.length },
+    });
+
+    // ---- start chat delete run ----
+    if (selectedChats.length) {
+      execRunId = null;
+      execOk = 0;
+      execFail = 0;
+      execTotal = selectedChats.length;
+      execActive = true;
+
+
+      view.showChatsExecProgress(true);
+      dom.projectsChatsExecProgressEl.max = execTotal || 1;
+      dom.projectsChatsExecProgressEl.value = 0;
+      dom.projectsChatsExecProgressTextEl.textContent = `Starting chat delete… 0/${execTotal}`;
+
+      void runtimeSend({
+        type: MSG.EXECUTE_DELETE,
+        ids: selectedChats,
+      }).catch((err) => {
+        const em = String((err as any)?.message || err);
+
+        void debugTrace.append({
+          scope: "projects",
+          kind: "error",
+          message: "deleteChats:start failed",
+          error: em,
+        });
+
+        view.appendExecOut(`✗ Start chat delete failed: ${em}`);
+
+        // if only chats were selected, unlock immediately
+        if (!selectedProjects.length) {
+          execTotal = 0;
+          execRunId = null;
+          execActive = false;
+
+          setBusy(dom, false);
+        }
+      });
+    }
+
+    // ---- start project delete run ----
+    if (selectedProjects.length) {
+      projectRunId = null;
+      projOk = 0;
+      projFail = 0;
+      projTotal = selectedProjects.length;
+
+      view.showProjectsExecProgress(true);
+      dom.projectsProjectsExecProgressEl.max = projTotal || 1;
+      dom.projectsProjectsExecProgressEl.value = 0;
+      dom.projectsProjectsExecProgressTextEl.textContent = `Starting project delete… 0/${projTotal}`;
+
+      void runtimeSend({
+        type: MSG.DELETE_PROJECTS,
+        gizmoIds: selectedProjects,
+      }).catch((err) => {
+        const em = String((err as any)?.message || err);
+
+        void debugTrace.append({
+          scope: "projects",
+          kind: "error",
+          message: "deleteProjects:start failed",
+          error: em,
+        });
+
+        view.appendExecOut(`✗ Start project delete failed: ${em}`);
+
+        // if only projects were selected, unlock immediately
+        if (!selectedChats.length) {
+          projTotal = 0;
+          projectRunId = null;
+          setBusy(dom, false);
+        }
+      });
+    }
+
+    // clear selection immediately to avoid stale selection state after deletes
+    model.clearSelections();
+    refreshCounts();
+    rerender();
   }
 
-  // progress events via bus
   const off = bus.on((msg: AnyEvent) => {
-    // show live counters while loading
-    if ((msg as any)?.type === MSG.LIST_GIZMO_PROJECTS_PROGRESS) {
-      const m = msg as any;
-      const foundProjects = Number(m.foundProjects || 0);
-      const foundConversations = Number(m.foundConversations || 0);
-      view.setStatus(`Projects loading… ${foundProjects} project(s), ${foundConversations} chat(s)`);
-      return;
-    }
-
-    if ((msg as any)?.type === MSG.LIST_GIZMO_PROJECTS_DONE) {
-      const m = msg as any;
-      const totalProjects = Number(m.totalProjects || 0);
-      const totalConversations = Number(m.totalConversations || 0);
-      const elapsedMs = Number(m.elapsedMs || 0);
-      void totalProjects;
-      void totalConversations;
-      void elapsedMs;
-      view.setStatus("");
-      return;
-    }
-
-    // Chat delete progress (projects context)
+    // -------------------------
+    // Chat delete progress/done
+    // -------------------------
     if ((msg as any)?.type === MSG.EXECUTE_DELETE_PROGRESS) {
+      if (!execActive) return;
       const m = msg as any;
 
       if (!execRunId) execRunId = m.runId;
@@ -261,50 +314,61 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       if (ok) execOk++;
       else execFail++;
 
-      dom.projectsChatsExecProgressEl.max = total;
-      dom.projectsChatsExecProgressEl.value = Math.min(i, total);
+      dom.projectsChatsExecProgressEl.max = total || execTotal || 1;
+      dom.projectsChatsExecProgressEl.value = Math.min(i, total || execTotal || 1);
       dom.projectsChatsExecProgressTextEl.textContent =
         `Deleting chats ${i}/${total} · ok ${execOk} · failed ${execFail} · last ${formatMs(lastOpMs)}`;
 
-      const title =
-        model.projects.flatMap((p) => p.conversations || []).find((c) => c.id === id)?.title || id.slice(0, 8);
+      // find title for logging
+      let title = id.slice(0, 8);
+      for (const p of model.projects) {
+        const hit = (p.conversations || []).find((c) => c.id === id);
+        if (hit?.title) {
+          title = hit.title;
+          break;
+        }
+      }
 
-      const line =
-        ok
-          ? `✓ ${title} (${id.slice(0, 8)}) — ${status ?? "OK"} — ${formatMs(lastOpMs)} — elapsed ${formatMs(elapsedMs)}`
-          : `✗ ${title} (${id.slice(0, 8)}) — ${status ?? "ERR"} — attempt ${attempt} — ${error || "failed"} — elapsed ${formatMs(elapsedMs)}`;
+      const line = ok
+        ? `✓ ${title} (${id.slice(0, 8)}) — ${status ?? "OK"} — ${formatMs(lastOpMs)} — elapsed ${formatMs(elapsedMs)}`
+        : `✗ ${title} (${id.slice(0, 8)}) — ${status ?? "ERR"} — attempt ${attempt} — ${error || "failed"} — elapsed ${formatMs(elapsedMs)}`;
 
       view.appendExecOut(line);
 
+      if (!ok && failureLogged < maxFailureLogsPerRun) {
+        failureLogged++;
+        void actionLog.append({
+          kind: "error",
+          scope: "projects",
+          message: `Delete chat failed: ${title} (${id.slice(0, 8)})`,
+          ok: false,
+          status,
+          error: error || "failed",
+          chatId: id,
+          chatTitle: title,
+          meta: { attempt, elapsedMs, lastOpMs },
+        });
+      }
+
       if (ok) {
-        model.removeChatEverywhere(id);
         cache.removeChat(id);
-        incDeletedChats(1).catch(() => { });
+        model.setProjects(
+          model.projects.map((p) => ({
+            ...p,
+            conversations: (p.conversations || []).filter((c) => c.id !== id),
+          }))
+        );
+
+        void incDeletedChats(1);
+        refreshCounts();
         rerender();
       }
 
-      if (!ok && failureLogged < MAX_FAILURE_LOGS_PER_RUN) {
-        failureLogged++;
-
-        actionLog
-          .append({
-            kind: "error",
-            scope: "projects",
-            message: `Delete chat failed: ${title} (${id.slice(0, 8)})`,
-            ok: false,
-            status,
-            error: error || "failed",
-            chatId: id,
-            chatTitle: title,
-            meta: { attempt, elapsedMs, lastOpMs },
-          })
-          .catch(() => { });
-      }
       return;
     }
 
-    // Chat delete done (projects context)
     if ((msg as any)?.type === MSG.EXECUTE_DELETE_DONE) {
+      if (!execActive) return;
       const m = msg as any;
 
       if (!execRunId) execRunId = m.runId;
@@ -315,62 +379,34 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       const failCount = Number(m.failCount || execFail);
       const elapsedMs = Number(m.elapsedMs || 0);
 
-      actionLog
-        .append({
-          kind: "run",
-          scope: "projects",
-          message: `Projects chat-delete run finished: ok ${okCount}/${total}, failed ${failCount}, elapsed ${formatMs(
-            elapsedMs
-          )}`,
-          ok: failCount === 0,
-          meta: { total, okCount, failCount, elapsedMs },
-        })
-        .catch(() => { });
+      void actionLog.append({
+        kind: "run",
+        scope: "projects",
+        message: `Chat delete run finished: ok ${okCount}/${total}, failed ${failCount}, elapsed ${formatMs(elapsedMs)}`,
+        ok: failCount === 0,
+        meta: { total, okCount, failCount, elapsedMs },
+      });
 
-      failureLogged = 0;
-
-      view.setStatus("Chats delete done");
       dom.projectsChatsExecProgressTextEl.textContent =
         `Done · ok ${okCount}/${total} · failed ${failCount} · elapsed ${formatMs(elapsedMs)}`;
 
-      setBusy(dom, false);
-
-      // Attempt project deletions now (only if empty)
-      const plan = (window as any).__cgo_projectsDeletePlan as { selectedProjects: string[] } | undefined;
-      (window as any).__cgo_projectsDeletePlan = undefined;
-
-      if (plan?.selectedProjects?.length) {
-        const deletable: string[] = [];
-
-        for (const pid of plan.selectedProjects) {
-          const p = model.projects.find((x) => x.gizmoId === pid);
-          if (!p) continue;
-
-          const remaining = (p.conversations || []).length;
-          if (remaining === 0) deletable.push(pid);
-          else view.appendExecOut(`SKIP PROJECT: ${p.title} — ${remaining} chat(s) still present.`);
-        }
-
-        if (deletable.length) {
-          view.appendExecOut("");
-          view.appendExecOut(`Deleting ${deletable.length} project(s)…`);
-
-          (window as any).__cgo_projectNameById = Object.fromEntries(
-            deletable.map((pid) => {
-              const p = model.projects.find((x) => x.gizmoId === pid);
-              return [pid, p?.title || pid];
-            })
-          );
-
-          executeDeleteProjects(deletable);
-        }
-      }
-
       execRunId = null;
+      execOk = 0;
+      execFail = 0;
+      execTotal = 0;
+      execActive = false;
+
+
+      // unlock only if project run is not active
+      if (!projectRunId && projTotal === 0) {
+        setBusy(dom, false);
+      }
       return;
     }
 
-    // Project delete progress
+    // -------------------------
+    // Project delete progress/done
+    // -------------------------
     if ((msg as any)?.type === MSG.DELETE_PROJECTS_PROGRESS) {
       const m = msg as any;
 
@@ -389,53 +425,43 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       if (ok) projOk++;
       else projFail++;
 
-      dom.projectsProjectsExecProgressEl.max = total;
-      dom.projectsProjectsExecProgressEl.value = Math.min(i, total);
+      dom.projectsProjectsExecProgressEl.max = total || projTotal || 1;
+      dom.projectsProjectsExecProgressEl.value = Math.min(i, total || projTotal || 1);
       dom.projectsProjectsExecProgressTextEl.textContent =
         `Deleting projects ${i}/${total} · ok ${projOk} · failed ${projFail} · last ${formatMs(lastOpMs)}`;
 
-      const nameMap = (window as any).__cgo_projectNameById as Record<string, string> | undefined;
-      const name = nameMap?.[gizmoId] || model.projects.find((p) => p.gizmoId === gizmoId)?.title || gizmoId;
+      const title = model.projects.find((p) => p.gizmoId === gizmoId)?.title || gizmoId;
+
+      const line = ok
+        ? `✓ ${title} (${gizmoId}) — ${status ?? "OK"} — ${formatMs(lastOpMs)} — elapsed ${formatMs(elapsedMs)}`
+        : `✗ ${title} (${gizmoId}) — ${status ?? "ERR"} — ${error || "failed"} — elapsed ${formatMs(elapsedMs)}`;
+
+      view.appendExecOut(line);
+
+      if (!ok && failureLogged < maxFailureLogsPerRun) {
+        failureLogged++;
+        void actionLog.append({
+          kind: "error",
+          scope: "projects",
+          message: `Delete project failed: ${title} (${gizmoId})`,
+          ok: false,
+          status,
+          error: error || "failed",
+          meta: { elapsedMs, lastOpMs },
+        });
+      }
 
       if (ok) {
-        view.appendExecOut(
-          `✓ PROJECT DELETED: ${name} (${gizmoId}) — ${status ?? "OK"} — ${formatMs(lastOpMs)} — elapsed ${formatMs(
-            elapsedMs
-          )}`
-        );
-        model.removeProject(gizmoId);
         cache.removeProject(gizmoId);
-        incDeletedProjects(1).catch(() => { });
+        model.setProjects(model.projects.filter((p) => p.gizmoId !== gizmoId));
+        void incDeletedProjects(1);
+        refreshCounts();
         rerender();
-      } else {
-        view.appendExecOut(
-          `✗ PROJECT FAILED: ${name} (${gizmoId}) — ${status ?? ""} — ${error || "failed"} — elapsed ${formatMs(
-            elapsedMs
-          )}`
-        );
-
-        if (failureLogged < MAX_FAILURE_LOGS_PER_RUN) {
-          failureLogged++;
-          actionLog
-            .append({
-              kind: "error",
-              scope: "projects",
-              message: `Delete project failed: ${name}`,
-              ok: false,
-              status,
-              error: error || "failed",
-              projectId: gizmoId,
-              projectTitle: name,
-              meta: { elapsedMs, lastOpMs },
-            })
-            .catch(() => { });
-        }
       }
 
       return;
     }
 
-    // Project delete done
     if ((msg as any)?.type === MSG.DELETE_PROJECTS_DONE) {
       const m = msg as any;
 
@@ -446,14 +472,29 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
       const okCount = Number(m.okCount || projOk);
       const failCount = Number(m.failCount || projFail);
       const elapsedMs = Number(m.elapsedMs || 0);
-      void total;
-      void elapsedMs;
+
+      void actionLog.append({
+        kind: "run",
+        scope: "projects",
+        message: `Project delete run finished: ok ${okCount}/${total}, failed ${failCount}, elapsed ${formatMs(elapsedMs)}`,
+        ok: failCount === 0,
+        meta: { total, okCount, failCount, elapsedMs },
+      });
 
       dom.projectsProjectsExecProgressTextEl.textContent =
-        `Done · ok ${okCount}/${projTotal || total} · failed ${failCount} · elapsed ${formatMs(elapsedMs)}`;
+        `Done · ok ${okCount}/${total} · failed ${failCount} · elapsed ${formatMs(elapsedMs)}`;
+
+      failureLogged = 0;
 
       projectRunId = null;
-      (window as any).__cgo_projectNameById = undefined;
+      projOk = 0;
+      projFail = 0;
+      projTotal = 0;
+
+      // unlock only if chat run is not active
+      if (!execRunId && execTotal === 0) {
+        setBusy(dom, false);
+      }
       return;
     }
   });
@@ -461,21 +502,15 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
   function bind() {
     dom.btnProjectsDelete.addEventListener("click", () => {
       if (getBusy()) return;
+      view.writeExecOut("");
       openConfirm();
     });
 
     dom.projectsBtnCancelExecute.addEventListener("click", () => view.showConfirm(false));
 
     dom.projectsBtnConfirmExecute.addEventListener("click", () => {
-      if (!dom.projectsCbConfirmEl.checked) {
-        view.writeExecOut("Blocked: tick the confirmation checkbox.");
-        return;
-      }
-      view.showConfirm(false);
-      runExecute().catch((e) => {
-        view.writeExecOut(`Execute crashed: ${e?.message || e}`);
-        setBusy(dom, false);
-      });
+      if (getBusy()) return;
+      startDeleteRuns();
     });
 
     const createBox = createProjectBox({ context: "projects" });
@@ -483,15 +518,46 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
 
     createBox.el.addEventListener("cgo:createProject", (e: Event) => {
       const ev = e as CustomEvent<{ name: string; description: string; context: "projects" | "organize" }>;
-      void (async () => {
-        if (getBusy()) return;
+
+      void debugTrace.append({
+        scope: "projects",
+        kind: "debug",
+        message: "ui:createProject click",
+        meta: {
+          context: ev.detail?.context,
+          name: ev.detail?.name,
+          busy: getBusy(),
+        },
+      });
+
+
+      void withBusy(dom, async () => { 
 
         const { name, description } = ev.detail;
 
         createBox.setBusy(true);
         createBox.setStatus("Creating…");
 
+        void debugTrace.append({
+          scope: "projects",
+          kind: "debug",
+          message: "createProject:start",
+          meta: { name, hasDescription: !!description },
+        });
+
         try {
+
+          void debugTrace.append({
+            scope: "projects",
+            kind: "debug",
+            message: "createProject:runtimeSend CREATE_PROJECT",
+            meta: {
+              name,
+              hasDescription: !!description,
+              busy: getBusy(),
+            },
+          });
+
           const res = await runtimeSend({
             type: MSG.CREATE_PROJECT,
             name,
@@ -499,40 +565,86 @@ export function createProjectsTab(dom: Dom, bus: Bus, cache: PanelCache) {
             prompt_starters: [],
           });
 
-
           if (!res) {
             createBox.setStatus("Create failed (no response).");
+            void actionLog.append({
+              kind: "error",
+              scope: "projects",
+              message: `Create project failed: ${name} (no response)`,
+              ok: false,
+            });
             return;
           }
+
           if (!res.ok) {
             createBox.setStatus(`Create failed: ${res.error || "unknown error"}`);
+            void actionLog.append({
+              kind: "error",
+              scope: "projects",
+              message: `Create project failed: ${name}`,
+              ok: false,
+              error: res.error || "unknown error",
+            });
             return;
           }
 
           createBox.setStatus("Created.");
           createBox.reset();
 
-          // THIS is where you refresh (panel-side)
-          requestRefreshAll();
+          const newProject: ProjectItem = {
+            gizmoId: res.gizmoId,
+            title: res.title || name,
+            href: res.href || "#",
+            conversations: [],
+            extra: { localOnly: true, createdAt: Date.now() },
+          };
 
-          // optional: close the <details>
-          // (createBox.el as HTMLDetailsElement).open = false;
+          const snap = cache.getSnapshot();
+          cache.insertProject(newProject, {
+            limitProjects: snap.meta.projectsLimit ?? clampInt(dom.projectsLimitEl.value, 1, 5000, 50),
+            chatsPerProject: snap.meta.projectsChatsLimit ?? clampInt(dom.projectsChatsLimitEl.value, 1, 5000, 200),
+          });
+
+          model.setProjects(cache.getSnapshot().projects);
+          rerender();
+
+          void actionLog.append({
+            kind: "run",
+            scope: "projects",
+            message: `Created project: ${newProject.title} (${newProject.gizmoId})`,
+            ok: true,
+            meta: { gizmoId: newProject.gizmoId },
+          });
         } catch (err: any) {
-          createBox.setStatus(`Create failed: ${err?.message || err}`);
+          const msg = String(err?.message || err);
+          createBox.setStatus(`Create failed: ${msg}`);
+
+          void actionLog.append({
+            kind: "error",
+            scope: "projects",
+            message: `Create project failed: ${ev.detail?.name || "unknown"}`,
+            ok: false,
+            error: msg,
+          });
+
+          void debugTrace.append({
+            scope: "projects",
+            kind: "error",
+            message: "createProject:exception",
+            error: msg,
+          });
         } finally {
           createBox.setBusy(false);
         }
-      })();
+      });
     });
-
-
   }
 
   return {
     id: "projects" as const,
     refresh() {
       if (getBusy()) return;
-      listProjects().catch((e) => view.setStatus(`Error: ${e?.message || e}`));
+      void listProjects().catch((e) => view.setStatus(`Error: ${String(e?.message || e)}`));
     },
     mount() {
       /* no auto fetch */

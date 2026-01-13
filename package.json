@@ -1,17 +1,19 @@
 {
   "name": "chatgpt-organizer",
   "private": true,
-  "version": "0.1.16",
-  "type": "module",
+  "version": "0.1.17",
+  "type": "module", 
   "scripts": {
     "clean": "rm -rf ./build ./dist",
-    "build": "npm run clean && node scripts/build.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "npm run clean && npm run typecheck && node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "watch:tc": "tsc -p tsconfig.json --noEmit --watch"
   },
   "devDependencies": {
     "@types/chrome": "^0.0.280",
     "esbuild": "^0.25.0",
     "typescript": "^5.6.3"
-  }
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

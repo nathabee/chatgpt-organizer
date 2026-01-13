@@ -7,6 +7,7 @@ export type ListAllChatsRequest = {
   type: typeof MSG.LIST_ALL_CHATS;
   limit?: number; // default 50
   pageSize?: number; // default 50 (max 100)
+  scopeYmd?: string; 
 };
 
 export type ListAllChatsResponse =

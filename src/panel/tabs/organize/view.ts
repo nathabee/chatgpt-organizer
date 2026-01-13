@@ -69,7 +69,7 @@ export function createOrganizeView(dom: Dom) {
     function renderSourceList(args: {
         chats: SourceChat[];
         selectedIds: Set<string>;
-        isBusy: boolean;
+        isBusy(): boolean;
         onToggle(id: string, checked: boolean): void;
     }) {
         dom.organizeSourceListEl.innerHTML = "";
@@ -86,9 +86,10 @@ export function createOrganizeView(dom: Dom) {
             cb.type = "checkbox";
             cb.checked = args.selectedIds.has(c.id);
             cb.addEventListener("change", () => {
-                if (args.isBusy) return;
+                if (args.isBusy()) return;
                 args.onToggle(c.id, cb.checked);
             });
+
             left.appendChild(cb);
 
             const mid = document.createElement("div");
@@ -123,7 +124,7 @@ export function createOrganizeView(dom: Dom) {
     function renderProjectList(args: {
         projects: ProjectItem[];
         targetProjectId: string | null;
-        isBusy: boolean;
+        isBusy(): boolean;
         onPick(projectId: string): void;
     }) {
         dom.organizeProjectListEl.innerHTML = "";
@@ -141,9 +142,10 @@ export function createOrganizeView(dom: Dom) {
             rb.name = "organizeTargetProject";
             rb.checked = args.targetProjectId === p.gizmoId;
             rb.addEventListener("change", () => {
-                if (args.isBusy) return;
+                if (args.isBusy()) return;
                 if (rb.checked) args.onPick(p.gizmoId);
             });
+
             left.appendChild(rb);
 
             const mid = document.createElement("div");

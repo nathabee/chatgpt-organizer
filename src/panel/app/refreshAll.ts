@@ -1,7 +1,8 @@
 // src/panel/app/refreshAll.ts
 
-export function requestRefreshAll() {
-  // Your panel.ts already listens to this:
-  // window.addEventListener("cgo:refreshAll", ...)
-  window.dispatchEvent(new Event("cgo:refreshAll"));
+export type RefreshAllReason = "user" | "auto" | "create" | "unknown";
+
+export function requestRefreshAll(reason: RefreshAllReason = "auto") {
+  // Default is now "auto" so it is blocked by the panel.ts guard.
+  window.dispatchEvent(new CustomEvent("cgo:refreshAll", { detail: { reason } }));
 }

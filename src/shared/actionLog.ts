@@ -2,6 +2,7 @@
 
 import { storageGet, storageSet, storageRemove } from "./platform/storage";
 
+import { ensureDevConfigLoaded, getDevConfigSnapshot } from "./devConfigStore";
 
 
 export type ActionLogKind =
@@ -10,7 +11,7 @@ export type ActionLogKind =
   | "move_chat"
   | "run"
   | "info"
-  | "error" 
+  | "error"
 
 export type ActionLogScope =
   | "single"
@@ -42,10 +43,10 @@ export type ActionLogEntry = {
   meta?: Record<string, unknown>;
 };
 
-const STORAGE_KEY = "cgo.actionLog"; 
+const STORAGE_KEY = "cgo.actionLog";
 const DEFAULT_MAX = 5000;
 
- 
+
 
 function makeId(): string {
   // stable enough: timestamp + random
@@ -73,7 +74,7 @@ function clampInt(n: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.floor(n)));
 }
 
- 
+
 
 export type ListOptions = {
   limit?: number;         // default 200
@@ -94,8 +95,14 @@ export async function append(
   entryOrEntries: Omit<ActionLogEntry, "id" | "ts"> | Omit<ActionLogEntry, "id" | "ts">[],
   opts?: { max?: number }
 ): Promise<{ total: number }> {
-  const max = clampInt(opts?.max ?? DEFAULT_MAX, 100, 50000);
- 
+  let max = opts?.max;
+  if (typeof max !== "number") {
+    await ensureDevConfigLoaded();
+    max = getDevConfigSnapshot().actionLogMax;
+  }
+  max = clampInt(max ?? DEFAULT_MAX, 100, 50000);
+
+
   const incomingAll = toArray(entryOrEntries);
 
   const incoming = incomingAll.map((e) => ({

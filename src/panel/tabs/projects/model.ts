@@ -8,6 +8,11 @@ export function createProjectsModel() {
   const selectedProjectIds = new Set<string>();
   const selectedProjectChatIds = new Set<string>();
 
+  function clearSelections() {
+    selectedProjectIds.clear();
+    selectedProjectChatIds.clear();
+  }
+
   function setProjects(next: ProjectItem[]) {
     projects = next;
 
@@ -55,7 +60,7 @@ export function createProjectsModel() {
   }
 
   function getTotalChats(): number {
-    return projects.reduce((sum, p) => sum + ((p.conversations || []).length), 0);
+    return projects.reduce((sum, p) => sum + (p.conversations || []).length, 0);
   }
 
   return {
@@ -64,6 +69,7 @@ export function createProjectsModel() {
     },
     selectedProjectIds,
     selectedProjectChatIds,
+    clearSelections,
     setProjects,
     toggleProjectSelection,
     toggleChatSelection,
