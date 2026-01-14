@@ -421,3 +421,30 @@ label { display: block; margin: 0.4rem 0; }
   #contentWrap { max-height: none; overflow: visible; }
   .demo-frame iframe { height: 70vh; min-height: 600px; }
 }
+
+
+/***************************************************/
+/* Markdown */
+/***************************************************/
+@
+/* Markdown images: default as thumbnails, clickable in md */
+.markdown img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+
+  /* thumbnail sizing */
+  width: min(100%, 520px);
+  margin: 0.75rem auto;
+
+  border-radius: 10px;
+  border: 1px solid rgba(0, 0, 0, 0.10);
+
+  cursor: zoom-in;
+}
+
+/* Don't try to "resize on active" (it causes layout jumps). */
+.markdown img:active {
+  cursor: zoom-in;
+  width: min(100%, 520px);
+}

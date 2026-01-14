@@ -1,11 +1,3 @@
-Yes — Chrome Web Store does **automated checks** and often a **human review**, and yes: when you’re rejected or asked to change something, you do get feedback (in the dashboard, and often via email). ([Chrome for Developers][1])
-
-They don’t publish the internal details of their scanners, but Google is explicit that you submit “for review”, that submissions can be rejected for policy issues, and that there’s a troubleshooting path for violations. ([Chrome for Developers][1])
-
-Below is a clean **new Markdown file** you can add as `docs/extension-publishing-guide.md` (and link in your GitHub Pages menu). It focuses on “what to do”, without dwelling on “don’t”.
-
----
-
 # Extension Publishing Guide (Chrome Web Store)
 
 This guide describes how to publish **ChatGPT Organizer (CGO)** to the **Chrome Web Store**.

@@ -1,127 +1,81 @@
-# ChatGPT Organizer — Project Overview
+# ChatGPT Organizer Overview
 
-**ChatGPT Organizer** is a browser extension designed to help users inspect and clean up their ChatGPT conversation history.
+ChatGPT Organizer (CGO) is a browser extension designed to help you inspect and clean up your ChatGPT conversation history in a controlled way.
 
-The project focuses on a practical problem: long conversation histories become hard to manage and can noticeably slow down the ChatGPT web interface.
+Long histories can become hard to manage and can make the ChatGPT web interface feel slower. CGO exists to make cleanup and inspection selective, transparent, and explicit.
 
 ---
 
 ## Motivation
 
-ChatGPT currently allows users to:
-- delete conversations one by one, or
-- delete all conversations at once
+As ChatGPT histories grow, the web UI does not scale well:
 
-What is missing is controlled, selective cleanup:
-- bulk-delete a chosen set of conversations
-- review selections before deletion
-- see progress and results during long runs
+- Projects become hard to browse once their count grows beyond a small number
+- Older conversations are difficult to reach without extensive scrolling
+- The interface offers no global overview or filtering
+- Cleanup requires either repetitive manual deletion or a destructive “delete all”
 
-ChatGPT Organizer exists to fill that gap.
+ChatGPT Organizer addresses these limitations by providing:
+- explicit inspection of loaded data
+- selective, reviewable actions
+- visibility into progress and results
+
 
 ---
 
-## What the extension does
+## What CGO does
 
-### Current capabilities
+- Runs as a Side Panel on `chatgpt.com`
+- Loads conversations and projects from your current ChatGPT session
+- Lets you select items with checkboxes and live counters
+- Executes bulk actions with explicit confirmation and progress reporting
+- Maintains a local action log so destructive operations remain traceable
 
-- Runs as a client-side browser extension
-- Adds a Side Panel UI to `chatgpt.com`
-- Lists conversations from the active ChatGPT session (scraped from the page UI)
-- Supports “deep scan” by auto-scrolling the UI to collect more items
-- Checkbox-based selection with live counters
-- Safe bulk deletion with:
-  - explicit confirmation (count + preview + checkbox)
-  - throttling and retry/backoff behavior
-  - progress feedback and per-item logging
+Important: CGO only fetches data when you explicitly request it. It does not run silent background operations.
 
-Notes:
-- The extension only sees conversations that the ChatGPT web UI loads. Very large histories may require additional scanning strategies.
+---
 
-### Planned capabilities
+## What CGO does not do
 
-- Better handling for very large histories:
-  - improved deep scan strategies
-  - optional chunked deletion (batch runs)
-- Keyword filtering (titles)
-- Local-only grouping (for example: “projects”)
-- Basic statistics based on local scanning history (first seen / last seen)
+- No credential storage
+- No analytics, no telemetry
+- No remote sync, no server backend
+- No automatic actions
+- No “undo” claims for destructive operations
 
 ---
 
 ## Design principles
 
-- Local-first: runs entirely in the browser
-- No tracking: no analytics, no telemetry
-- Transparent: readable, auditable source code
-- Incremental safety: destructive actions are introduced carefully
-- Minimal dependencies: no framework, no server
+- **Local-first**: everything happens in your browser
+- **Explicit actions**: you trigger fetches and deletions deliberately
+- **Safety by design**: confirmations, throttling, progress feedback
+- **Transparency**: behavior is inspectable, logs are readable
+- **Minimal dependencies**: no framework, no hidden infrastructure
 
 ---
 
 ## Technical overview
 
-- Browser extension (Chrome / Chromium, Manifest V3)
-- TypeScript
-- esbuild
+- Chrome / Chromium extension (Manifest V3)
+- TypeScript + esbuild
 - Side Panel UI (Chrome API)
-- Content scripts operating in the user’s logged-in ChatGPT session
-- Background service worker handles authenticated delete requests using the existing session
+- Content scripts operate within the logged-in `chatgpt.com` context
+- Background service worker performs authenticated calls using your existing session
 
 ---
 
 ## Security and privacy
 
-- The extension does not ask for ChatGPT credentials
-- It does not send data anywhere
-- It operates only on `chatgpt.com`
-- All actions are performed within the browser context of the logged-in user
-
----
-## UI Overview
-
-The extension lives entirely in the **ChatGPT side panel**.
-Each tab has a single, explicit responsibility.
-
-### Search tab
-![ChatGPT Organizer UI search tab](./screenshots/screenshot-cgo-search.png)
-
-### Projects tab
-![ChatGPT Organizer UI project tab](./screenshots/screenshot-cgo-projects.png)
-
-### Organize tab**
-![ChatGPT Organizer UI organize tab](./screenshots/screenshot-cgo-organize.png)
-
-### Single tab**
-![ChatGPT Organizer UI single chat tab](./screenshots/screenshot-cgo-singles.png)
-
-### Logs tab
-![ChatGPT Organizer UI logs and debug tab](./screenshots/screenshot-cgo-logs.png)
-
-### Stats tab
-![ChatGPT Organizer UI stats tab — snapshot](./screenshots/screenshot-cgo-stats-1.png)
-![ChatGPT Organizer UI stats tab — activity](./screenshots/screenshot-cgo-stats-2.png)
-
-The side panel is organized into **explicit tabs**, each with a single responsibility.
+CGO:
+- does not ask for ChatGPT credentials
+- does not send your data anywhere
+- operates only on `chatgpt.com`
+- stores data locally (cache + statistics + logs)
 
 ---
 
-## Project status
+## Try the demo
 
-The extension is functional and under active development.  
-APIs and UI may change as ChatGPT’s web interface evolves.
-
----
-
-## Roadmap (high-level)
-
-1. Stable scanning (quick scan + deep scan)
-2. Safer bulk deletion (progress, retries, clear reporting)
-3. Better large-history workflows (chunking, improved scan strategies)
-4. Optional enhancements (filtering, grouping)
-
----
-
-## License
-
-MIT — see `LICENSE` 
+Use the interactive demo on the left.  
+It simulates the real UI using mock data (no ChatGPT access).
