@@ -1,30 +1,40 @@
 # Developer Guide
 
-This document is for contributors and developers working on **ChatGPT Organizer**.
-It is not required for end users.
+This document is for **contributors and maintainers** of **ChatGPT Organizer (CGO)**.
+It describes the local development workflow, debugging practices, and release process.
+
+End users do **not** need this document.
 
 ---
 
-## Local Development Setup
+## 1. Prerequisites
 
-### Prerequisites
-
-- Node.js (LTS recommended)
-- npm
-- Chrome or Chromium-based browser
+* Node.js (LTS recommended)
+* npm
+* Google Chrome (or Chromium-based browser)
+* Git (CLI)
 
 ---
 
-## Build the extension
+## 2. Install dependencies
 
 From the project root:
 
 ```bash
 npm install
-npm run build
-````
 
-This produces the packaged extension in:
+```
+
+
+---
+
+## 3. Build the extension
+
+```bash
+npm run build
+```
+
+This produces the **unpacked extension** in:
 
 ```text
 dist/
@@ -32,188 +42,48 @@ dist/
 
 ---
 
-## Verify build output
+## 4. Build output expectations
 
-After `npm run build`, the following must exist:
+After a successful build, the following must exist:
 
-* `dist/manifest.json`
-* `dist/background.js`
-* `dist/content.js`
-* `dist/panel.js`
-* `dist/assets/` (icons)
-* `dist/panel/` (HTML/CSS)
+```text
+dist/
+├── manifest.json
+├── background.js
+├── content.js
+├── panel.js
+├── assets/          # icons
+└── panel/           # HTML / CSS
+```
 
-The folder that contains `manifest.json` is the folder Chrome will load.
+The directory containing `manifest.json` is the directory Chrome loads.
 
 ---
 
-## Load the extension (unpacked)
+## 5. Load the extension (unpacked)
+
+This is the **standard development workflow**.
 
 1. Open:
 
-```text
-chrome://extensions
-```
-
+   ```
+   chrome://extensions
+   ```
 2. Enable **Developer mode**
 3. Click **Load unpacked**
 4. Select:
 
-```text
-chatgpt-organizer/dist
-```
+   ```
+   chatgpt-organizer/dist
+   ```
 
-The extension should now appear.
-
----
-
-## Open the side panel
-
-1. Go to:
-
-```
-https://chatgpt.com/
-```
-
-2. Open the browser **Side Panel**
-3. Select **ChatGPT Organizer**
-
-You should see the panel UI.
+The extension is now installed locally.
 
 ---
 
-## Debugging
+## 6. Development loop
 
-Use Chrome DevTools:
-
-* **Background**:
-  `chrome://extensions` → extension → Service Worker → Inspect
-* **Content script**:
-  DevTools on `chatgpt.com`
-* **Panel**:
-  Right-click inside panel → Inspect
-
-If something does not work, logs from these three contexts usually explain why.
-
----
-
-## Firefox note
-
-Firefox does not fully support Chrome’s Side Panel API.
-
-Development and testing should be done in **Chrome/Chromium first**.
-A Firefox-compatible UI may be added later.
-
----
-
-## Versioning
-
-The project uses a root `VERSION` file as the single source of truth.
-
-Example:
-
-```text
-0.0.9
-```
-
----
-
-## Release workflow (GitHub)
-
-### Releases are created manually using shell scripts : 
-
-```bash 
-# bump first so manifest shows the release version during tests
-./scripts/bump-version.sh patch   # or minor / major
-
-
-npm run build
-# run whatever tests / manual checks you do
-
-# continue coding if needed (version already correct)
-
-git add -A
-git status
-
-# check that you are just commiting what you want
-
-git commit -m "vx.y.z"
-git push origin main
-
-## create a release
- 
-./scripts/release-all.sh 
-```
-
-release-all.sh script will:
-* verify VERSION
-* build extension zip (your existing script)
-* build demo zip (the demo script we added)
-* copy the demo into github page /docs/demo-cgo
-* publish the GitHub release + extension zip (your existing script)
-* upload the demo zip to the same release
- 
-
-
-### Bump version
-
-```bash
-# bump version x.y.z to next z
-./scripts/bump-version.sh patch
-# bump version x.y.z to next y
-./scripts/bump-version.sh minor
-# bump version x.y.z to next x
-./scripts/bump-version.sh major
-```
-
-This updates:
-
-* `VERSION`
-* `manifest.json` 
-* `package.json` 
-
-No commit, no tag or release is created yet.
-
----
-
-### Build release ZIP
-
-```bash
-./scripts/build-zip.sh
-```
-
-This:
-
-* builds the extension
-* creates a versioned ZIP in `release/`
-* example:
-
-  ```
-  release/chatgpt-organizer-0.0.9.zip
-  ```
-
----
-
-### Publish GitHub Release
-
-```bash
-./scripts/publish-release-zip.sh
-```
-
-This:
-
-* ensures the tag `vX.Y.Z` exists and matches HEAD
-* creates a GitHub Release if missing
-* uploads the ZIP as a release asset
-* overwrites assets safely if re-run
-
-Re-running the script does **not** create duplicate releases.
-
----
-
-## Development loop
-
-Typical workflow:
+Typical iteration cycle:
 
 ```text
 edit code
@@ -225,8 +95,255 @@ chrome://extensions → Reload
 refresh chatgpt.com
 ```
 
+This loop is used for nearly all feature work and bug fixing.
+
 ---
 
-## License
+## 7. Open the CGO side panel
+
+1. Navigate to:
+
+   ```
+   https://chatgpt.com/
+   ```
+2. Open the browser **Side Panel**
+3. Select **ChatGPT Organizer**
+
+The CGO panel UI should appear.
+
+---
+
+## 8. Debugging
+
+CGO runs across **multiple execution contexts**.
+When debugging, always check the correct one.
+
+### Background / Service Worker
+
+```
+chrome://extensions
+→ ChatGPT Organizer
+→ Service Worker → Inspect
+```
+
+Used for:
+
+* background logic
+* storage
+* message routing
+* long-running tasks
+
+---
+
+### Content scripts
+
+* Open DevTools on `https://chatgpt.com`
+* Use the **Console** and **Sources** tabs
+
+Used for:
+
+* DOM interaction
+* page detection
+* content injection issues
+
+---
+
+### Panel UI
+
+* Right-click inside the CGO panel
+* Select **Inspect**
+
+Used for:
+
+* UI rendering
+* event handling
+* state and interaction bugs
+
+---
+
+## 9. Platform notes
+
+### Supported development browser
+
+* Development and testing are done in **Chrome / Chromium**
+* Edge is Chromium-based and usually compatible
+
+### Firefox
+
+Firefox does not fully support Chrome’s **Side Panel API**.
+
+Development and testing should be done in **Chrome first**.
+Firefox support may be considered later.
+
+---
+## 10. Demo
+
+The demo uses the **same UI code as the extension**, but runs against **static JSON data** instead of live ChatGPT APIs.
+
+It is intended for:
+
+* public demonstrations (GitHub Pages)
+* documentation
+* UI/UX validation without browser extension APIs
+
+---
+
+### Install
+
+From the project root:
+
+```bash
+cd demo
+npm install
+```
+
+This installs the demo’s Node.js dependencies.
+
+---
+
+### Build
+
+From the project root:
+
+```bash
+cd demo
+./scripts/build-demo-zip.sh
+```
+
+This:
+
+* compiles the demo
+* produces a distributable build
+* generates a ZIP archive
+
+---
+
+### Run locally (test)
+
+From the project root:
+
+```bash
+cd demo
+npx serve dist
+```
+
+Then open the provided local URL in a browser.
+
+> `file://` access will not work due to ES modules and fetch usage.
+
+---
+
+### Publishing on GitHub Pages
+
+The demo is published automatically during a release.
+
+During `release-all.sh`:
+
+* the demo is rebuilt
+* the compiled output is copied into:
+
+  ```
+  docs/cgo-demo/
+  ```
+* the demo becomes visible on the GitHub Pages site (left panel)
+
+No manual publishing step is required.
+
+---
+
+## 11. Release workflow (GitHub)
+
+Releases are created using the project’s **shell scripts** and follow a deterministic workflow.
+
+---
+
+### Versioning
+
+The project uses a root `VERSION` file as the **single source of truth**.
+
+Versioning is maintained via `bump-version.sh`.
+
+Example:
+
+```text
+0.1.18
+```
+
+The version is propagated to:
+
+* `manifest.json`
+* `package.json`
+
+---
+
+### Typical release sequence
+
+```bash
+# bump version (patch / minor / major)
+./scripts/bump-version.sh patch
+
+# build locally
+npm run build
+
+# commit and push
+git add -A
+git commit -m "vX.Y.Z"
+git push origin main
+
+# create the release
+./scripts/release-all.sh
+```
+
+---
+
+### What `release-all.sh` does
+
+* verifies the `VERSION`
+* builds the extension artifact
+* builds the demo artifact
+* copies the demo into GitHub Pages (`docs/cgo-demo`)
+* creates or updates the GitHub Release
+* uploads all release assets
+
+Re-running the script is safe and does **not** create duplicate releases.
+
+---
+
+## 12. Local testing of GitHub Pages (docs & demo)
+
+GitHub Pages content cannot be tested via `file://`.
+
+Serve the `docs/` directory over HTTP:
+
+```bash
+npx serve docs
+```
+
+or:
+
+```bash
+cd docs
+python3 -m http.server
+```
+
+Then open the provided `http://localhost:PORT`.
+
+---
+
+## 13. License
 
 MIT. See `LICENSE`.
+
+---
+
+### Final note
+
+This guide intentionally focuses on:
+
+* **how to develop**
+* **how to debug**
+* **how to release**
+
+Publishing to the Chrome Web Store and store-specific requirements are documented separately in the **Extension Publishing Guide**.
+
+This separation keeps the developer workflow clean and avoids mixing concerns.

@@ -112,12 +112,45 @@ Read-only, zero risk.
 
 --- 
 
-## v0.1.8 — Epic: Checklist in github page
+## v0.1.18 — Epic: Add interactive Publishing Checklist to GitHub Pages
 
 ### Scope
 
-collapsable demo to make checklist possible or better read the docs
-checklist to see if extension is ready to be published
+* Add a reusable checklist engine to the GitHub Pages documentation site.
+* Ship a Chrome Web Store “Publishing Readiness” checklist as modular JSON sections + bundle.
+* collapsable demo to make checklist possible or better read the docs 
+
+### Deliverables
+
+* **Docs UI**
+
+  * Add “Publishing” entry in the right panel to open the checklist from GitHub Pages.
+  * Render checklist in the existing `#content` area (same as Markdown docs).
+* **Checklist engine**
+
+  * Extract checklist logic into `docs/checklist/checklist.js` and import from `docs/main.js` (ES module).
+  * Support checklist templates stored in `docs/checklist/json/`.
+  * Provide exports:
+
+    * Save report as **Markdown**
+    * Save report as **JSON**
+* **Checklist content**
+
+  * Create bundle file `docs/checklist/json/chrome_extension_publishing.bundle.json`.
+  * Split content into section files under `docs/checklist/json/sections/` (manifest, packaging, listing, privacy, docs, UX, submission, assets).
+* **Local testing**
+
+  * Document local serving for GitHub Pages (`npx serve docs` / `python3 -m http.server`) to avoid `file://` issues.
+
+### Acceptance criteria
+
+* Checklist loads on the GitHub Pages site and is usable without console errors.
+* Exported JSON preserves states/notes/descriptions.
+* Exported Markdown is readable and suitable for release/issue attachments.
+* Folder structure is stable and ready for future checklists (new bundles + sections without JS changes).
+
+
+
 
 --- 
 

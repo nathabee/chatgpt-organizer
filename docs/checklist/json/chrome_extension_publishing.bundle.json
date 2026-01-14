@@ -1,16 +1,17 @@
 {
-  "meta": {
-    "title": "Chrome Extension — Publishing Readiness Checklist",
+ "meta": {
+    "title": "ChatGPT Organizer (CGO) — Publishing Readiness",
     "date": "",
     "tester": "",
-    "device": "Desktop / Chrome",
-    "androidVersion": "",
-    "appVersion": "",
+    "device": "Desktop / Ubuntu 24.04.3 LTS",
+    "browser": "Chrome 143.0.7499.169 (64-bit)",
+    "extensionVersion": "0.1.18",
     "buildVariant": "release"
   },
   "includes": [
     "sections/manifest_technical.json",
     "sections/packaging.json",
+    "sections/platform_matrix.json",
     "sections/store_listing.json",
     "sections/visual_assets.json",
     "sections/privacy_policy.json",

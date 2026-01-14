@@ -10,18 +10,6 @@ export function escapeHtml(s = "") {
     .replaceAll("'", "&#039;");
 }
 
-export function getMetaFromFields() {
-  return {
-    title: document.getElementById("meta-title")?.value || "",
-    date: document.getElementById("meta-date")?.value || "",
-    tester: document.getElementById("meta-tester")?.value || "",
-    device: document.getElementById("meta-device")?.value || "",
-    androidVersion: document.getElementById("meta-android")?.value || "",
-    appVersion: document.getElementById("meta-app")?.value || "",
-    buildVariant: document.getElementById("meta-build")?.value || ""
-  };
-}
-
 function isObject(x) {
   return x !== null && typeof x === "object" && !Array.isArray(x);
 }
@@ -46,9 +34,8 @@ function normalizeSections(json) {
 async function resolveBundle(file, json) {
   const baseDir = getBaseDir(file);
 
-  // Load included section files first (if any)
-  const includes = Array.isArray(json?.includes) ? json.includes : [];
   const merged = [];
+  const includes = Array.isArray(json?.includes) ? json.includes : [];
 
   for (const inc of includes) {
     const incPath = baseDir + String(inc).replace(/^\/+/, "");
@@ -56,93 +43,107 @@ async function resolveBundle(file, json) {
     merged.push(...normalizeSections(incJson));
   }
 
-  // Then append bundle’s own sections (if any)
   merged.push(...normalizeSections(json));
-
   return merged;
 }
 
-// Load and render structured checklist JSON with metadata
-export async function loadStructuredChecklist(file = "App_Test_checklist.json") {
-  const json = await fetchJson(file);
-  const meta = isObject(json?.meta) ? json.meta : {};
-  const allSections = await resolveBundle(file, json);
-
-  const container = document.getElementById("content");
-  if (!container) throw new Error("Missing #content container");
-
-  // Persist session state globally while user moves between sections
-  window.__cgoChecklistSession = window.__cgoChecklistSession || {
-    file,
-    meta: {},
-    sections: [],
-    mode: "single",     // "single" | "all"
-    secIndex: 0
+function defaultMeta(metaIn = {}) {
+  const m = isObject(metaIn) ? metaIn : {};
+  return {
+    title: m.title || "Interactive Checklist",
+    date: m.date || new Date().toISOString().split("T")[0],
+    tester: m.tester || "",
+    device: m.device || "",
+    browser: m.browser || "",
+    buildVariant: m.buildVariant || "",
+    extensionVersion: m.extensionVersion || m.version || "",
   };
-
-  const session = window.__cgoChecklistSession;
-  session.file = file;
-  session.meta = {
-    title: meta.title || "Interactive Checklist",
-    date: meta.date || new Date().toISOString().split("T")[0],
-    tester: meta.tester || "",
-    device: meta.device || "",
-    androidVersion: meta.androidVersion || "",
-    appVersion: meta.appVersion || "",
-    buildVariant: meta.buildVariant || ""
-  };
-
-  // Initialize sections only once per file, or if file changed
-  if (!Array.isArray(session.sections) || session.sections.length === 0 || session._loadedFile !== file) {
-    session.sections = allSections.map((s) => ({
-      section: s.section || "Untitled section",
-      items: (Array.isArray(s.items) ? s.items : []).map((it) => ({
-        test: it.test || "",
-        expected: it.expected || "",
-        details: it.details || "",
-        description: it.description || "",
-        state: it.state || "",
-        note: it.note || ""
-      }))
-    }));
-    session.secIndex = 0;
-    session.mode = "single";
-    session._loadedFile = file;
-  }
-
-  renderChecklistSession();
 }
 
-function renderChecklistSession() {
-  const session = window.__cgoChecklistSession;
-  const container = document.getElementById("content");
-  if (!container) return;
+function ensureSession() {
+  if (!window.__cgoChecklistSession) {
+    window.__cgoChecklistSession = {
+      file: "",
+      loadedKey: "",
+      meta: defaultMeta(),
+      sections: [],
+      mode: "single", // "single" | "all"
+      secIndex: 0,
+    };
+  }
+  return window.__cgoChecklistSession;
+}
 
-  const titleText = session.meta.title || "Interactive Checklist";
-  container.innerHTML = `<h2>✅ ${escapeHtml(titleText)}</h2>`;
+function readMetaFromFields(fallbackMeta) {
+  return {
+    title: document.getElementById("meta-title")?.value || fallbackMeta.title || "",
+    date: document.getElementById("meta-date")?.value || fallbackMeta.date || "",
+    tester: document.getElementById("meta-tester")?.value || fallbackMeta.tester || "",
+    device: document.getElementById("meta-device")?.value || fallbackMeta.device || "",
+    browser: document.getElementById("meta-browser")?.value || fallbackMeta.browser || "",
+    buildVariant: document.getElementById("meta-build")?.value || fallbackMeta.buildVariant || "",
+    extensionVersion:
+      document.getElementById("meta-extver")?.value || fallbackMeta.extensionVersion || "",
+  };
+}
 
-  // ===== Meta box =====
+function persistUiToSession() {
+  const session = ensureSession();
+
+  // meta
+  session.meta = readMetaFromFields(session.meta);
+
+  // items for sections that are currently in DOM
+  document.querySelectorAll(".checklist-section").forEach((sectionEl) => {
+    const secIndex = Number(sectionEl.dataset.secIndex);
+    const sec = session.sections[secIndex];
+    if (!sec) return;
+
+    sectionEl.querySelectorAll(".checklist-item").forEach((itemEl) => {
+      const itemIndex = Number(itemEl.dataset.itemIndex);
+      const it = sec.items[itemIndex];
+      if (!it) return;
+
+      const selected = itemEl.querySelector("input[type='radio']:checked");
+      const note = itemEl.querySelector(".note-field")?.value || "";
+      const desc = itemEl.querySelector(".description-field")?.value || "";
+
+      it.state = selected ? selected.value : "";
+      it.note = note;
+      it.description = desc;
+    });
+  });
+}
+
+function renderMetaBox(container, meta) {
   const metaBox = document.createElement("div");
   metaBox.classList.add("meta-box");
   metaBox.innerHTML = `
-    <h3>📝 Test Session Info</h3>
-    <label>Title: <input type="text" id="meta-title" value="${escapeHtml(session.meta.title || "")}"></label>
-    <label>Date: <input type="date" id="meta-date" value="${escapeHtml(session.meta.date || "")}"></label>
-    <label>Tester: <input type="text" id="meta-tester" value="${escapeHtml(session.meta.tester || "")}"></label>
-    <label>Device: <input type="text" id="meta-device" value="${escapeHtml(session.meta.device || "")}"></label>
-    <label>Android Version: <input type="text" id="meta-android" value="${escapeHtml(session.meta.androidVersion || "")}"></label>
-    <label>App Version: <input type="text" id="meta-app" value="${escapeHtml(session.meta.appVersion || "")}"></label>
-    <label>Build Variant: <input type="text" id="meta-build" value="${escapeHtml(session.meta.buildVariant || "")}"></label>
+    <h3>Test Session Info</h3>
+    <label>Title: <input type="text" id="meta-title" value="${escapeHtml(meta.title || "")}"></label>
+    <label>Date: <input type="date" id="meta-date" value="${escapeHtml(meta.date || "")}"></label>
+    <label>Tester: <input type="text" id="meta-tester" value="${escapeHtml(meta.tester || "")}"></label>
+    <label>Device: <input type="text" id="meta-device" value="${escapeHtml(meta.device || "")}"></label>
+    <label>Browser: <input type="text" id="meta-browser" value="${escapeHtml(meta.browser || "")}"></label>
+    <label>Extension Version: <input type="text" id="meta-extver" value="${escapeHtml(
+      meta.extensionVersion || ""
+    )}"></label>
+    <label>Build Variant: <input type="text" id="meta-build" value="${escapeHtml(meta.buildVariant || "")}"></label>
   `;
   container.appendChild(metaBox);
+}
 
-  // ===== Controls row =====
+function renderHeader(container, titleText) {
+  container.innerHTML = `<h2>Checklist: ${escapeHtml(titleText || "Interactive Checklist")}</h2>`;
+}
+
+function renderControls(container, session) {
   const controls = document.createElement("div");
   controls.classList.add("panel-actions");
   controls.style.margin = "0.75rem 0 1rem 0";
 
   const btnPrev = document.createElement("button");
-  btnPrev.textContent = "← Previous";
+  btnPrev.textContent = "Previous";
   btnPrev.disabled = session.mode !== "single" || session.secIndex <= 0;
   btnPrev.onclick = () => {
     persistUiToSession();
@@ -151,7 +152,7 @@ function renderChecklistSession() {
   };
 
   const btnNext = document.createElement("button");
-  btnNext.textContent = "Next →";
+  btnNext.textContent = "Next";
   btnNext.disabled = session.mode !== "single" || session.secIndex >= session.sections.length - 1;
   btnNext.onclick = () => {
     persistUiToSession();
@@ -179,45 +180,47 @@ function renderChecklistSession() {
   controls.appendChild(btnAll);
   controls.appendChild(progress);
   container.appendChild(controls);
+}
 
-  // ===== New / Open =====
-  const buttonRow = document.createElement("div");
-  buttonRow.style.display = "flex";
-  buttonRow.style.gap = "1rem";
-  buttonRow.style.marginBottom = "1rem";
-  buttonRow.style.alignItems = "center";
-  buttonRow.style.flexWrap = "wrap";
+function renderOpenRow(container, session) {
+  const row = document.createElement("div");
+  row.style.display = "flex";
+  row.style.gap = "1rem";
+  row.style.marginBottom = "1rem";
+  row.style.alignItems = "center";
+  row.style.flexWrap = "wrap";
 
-  const newChecklistBtn = document.createElement("button");
-  newChecklistBtn.textContent = "🆕 New Checklist";
-  newChecklistBtn.onclick = () => loadStructuredChecklist(session.file);
-  buttonRow.appendChild(newChecklistBtn);
+  const reloadBtn = document.createElement("button");
+  reloadBtn.textContent = "New Checklist";
+  reloadBtn.onclick = () => loadStructuredChecklist(session.file);
+  row.appendChild(reloadBtn);
 
   const openLabel = document.createElement("label");
-  openLabel.textContent = "📂 Open JSON Checklist";
+  openLabel.textContent = "Open JSON Checklist";
   openLabel.classList.add("button-like");
 
-  const loadJsonInput = document.createElement("input");
-  loadJsonInput.type = "file";
-  loadJsonInput.accept = ".json";
-  loadJsonInput.style.display = "none";
-  loadJsonInput.onchange = (e) => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json";
+  input.style.display = "none";
+  input.onchange = (e) => {
     const f = e.target.files && e.target.files[0];
     if (!f) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
-      const loadedData = JSON.parse(String(event.target.result || "{}"));
-      // Load as “one-shot session”
-      renderChecklistFromData(loadedData);
+    reader.onload = (ev) => {
+      const data = JSON.parse(String(ev.target.result || "{}"));
+      renderChecklistFromData(data);
     };
     reader.readAsText(f);
   };
 
-  openLabel.appendChild(loadJsonInput);
-  buttonRow.appendChild(openLabel);
-  container.appendChild(buttonRow);
+  openLabel.appendChild(input);
+  row.appendChild(openLabel);
 
-  // ===== Render sections (single or all) =====
+  container.appendChild(row);
+}
+
+function renderSections(container, session) {
   const sectionsToRender =
     session.mode === "all"
       ? session.sections.map((s, idx) => ({ ...s, __idx: idx }))
@@ -231,10 +234,10 @@ function renderChecklistSession() {
     sectionDiv.dataset.secIndex = String(secIndex);
 
     const title = document.createElement("h3");
-    title.textContent = sectionObj.section;
+    title.textContent = sectionObj.section || `Section ${secIndex + 1}`;
     sectionDiv.appendChild(title);
 
-    sectionObj.items.forEach((item, itemIndex) => {
+    (Array.isArray(sectionObj.items) ? sectionObj.items : []).forEach((item, itemIndex) => {
       const row = document.createElement("div");
       row.classList.add("checklist-item");
       row.dataset.itemIndex = String(itemIndex);
@@ -248,7 +251,7 @@ function renderChecklistSession() {
 
       const label = document.createElement("p");
       label.innerHTML = `
-        <strong>${escapeHtml(item.test)}</strong><br>
+        <strong>${escapeHtml(item.test || "")}</strong><br>
         ${expectedHtml}
         ${detailsHtml}
       `;
@@ -256,7 +259,7 @@ function renderChecklistSession() {
 
       const desc = document.createElement("textarea");
       desc.classList.add("description-field");
-      desc.placeholder = "Optional scenario or setup steps";
+      desc.placeholder = "Optional test scenario or setup steps";
       desc.rows = 2;
       desc.style.width = "100%";
       desc.style.marginBottom = "0.5rem";
@@ -291,70 +294,120 @@ function renderChecklistSession() {
 
     container.appendChild(sectionDiv);
   });
+}
 
-  // ===== Save buttons =====
-  const saveBtn = document.createElement("button");
-  saveBtn.textContent = "💾 Save Checklist Report (Markdown)";
-  saveBtn.onclick = () => {
+function renderSaveButtons(container) {
+  const saveMd = document.createElement("button");
+  saveMd.textContent = "Save Checklist Report (Markdown)";
+  saveMd.onclick = () => {
     persistUiToSession();
     saveStructuredChecklist();
   };
-  container.appendChild(saveBtn);
+  container.appendChild(saveMd);
 
-  const saveJsonBtn = document.createElement("button");
-  saveJsonBtn.textContent = "🗄 Save Checklist as JSON";
-  saveJsonBtn.onclick = () => {
+  const saveJson = document.createElement("button");
+  saveJson.textContent = "Save Checklist as JSON";
+  saveJson.onclick = () => {
     persistUiToSession();
     saveChecklistAsJSON();
   };
-  container.appendChild(saveJsonBtn);
+  container.appendChild(saveJson);
 }
 
-function persistUiToSession() {
-  const session = window.__cgoChecklistSession;
-  if (!session) return;
+function renderChecklistSession() {
+  const session = ensureSession();
 
-  // meta
-  session.meta = {
-    title: document.getElementById("meta-title")?.value || session.meta.title || "",
-    date: document.getElementById("meta-date")?.value || session.meta.date || "",
-    tester: document.getElementById("meta-tester")?.value || session.meta.tester || "",
-    device: document.getElementById("meta-device")?.value || session.meta.device || "",
-    androidVersion: document.getElementById("meta-android")?.value || session.meta.androidVersion || "",
-    appVersion: document.getElementById("meta-app")?.value || session.meta.appVersion || "",
-    buildVariant: document.getElementById("meta-build")?.value || session.meta.buildVariant || ""
-  };
+  const container = document.getElementById("content");
+  if (!container) throw new Error("Missing #content container");
 
-  // items (only the sections currently rendered are in DOM)
-  document.querySelectorAll(".checklist-section").forEach((sectionEl) => {
-    const secIndex = Number(sectionEl.dataset.secIndex);
-    const sec = session.sections[secIndex];
-    if (!sec) return;
-
-    sectionEl.querySelectorAll(".checklist-item").forEach((itemEl) => {
-      const itemIndex = Number(itemEl.dataset.itemIndex);
-      const it = sec.items[itemIndex];
-      if (!it) return;
-
-      const selected = itemEl.querySelector("input[type='radio']:checked");
-      const note = itemEl.querySelector(".note-field")?.value || "";
-      const desc = itemEl.querySelector(".description-field")?.value || "";
-
-      it.state = selected ? selected.value : "";
-      it.note = note;
-      it.description = desc;
-    });
-  });
+  renderHeader(container, session.meta.title);
+  renderMetaBox(container, session.meta);
+  renderControls(container, session);
+  renderOpenRow(container, session);
+  renderSections(container, session);
+  renderSaveButtons(container);
 }
 
+/**
+ * Load checklist by file. Supports "bundle JSON" with:
+ * - meta
+ * - includes: ["sections/a.json", ...]
+ * - sections: [] (optional)
+ *
+ * Default behavior: render one section at a time, with Next/Previous.
+ */
+export async function loadStructuredChecklist(file) {
+  const session = ensureSession();
+
+  const json = await fetchJson(file);
+  const meta = defaultMeta(json?.meta);
+
+  const allSections = await resolveBundle(file, json);
+
+  // determine whether we need to reinitialize the session
+  const loadedKey = `${file}::bundle`;
+  const shouldInit = session.loadedKey !== loadedKey || !Array.isArray(session.sections);
+
+  session.file = file;
+  session.meta = meta;
+
+  if (shouldInit) {
+    session.sections = allSections.map((s) => ({
+      section: s.section || "Untitled section",
+      items: (Array.isArray(s.items) ? s.items : []).map((it) => ({
+        test: it.test || "",
+        expected: it.expected || "",
+        details: it.details || "",
+        description: it.description || "",
+        state: it.state || "",
+        note: it.note || "",
+      })),
+    }));
+
+    session.mode = "single";
+    session.secIndex = 0;
+    session.loadedKey = loadedKey;
+  }
+
+  renderChecklistSession();
+}
+
+/**
+ * Load a saved checklist report JSON (already contains sections and item states).
+ * This intentionally ignores "includes" and treats the payload as self-contained.
+ */
+export function renderChecklistFromData(data) {
+  const session = ensureSession();
+
+  const meta = defaultMeta(data?.meta);
+  const sections = normalizeSections(data);
+
+  session.file = "(local)";
+  session.meta = meta;
+  session.sections = sections.map((s) => ({
+    section: s.section || "Untitled section",
+    items: (Array.isArray(s.items) ? s.items : []).map((it) => ({
+      test: it.test || "",
+      expected: it.expected || "",
+      details: it.details || "",
+      description: it.description || "",
+      state: it.state || "",
+      note: it.note || "",
+    })),
+  }));
+
+  session.mode = "single";
+  session.secIndex = 0;
+  session.loadedKey = "local::report";
+
+  renderChecklistSession();
+}
 
 export function saveChecklistAsJSON() {
-  const session = window.__cgoChecklistSession;
-  if (!session) throw new Error("No checklist session loaded");
-
+  const session = ensureSession();
   const full = {
     meta: session.meta,
-    sections: session.sections
+    sections: session.sections,
   };
 
   const blob = new Blob([JSON.stringify(full, null, 2)], { type: "application/json" });
@@ -368,11 +421,8 @@ export function saveChecklistAsJSON() {
   URL.revokeObjectURL(url);
 }
 
-
 export function saveStructuredChecklist() {
-  const session = window.__cgoChecklistSession;
-  if (!session) throw new Error("No checklist session loaded");
-
+  const session = ensureSession();
   const meta = session.meta || {};
   const title = meta.title || "Checklist";
 
@@ -382,10 +432,10 @@ export function saveStructuredChecklist() {
     `- **Date:** ${meta.date || ""}`,
     `- **Tester:** ${meta.tester || ""}`,
     `- **Device:** ${meta.device || ""}`,
-    meta.androidVersion ? `- **Android Version:** ${meta.androidVersion}` : null,
-    meta.appVersion ? `- **App Version:** ${meta.appVersion}` : null,
+    meta.browser ? `- **Browser:** ${meta.browser}` : null,
+    meta.extensionVersion ? `- **Extension Version:** ${meta.extensionVersion}` : null,
     meta.buildVariant ? `- **Build Variant:** ${meta.buildVariant}` : null,
-    `\n---\n`
+    `\n---\n`,
   ].filter(Boolean);
 
   session.sections.forEach((section) => {
@@ -396,6 +446,7 @@ export function saveStructuredChecklist() {
       lines.push(`- **${it.test}** — ${status}${it.note ? `: ${it.note}` : ""}`);
       if (it.expected) lines.push(`  - _Expected:_ ${it.expected}`);
       if (it.details) lines.push(`  - _Details:_ ${it.details}`);
+      if (it.description) lines.push(`  - _Scenario:_ ${it.description}`);
     });
   });
 
@@ -411,32 +462,11 @@ export function saveStructuredChecklist() {
   URL.revokeObjectURL(url);
 }
 
-
-export function renderChecklistFromData(data) {
-  const container = document.getElementById("content");
-  if (!container) throw new Error("Missing #content container");
-  container.innerHTML = "";
-
-  // Keep behavior identical to your previous version:
-  // create a blob URL and reload via loadStructuredChecklist(url)
-  const blob = new Blob([JSON.stringify(data)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  loadStructuredChecklist(url);
-}
-
-export function loadChecklist() {
-  loadStructuredChecklist();
-}
-
-/**
- * Optional: keep backward compatibility with any inline onclick="loadChecklist()"
- * by attaching functions to window.
- */
+// Optional: keep backward compatibility with inline onclick="..."
 export function registerChecklistGlobals() {
   window.escapeHtml = escapeHtml;
   window.loadStructuredChecklist = loadStructuredChecklist;
+  window.renderChecklistFromData = renderChecklistFromData;
   window.saveChecklistAsJSON = saveChecklistAsJSON;
   window.saveStructuredChecklist = saveStructuredChecklist;
-  window.renderChecklistFromData = renderChecklistFromData;
-  window.loadChecklist = loadChecklist;
 }

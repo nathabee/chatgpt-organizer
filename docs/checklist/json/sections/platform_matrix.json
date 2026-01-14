@@ -1,0 +1,39 @@
+{
+  "sections": [
+    {
+      "section": "Platform-specific verification",
+      "items": [
+        {
+          "test": "Windows 11 + Chrome: install unpacked",
+          "description": "Load unpacked from extracted release ZIP contents.",
+          "expected": "Extension loads; no console/service worker errors.",
+          "state": ""
+        },
+        {
+          "test": "Windows 11 + Edge: install unpacked",
+          "description": "Load unpacked in Edge (edge://extensions).",
+          "expected": "Extension loads; UI behaves the same; no errors.",
+          "state": ""
+        },
+        {
+          "test": "Windows DPI scaling (125% and 150%)",
+          "description": "Check layout, tabs, and scroll behavior.",
+          "expected": "No clipped UI; main actions remain reachable.",
+          "state": ""
+        },
+        {
+          "test": "Keyboard shortcuts on Windows",
+          "description": "Test any commands declared in manifest.",
+          "expected": "Shortcuts work and do not conflict unexpectedly.",
+          "state": ""
+        },
+        {
+          "test": "Download/export behavior on Windows",
+          "description": "Export JSON/Markdown if your checklist or extension generates files.",
+          "expected": "Downloads succeed and filenames are valid.",
+          "state": ""
+        }
+      ]
+    }
+  ]
+}
