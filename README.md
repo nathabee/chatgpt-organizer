@@ -301,14 +301,8 @@ You do **not** install this ZIP as an extension.
 
 Instead, it is meant to be:
 
-* served as a **static website**
+* served as a **static website** 
 * embedded in another site (for example via an iframe)
-
-See `demo/README.md` for:
-<a href="./demo/README.md">
-  <img src="./docs/cgo-demo.svg" alt="CGO Demo Docs" width="300" style="vertical-align:middle;">
-</a>
-
 * local testing
 * production hosting
 * WordPress embedding
@@ -321,14 +315,14 @@ See `demo/README.md` for:
 | Demo ZIP      | UI simulation for preview & embedding |
 
 If you just want to **use ChatGPT Organizer** → install the **extension ZIP**.
-If you want to **see how it works** → open the **demo**.
+If you want to **see how it works** → open the **demo** available in the github pages.
 
 ---
 
 ## Documentation & project page
 
 <a href="https://nathabee.github.io/chatgpt-organizer/index.html">
-  <img src="./docs/visitgithubpage.svg" alt="CGO Docs" width="300" style="vertical-align:middle;">
+  <img src="./docs/cgo-demo.svg" alt="CGO Docs" width="300" style="vertical-align:middle;">
 </a>
 
 ---

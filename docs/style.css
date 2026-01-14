@@ -99,13 +99,21 @@ button:hover,
 /***************************************************/
 /* Two-column layout */
 /***************************************************/
+ 
+
 .layout {
   display: grid;
-  grid-template-columns: 1.15fr 1fr; /* demo wider */
+  grid-template-columns: var(--demo-col, 1.15fr) 1fr;
   gap: 1.25rem;
   align-items: start;
   margin-top: 1rem;
+
+  /* height propagation */
+  flex: 1;
+  min-height: 0;
 }
+
+
 
 /* Left + right panels */
 .left, .right {
@@ -113,6 +121,11 @@ button:hover,
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 1rem;
+}
+.right {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 /* Panel titles / lead */
@@ -149,10 +162,40 @@ button:hover,
 
 /* Right column docs scroll area */
 #contentWrap {
-  margin-top: 1rem;
-  max-height: calc(100vh - 260px);
+  margin-top: 1rem;  
+  padding-right: 0.25rem; 
+  flex: 1;
+  min-height: 0;
   overflow: auto;
-  padding-right: 0.25rem;
+}
+
+
+/* Demo collapse behavior */
+.layout.demo-collapsed {
+  grid-template-columns: 72px 1fr;
+}
+
+.layout.demo-collapsed .left {
+  padding: 0.6rem;
+}
+
+.layout.demo-collapsed .left .panel-lead,
+.layout.demo-collapsed .left .demo-frame {
+  display: none;
+}
+
+.layout.demo-collapsed .left .panel-title {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  text-align: center;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+/* Make toggle button small and clear */
+#toggleDemo {
+  padding: 0.25rem 0.4rem;
+  font-size: 0.9rem;
 }
 
 /***************************************************/

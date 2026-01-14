@@ -1,0 +1,35 @@
+{
+  "sections": [
+ 
+ 
+    {
+      "section": "Submission",
+      "items": [
+        {
+          "test": "Developer account registered",
+          "description": "Chrome Web Store developer account active.",
+          "expected": "Dashboard accessible",
+          "state": ""
+        },
+        {
+          "test": "Developer fee paid",
+          "description": "One-time $5 fee completed.",
+          "expected": "Publishing enabled",
+          "state": ""
+        },
+        {
+          "test": "ZIP uploaded",
+          "description": "Upload extension package.",
+          "expected": "Upload accepted",
+          "state": ""
+        },
+        {
+          "test": "Submitted for review",
+          "description": "Press publish and submit.",
+          "expected": "Status shows 'In review'",
+          "state": ""
+        }
+      ]
+    }
+]
+}

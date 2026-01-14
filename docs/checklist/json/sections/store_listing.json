@@ -1,0 +1,34 @@
+{
+  "sections": [
+ 
+     {
+      "section": "Store Listing Metadata",
+      "items": [
+        {
+          "test": "Title clear and unique",
+          "description": "Extension name not misleading or duplicated.",
+          "expected": "Title accepted by store",
+          "state": ""
+        },
+        {
+          "test": "Short description concise",
+          "description": "One-sentence summary.",
+          "expected": "Clear value proposition",
+          "state": ""
+        },
+        {
+          "test": "Full description complete",
+          "description": "Features, usage, and purpose explained.",
+          "expected": "User understands extension",
+          "state": ""
+        },
+        {
+          "test": "Category selected correctly",
+          "description": "Choose best-fitting category.",
+          "expected": "Store listing categorized properly",
+          "state": ""
+        }
+      ]
+    }
+]
+}

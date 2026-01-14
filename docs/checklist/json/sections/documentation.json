@@ -1,0 +1,23 @@
+{
+  "sections": [
+ 
+ 
+    {
+      "section": "Documentation",
+      "items": [
+        {
+          "test": "README present",
+          "description": "Repository has clear README.",
+          "expected": "Users understand installation",
+          "state": ""
+        },
+        {
+          "test": "User guide available",
+          "description": "Link to documentation or help page.",
+          "expected": "Support material present",
+          "state": ""
+        }
+      ]
+    }
+  ]
+}

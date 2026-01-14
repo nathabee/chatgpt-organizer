@@ -1,0 +1,27 @@
+{
+  "sections": [
+    {
+      "section": "UX & Functionality",
+      "items": [
+        {
+          "test": "UI usable at common window sizes",
+          "description": "Panel fits without overflow.",
+          "expected": "No layout break",
+          "state": ""
+        },
+        {
+          "test": "No console errors",
+          "description": "Check DevTools console.",
+          "expected": "No runtime errors",
+          "state": ""
+        },
+        {
+          "test": "Core features tested",
+          "description": "Main workflows verified.",
+          "expected": "Extension behaves correctly",
+          "state": ""
+        }
+      ]
+    } 
+]
+}

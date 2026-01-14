@@ -1,0 +1,29 @@
+{
+  "sections": [
+ 
+    {
+      "section": "Visual Assets",
+      "items": [
+        {
+          "test": "128x128 icon provided",
+          "description": "Main extension icon.",
+          "expected": "Icon displayed in store",
+          "state": ""
+        },
+        {
+          "test": "Screenshots provided",
+          "description": "At least one real UI screenshot.",
+          "expected": "Store listing visually complete",
+          "state": ""
+        },
+        {
+          "test": "Screenshots truthful",
+          "description": "No mockups or misleading content.",
+          "expected": "Complies with policy",
+          "state": ""
+        }
+      ]
+    }
+ 
+]
+}

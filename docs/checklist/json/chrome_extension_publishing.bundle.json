@@ -1,0 +1,22 @@
+{
+  "meta": {
+    "title": "Chrome Extension — Publishing Readiness Checklist",
+    "date": "",
+    "tester": "",
+    "device": "Desktop / Chrome",
+    "androidVersion": "",
+    "appVersion": "",
+    "buildVariant": "release"
+  },
+  "includes": [
+    "sections/manifest_technical.json",
+    "sections/packaging.json",
+    "sections/store_listing.json",
+    "sections/visual_assets.json",
+    "sections/privacy_policy.json",
+    "sections/documentation.json",
+    "sections/ux_functionality.json",
+    "sections/submission.json"
+  ],
+  "sections": []
+}

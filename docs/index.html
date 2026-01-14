@@ -49,16 +49,16 @@
 
       </div>
       <ul>
-      <p style="margin-top: 1rem;">
-      🔗 View the full source code and documentation on
-      <a href="https://github.com/nathabee/chatgpt-organizer" target="_blank">GitHub Repository</a>
-    </p>
-      <p style="margin-top: 1rem;">
-      🔗 Extension download
-      <a href="https://github.com/nathabee/chatgpt-organizer/releases" target="_blank">Extension Download</a>
-    </p>
+        <p style="margin-top: 1rem;">
+          🔗 View the full source code and documentation on
+          <a href="https://github.com/nathabee/chatgpt-organizer" target="_blank">GitHub Repository</a>
+        </p>
+        <p style="margin-top: 1rem;">
+          🔗 Extension download
+          <a href="https://github.com/nathabee/chatgpt-organizer/releases" target="_blank">Extension Download</a>
+        </p>
 
-</ul>
+      </ul>
       <div class="translate-box">
         🌐 Translate: <span id="google_translate_element"></span>
       </div>
@@ -80,8 +80,16 @@
 
     <div class="layout">
       <!-- LEFT: DEMO -->
-      <aside class="left">
-        <h2 class="panel-title">Interactive Demo</h2>
+      <aside class="left" id="demoPanel">
+        <div class="panel-actions">
+          <h2 class="panel-title">Interactive Demo</h2>
+          <button id="toggleDemo" title="Collapse demo">⤢</button>
+
+          <button id="demoSmaller" title="Shrink demo">−</button>
+          <button id="demoBigger" title="Expand demo">+</button>
+        </div>
+
+
 
         <p class="panel-lead">
           Real CGO panel UI with mocked data. No ChatGPT account access. No extension APIs.
@@ -105,7 +113,6 @@
             <ul>
               <li><a href="user-manual.md">📖 Project user manual</a></li>
               <li><a href="presentation.md">Project Presentation</a></li>
-              <li><a href="version.md">Version description</a></li>
               <li><a href="architecture.md">Architecture</a></li>
             </ul>
           </details>
@@ -121,9 +128,28 @@
             <summary><strong>Development</strong></summary>
             <ul>
               <li><a href="developper.md">📄 Developper Tipps</a></li>
+              <li><a href="version.md">Version description</a></li>
             </ul>
           </details>
+
+          <details>
+            <summary><strong>Publishing</strong></summary>
+            <ul>
+
+
+              <li><a href="githubpage.md"> github pages</a></li>
+              <li>
+                <a href="#"
+                  onclick="loadStructuredChecklist('checklist/json/chrome_extension_publishing.bundle.json'); return false;">
+                  Chrome Extension Publishing Checklist
+                </a>
+              </li>
+            </ul>
+          </details>
+
         </div>
+
+
 
         <!-- IMPORTANT: new scroll container for docs -->
         <div id="contentWrap">
@@ -132,7 +158,8 @@
       </main>
     </div>
 
-    <script src="main.js"></script>
+    <script type="module" src="main.js"></script>
+
 
 
 

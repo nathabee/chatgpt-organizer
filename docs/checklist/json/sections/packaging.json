@@ -1,0 +1,28 @@
+{
+  "sections": [
+ 
+    {
+      "section": "Packaging",
+      "items": [
+        {
+          "test": "Only production files included",
+          "description": "No node_modules, test data, or dev scripts in ZIP.",
+          "expected": "ZIP contains clean extension package",
+          "state": ""
+        },
+        {
+          "test": "manifest.json at ZIP root",
+          "description": "Manifest must be top-level in ZIP.",
+          "expected": "Web Store accepts ZIP",
+          "state": ""
+        },
+        {
+          "test": "Extension loads from ZIP",
+          "description": "Load ZIP unpacked in chrome://extensions.",
+          "expected": "Extension runs correctly",
+          "state": ""
+        }
+      ]
+    }
+]
+}

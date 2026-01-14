@@ -1,0 +1,39 @@
+{
+  "sections": [
+    {
+      "section": "Manifest & Technical Compliance",
+      "items": [
+        {
+          "test": "Manifest uses Manifest V3",
+          "description": "Check manifest_version field.",
+          "expected": "\"manifest_version\": 3 present",
+          "state": ""
+        },
+        {
+          "test": "Manifest schema validates",
+          "description": "Load extension in chrome://extensions with Developer Mode.",
+          "expected": "No manifest errors shown",
+          "state": ""
+        },
+        {
+          "test": "Permissions minimal and justified",
+          "description": "Remove unused permissions and avoid broad permissions unless necessary.",
+          "expected": "Only necessary permissions declared",
+          "state": ""
+        },
+        {
+          "test": "No remote code execution",
+          "description": "No eval/new Function; no loading remote JS at runtime.",
+          "expected": "All code bundled in extension package",
+          "state": ""
+        },
+        {
+          "test": "Service worker loads correctly",
+          "description": "Check service worker logs and lifecycle.",
+          "expected": "No startup/runtime errors in SW",
+          "state": ""
+        }
+      ]
+    }
+  ]
+}

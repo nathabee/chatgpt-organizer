@@ -110,7 +110,14 @@ Read-only, zero risk.
 * Local project notes (browser storage)
   
 
+--- 
 
+## v0.1.8 — Epic: Checklist in github page
+
+### Scope
+
+collapsable demo to make checklist possible or better read the docs
+checklist to see if extension is ready to be published
 
 --- 
 

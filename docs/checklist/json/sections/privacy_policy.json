@@ -1,0 +1,28 @@
+{
+  "sections": [
+     {
+      "section": "Privacy & Policy",
+      "items": [
+        {
+          "test": "Privacy policy URL provided if required",
+          "description": "If extension handles user data.",
+          "expected": "Policy linked in store listing",
+          "state": ""
+        },
+        {
+          "test": "Data usage declared",
+          "description": "Fill privacy questionnaire in dashboard.",
+          "expected": "Store submission accepted",
+          "state": ""
+        },
+        {
+          "test": "No prohibited data collection",
+          "description": "No hidden tracking or fingerprinting.",
+          "expected": "Complies with policies",
+          "state": ""
+        }
+      ]
+    }
+ 
+]
+}
