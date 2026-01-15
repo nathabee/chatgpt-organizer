@@ -110,7 +110,63 @@ Read-only, zero risk.
 * Local project notes (browser storage)
   
 
---- 
+ 
+---
+## v1.0.0 — Epic: Initial stable release
+
+### Scope
+
+*(Identical to v0.1.20 — no functional changes)*
+
+* **Settings UI**
+
+  * Finalized layout and readability
+  * Stable Connection configuration
+  * Developer tools clearly isolated and optional
+
+* **Documentation**
+
+  * Screenshots, README, and User Manual fully aligned with the UI
+
+### Release intent
+
+* First **stable** release
+* Prepared for **Chrome Web Store submission**
+* Feature-complete, predictable behavior
+* No experimental or hidden functionality
+
+---
+## v0.1.20 — Epic: Settings tab display (final pre-release)
+
+### Scope
+
+* **Settings UI**
+
+  * Improve layout and readability
+  * Make **Connection → “ChatGPT origin”** input wider
+  * Finalize Developer section grouping and alignment
+
+* **Documentation**
+
+  * `docs/screenshots/`: add updated Settings screenshots
+  * `README.md`: document Settings tab and its purpose
+  * `docs/user-manual.md`: update to reflect the new Settings layout and options
+
+### Release policy
+
+* **Feature freeze starts here**
+
+  * No new features after this version
+  * Only bug fixes, UI adjustments, and policy-required changes allowed
+* **No Chrome Web Store submission for 0.1.20**
+
+  * This version serves as the final stabilization step before 1.0.0
+
+---
+
+
+
+ 
 
 ## v0.1.19 — Epic: Settings tab and dev-tools visibility
 

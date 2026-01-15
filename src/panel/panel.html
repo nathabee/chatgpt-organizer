@@ -438,7 +438,7 @@ SETTINGS VIEW
                 </p>
 
                 <!-- GENERAL -->
-                <details class="searchBox" id="settingsGeneralBox" role="group" >
+                <details class="searchBox" id="settingsGeneralBox" role="group">
                     <summary>General</summary>
 
                     <div class="row">
@@ -512,43 +512,57 @@ SETTINGS VIEW
                     <summary>Developer</summary>
 
                     <div class="devConfigGrid">
-                        <label class="devRow">
-                            <input id="cfgTraceScope" type="checkbox" />
-                            <span>Trace scope (console)</span>
-                        </label>
+                        <!-- Column 1 -->
+                        <div class="devGroup">
+                            <div class="devGroupTitle">Scope</div>
 
-                        <label class="devRowSplit">
-                            <span>Stop after N out-of-scope projects</span>
-                            <input id="cfgStopAfterOutOfScope" type="number" min="0" step="1" value="3" />
-                        </label>
+                            <label class="devRow">
+                                <input id="cfgTraceScope" type="checkbox" />
+                                <span>Trace scope (console)</span>
+                            </label>
 
-                        <label class="devRowSplit">
-                            <span>Action log max stored entries</span>
-                            <input id="cfgActionLogMax" type="number" min="100" step="100" value="5000" />
-                        </label>
-
-                        <label class="devRowSplit">
-                            <span>Debug trace max stored entries</span>
-                            <input id="cfgDebugTraceMax" type="number" min="100" step="100" value="2000" />
-                        </label>
-
-                        <label class="devRowSplit">
-                            <span>Max failure entries per run</span>
-                            <input id="cfgFailureLogsPerRun" type="number" min="0" step="10" value="50" />
-                        </label>
-
-                        <label class="confirm" style="margin-right: auto;">
-                            <input id="logsCbDebug" type="checkbox" />
-                            Debug enabled (OFF wipes all debug traces)
-                        </label>
-
-                        <div class="devRow">
-                            <button id="btnCfgResetDefaults" type="button">Reset defaults</button>
-                            <span id="cfgStatus" class="muted"></span>
+                            <label class="devRowSplit">
+                                <span>Stop after N out-of-scope projects</span>
+                                <input id="cfgStopAfterOutOfScope" type="number" min="0" step="1" value="3" />
+                            </label>
                         </div>
 
+                        <!-- Column 2 -->
+                        <div class="devGroup">
+                            <div class="devGroupTitle">Storage limits</div>
 
+                            <label class="devRowSplit">
+                                <span>Action log max stored entries</span>
+                                <input id="cfgActionLogMax" type="number" min="100" step="100" value="5000" />
+                            </label>
+
+                            <label class="devRowSplit">
+                                <span>Debug trace max stored entries</span>
+                                <input id="cfgDebugTraceMax" type="number" min="100" step="100" value="2000" />
+                            </label>
+
+                            <label class="devRowSplit">
+                                <span>Max failure entries per run</span>
+                                <input id="cfgFailureLogsPerRun" type="number" min="0" step="10" value="50" />
+                            </label>
+                        </div>
+
+                        <!-- Column 3 -->
+                        <div class="devGroup">
+                            <div class="devGroupTitle">Debug</div>
+
+                            <label class="confirm">
+                                <input id="logsCbDebug" type="checkbox" />
+                                Debug enabled (OFF wipes all debug traces)
+                            </label>
+
+                            <div class="devActionsRow">
+                                <button id="btnCfgResetDefaults" type="button">Reset defaults</button>
+                                <span id="cfgStatus" class="muted"></span>
+                            </div>
+                        </div>
                     </div>
+
                 </details>
 
                 <!-- ABOUT -->

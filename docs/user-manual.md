@@ -11,331 +11,373 @@ This manual explains **how to use the extension step by step**, what each sectio
 ### 1.1 Open the Extension
 
 1. Open **chatgpt.com**
-2. Open the **ChatGPT Organizer** side panel (Chrome extensions panel)
-3. The main interface appears with:
-   - Scope bar (top)
-   - Tabs (Single, Projects, Organize, Search, Logs, Stats)
+2. Open the **ChatGPT Organizer** side panel
+3. The interface contains:
+
+   * **Scope bar** (top)
+   * **Tabs** (Single Chats, Projects, Organize, Search, Settings, plus optional Logs and Stats)
+
+### 1.2 Developer Tools Visibility
+
+Some UI is hidden unless you enable developer tools.
+
+* The **Logs** and **Stats** tabs may be hidden by default.
+* In **Settings → General**, enable:
+
+  * **Show developer tools (Logs, Stats, debug options)**
+
+When disabled:
+
+* **Logs** and **Stats** tabs are hidden.
+* **Developer** section in Settings is hidden.
+* **Connection** section in Settings is hidden (advanced option).
 
 ---
 
 ## 2. Scope & Data Fetching (Mandatory First Step)
 
-Before using any tab, you must **select a scope and fetch data**.
+Before most tabs are useful, you must **set a scope** and **refresh** to load data.
 
 ### 2.1 Scope Bar (Top Section)
 
-The scope defines **which chats are fetched from ChatGPT**.
+The scope defines which chats are fetched:
 
-**Scope = “Updated since …”**
+* **Scope: Updated since …** (date lower bound)
 
-This applies to:
-- Single chats
-- Projects
-- Project chats
+This scope applies to:
+
+* Single chats
+* Projects
+* Project chats
 
 #### Controls
 
-- **Change…**
-  - Opens a dialog to select a date
-  - Defines the lower bound for fetched chats
-- **Refresh**
-  - Fetches data using the current scope
-  - Required after changing the scope
+* **Change…**
+
+  * Opens the *Set scope* dialog
+  * Select **Updated since** date
+* **Refresh**
+
+  * Fetches Single + Projects using the current scope
 
 #### Status Indicators
 
-During fetching:
-- Buttons are disabled
-- Status shows:
-  - `Fetching…`
-  - `Idle`
-  - `Done`
-- Fetching chatgpt.com **can take time** (network + API latency)
+In the scope bar you see:
 
-This is expected behavior.
+* **Single status** (`Idle`, `Fetching…`, `Done`, errors)
+* **Projects status** (`Idle`, `Fetching…`, `Done`, errors)
+
+Fetching can take time. While busy, buttons are disabled.
 
 ---
 
-### 2.2 Fetch Info and Settings
+### 2.2 Fetch Info and Settings (Scope Bar Details)
 
-Open **“Fetch info and settings”** to see cache details.
+Open **Fetch info and settings** to see:
 
-Displayed information:
-- Loaded single chats
-- Loaded projects
-- Loaded project chats
+**Cache snapshot**
 
-#### Limits
+* Single: loaded single chats count
+* Projects: loaded projects count
+* Project chats: loaded project chat count
 
-These limits affect **what is fetched and cached**:
+#### “List single / List projects” buttons
 
-- **Single limit**
-- **Projects limit**
-- **Chats per project**
+These exist in the DOM but are currently hidden (`is-hidden`). They are not part of the normal workflow anymore.
+
+---
+
+## 3. Settings Tab (New Central Configuration)
+
+The **Settings** tab replaces parts that used to live in Scope or Logs.
+
+### 3.1 General
+
+* **Show developer tools (Logs, Stats, debug options)**
+
+  * Enables advanced UI.
+  * When OFF: hides Logs/Stats tabs + hides advanced sections in Settings.
+
+### 3.2 Fetching
+
+Controls how much data is fetched and cached.
+
+* **Single limit**
+* **Projects limit**
+* **Chats / project**
 
 Important:
-- Search and Stats work **only on the loaded cache**
-- Increasing limits requires another **Refresh**
+
+* **Search** and **Stats** work only on what is currently **loaded in the cache**.
+* If you increase limits, you must **Refresh** again (scope bar) to load more.
+
+### 3.3 Connection (Developer tools only)
+
+This is an advanced setting and normally should not be changed.
+
+* **ChatGPT origin**
+
+  * Default: `https://chatgpt.com`
+* **Reset**
+
+  * Restores the default origin
+
+Only useful if ChatGPT is served from a different host.
+
+### 3.4 Developer (Developer tools only)
+
+Advanced developer-only settings:
+
+* **Trace scope (console)**
+* **Stop after N out-of-scope projects**
+* **Action log max stored entries**
+* **Debug trace max stored entries**
+* **Max failure entries per run**
+* **Debug enabled (OFF wipes all debug traces)**
+* **Reset defaults**
+
+  * Resets developer config defaults (note: debug enabled is a separate system; if you want it reset too, treat it as part of the reset logic in code)
+
+### 3.5 About
+
+* Shows **Version**
+* GitHub link
 
 ---
 
-## 3. Tabs Overview
+## 4. Tabs Overview
 
-Available tabs:
+Main tabs:
 
-- Single Chats
-- Projects
-- Organize
-- Search
-- Logs
-- Stats
+* **Single Chats**
+* **Projects**
+* **Organize**
+* **Search**
+* **Settings**
 
-Each tab works on the **currently loaded cache**.
+Developer tools tabs (only visible when enabled in Settings → General):
+
+* **Logs**
+* **Stats**
+
+All functional tabs operate on the **currently loaded cache** (from Refresh).
 
 ---
 
-## 4. Single Chats Tab
+## 5. Single Chats Tab
 
-**Purpose:**  
-Manage chats that are **not attached to any project**.
+**Purpose:** Manage chats **not attached to any Project**.
 
 ### What you can do
 
-- View all loaded single chats
-- Select individual or all chats
-- Permanently delete selected chats
+* View loaded single chats
+* Select chats
+* Permanently delete selected chats
 
-### Key Actions
+### Key UI
 
-- **Toggle all**
-  - Selects / unselects visible chats
-- **Delete selected (execute)**
-  - Starts a destructive operation
-  - Requires explicit confirmation
+* **Toggle all** (select/unselect visible items)
+* **Delete selected (execute)** (destructive)
 
-### Confirmation Flow
+### Confirmation Flow (Required)
 
 Before deletion:
-- Preview list is shown
-- You must check:
-  - *“I understand this can’t be undone here.”*
-- Then confirm deletion
 
-Progress and execution status are displayed live.
+* A confirmation box appears with:
+
+  * Title + preview list
+  * Checkbox: **I understand this can’t be undone here**
+  * Buttons: **Yes, delete** / **Cancel**
+
+Progress is shown with:
+
+* Log output (`singleExecOut`)
+* Progress bar (`singleExecProgressWrap`)
 
 ---
 
-## 5. Projects Tab
+## 6. Projects Tab
 
-**Purpose:**  
-Manage ChatGPT projects and their conversations.
+**Purpose:** Manage projects and their loaded conversations.
 
 ### What you can do
 
-- View projects and included chats
-- Create new projects
-- Select projects and/or chats
-- Permanently delete projects and their chats
+* View projects and chats
+* Create projects (via the mounted create project component)
+* Select projects and/or chats
+* Permanently delete selected projects + chats
 
-### Important Notes
+### Key UI
 
-- Deleting a project deletes **all its chats**
-- Deletions are irreversible
+* **Delete selected projects + chats (execute)** (destructive)
+* Confirmation + preview required
+* Progress indicators:
 
-### Execution Flow
+  * Chats progress bar
+  * Projects progress bar
 
-- Select projects or chats
-- Click **Delete selected projects + chats**
-- Confirm explicitly
-- Progress bars show execution state
+Important:
 
----
-
-## 6. Organize Tab
-
-**Purpose:**  
-Move chats into projects **without deleting anything**.
-
-### Layout Overview
-
-The view is split into four panes:
-
-1. Source chats
-2. Destination projects
-3. Action & confirmation
-4. Logs & progress
+* Deleting a project deletes its chats (irreversible).
 
 ---
 
-### 6.1 Source Chats
+## 7. Organize Tab
 
-- Source can be:
-  - All loaded chats
-  - Single chats only
-  - Project chats only
-- Filter chats by text
-- Select individual or all visible chats
+**Purpose:** Move chats into a project (no deletion).
 
----
+### Layout (4 panes)
 
-### 6.2 Destination Project
+1. **Source chats**
+2. **Destination project**
+3. **Action & confirmation**
+4. **Logs & progress**
 
-- Select an existing project
-- Or create a new project directly
-- Only **one target project** can be active
+### 7.1 Source chats
 
----
+* Choose source:
 
-### 6.3 Move Operation
+  * All loaded (single + project chats)
+  * Single only
+  * Projects only
+* Filter chats
+* Toggle all visible chats
+
+### 7.2 Destination project
+
+* Filter projects
+* Select exactly one target project
+* Clear target button
+* Create project component also exists here
+
+### 7.3 Move operation
 
 Steps:
+
 1. Select source chats
-2. Select a destination project
+2. Select destination project
 3. Click **Move to project**
-4. Confirm the operation
+4. Confirm
 
-This action:
-- Changes project membership
-- Does **not delete chats**
-
-Execution progress and logs are shown live.
+This modifies project membership and does not delete anything.
 
 ---
 
-## 7. Search Tab
+## 8. Search Tab
 
-**Purpose:**  
-Search and filter chats across the loaded cache.
+**Purpose:** Search within the loaded cache and filter results.
 
-### Important Rule
+### Rule: Search uses loaded data only
 
-Search works **only on loaded data**.  
-If something is missing:
-- Increase limits
-- Refresh data
+If you do not find something:
 
----
+* Increase **Fetching** limits in **Settings**
+* **Refresh** scope again
 
-### Search Features
+### Search UI
 
-- Full text search
-- Filters:
-  - Scope (single / projects)
-  - Archived state
-  - Created / updated time ranges
-  - Date ranges
+Top bar:
 
-### Actions
+* Search input
+* **Clear**
+* **Reset filters**
+* Hidden buttons exist in DOM: **List single / List projects** (not part of normal workflow)
 
-- Clear search
-- Reset filters
-- List single or project chats again
+Filters:
 
-Results update instantly based on filters.
+* Scope (All / Single / Projects)
+* Archived (Include / Exclude / Only)
+* Updated within
+* Created within
+* Updated after/before (date)
+* Created after/before (date)
 
----
+Info box shows:
 
-## 8. Logs Tab
+* Loaded counts (single/projects/project chats)
+* Limit hint
+* Result count
+* Status
 
-**Purpose:**  
-Audit and debugging visibility.
-
-### 8.1 Audit Log
-
-- Always enabled
-- Tracks actions performed by the extension
-- Stored locally
-
-Actions:
-- Refresh
-- Trim
-- Export as JSON
-- Clear
+Results list updates based on filters.
 
 ---
 
-### 8.2 Debug Trace
+## 9. Logs Tab (Developer tools only)
 
-- Optional
-- Disabled by default
-- When disabled, debug data is wiped
+**Purpose:** Audit history and debug traces.
+
+### 9.1 Audit log
+
+Local history of extension actions.
 
 Controls:
-- Enable / disable debug
-- Limit displayed entries
-- Export debug JSON
-- Clear debug logs
+
+* Show limit
+* Refresh
+* Trim keep last
+* Export JSON
+* Clear
+
+### 9.2 Debug trace
+
+Developer debugging traces.
+
+Controls:
+
+* Show limit
+* Refresh debug
+* Export debug JSON
+* Clear debug
+
+Note:
+
+* Debug enable/disable is managed in **Settings → Developer**.
+* When debug is turned OFF, traces are wiped by design.
 
 ---
 
-### Configuration Section
+## 10. Stats Tab (Developer tools only)
 
-Advanced options:
-- Trace scope (console)
-- Stop after N out-of-scope projects
-- Reset defaults
-
----
-
-## 9. Stats Tab
-
-**Purpose:**  
-Read-only analytics based on the current cache.
+**Purpose:** Read-only statistics computed from the current cache.
 
 ### Key Principle
 
-Stats reflect **only loaded data**.  
-They are not global ChatGPT statistics.
+Stats reflect only what is currently loaded.
+
+Top bar:
+
+* **Recalculate**
+* Status
+* Last cache update
+
+Sections:
+
+* Snapshot totals (single/projects/project chats/total/archived/avg chats per project)
+* Activity (placeholders)
+* Project structure (placeholders)
+* Deletes (this device): persistent counters
 
 ---
 
-### Available Statistics
+## 11. Safety & Data Notes
 
-- Total chats
-- Single chats
-- Projects
-- Project chats
-- Archived chats
-- Average chats per project
-
-Additional sections:
-- Activity timelines (planned)
-- Project size distribution (planned)
-- Delete counters (stored locally)
-
-Use **Recalculate** to refresh stats after data changes.
+* Destructive actions always require confirmation.
+* No silent deletes.
+* Fetching is user-triggered via Refresh.
+* Search/Stats are cache-based; they do not fetch new data.
 
 ---
 
-## 10. Safety & Data Notes
+## 12. Typical Workflow
 
-- All destructive actions require confirmation
-- No silent deletes
-- No background operations without user action
-- Data is fetched on demand
-- Logs and stats are stored locally
-
----
-
-## 11. Typical Workflow
-
-1. Set scope
-2. Refresh data
-3. Review Single / Projects
-4. Organize chats into projects
-5. Search and verify
-6. Check stats
-7. Review logs if needed
+1. Set scope (**Change…**)
+2. Refresh data (**Refresh**)
+3. Adjust limits in **Settings → Fetching** if needed
+4. Use **Single Chats** / **Projects**
+5. Use **Organize** to move chats into projects
+6. Use **Search** to verify and filter
+7. Enable developer tools if you need Logs/Stats
 
 ---
-
-## 12. Final Notes
-
-ChatGPT Organizer is designed for:
-- Transparency
-- Explicit actions
-- User-controlled operations
-
-Nothing is hidden. Nothing is automatic.  
-You stay in control.
-
+ 
