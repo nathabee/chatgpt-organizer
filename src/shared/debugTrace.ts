@@ -7,7 +7,7 @@ export type DebugTraceEntry = {
   id: string; // unique
   ts: number; // Date.now()
 
-  scope: "background" | "panel" | "single" | "projects" | "organize" | "search" | "stats" | "logs" | "demo";
+  scope: "background" | "panel" | "single" | "projects" | "organize" | "search" | "settings" | "stats" | "logs" | "demo";
   kind: "debug" | "info" | "error";
 
   message: string;

@@ -54,34 +54,9 @@
                                 id="scopeLoadedProjectChats">0</strong></span>
                     </div>
 
+                    <button id="btnListSingle" type="button" class="subtle is-hidden">List single</button>
+                    <button id="btnListProjects" type="button" class="subtle is-hidden">List projects</button>
 
-                    <div class="row scopeRow">
-                        <label class="fieldInline">
-                            <span>Single limit</span>
-                            <input id="singleLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
-                        </label>
-
-                        <button id="btnListSingle" type="button" class="subtle is-hidden">List single</button>
-                    </div>
-
-                    <div class="row scopeRow">
-                        <label class="fieldInline">
-                            <span>Projects limit</span>
-                            <input id="projectsLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
-                        </label>
-
-                        <label class="fieldInline">
-                            <span>Chats / project</span>
-                            <input id="projectsChatsLimit" type="number" inputmode="numeric" min="1" step="1"
-                                value="50" />
-                        </label>
-
-                        <button id="btnListProjects" type="button" class="subtle is-hidden">List projects</button>
-                    </div>
-
-                    <div class="muted scopeHint" id="scopeLimitsHint">
-                        Limits apply to fetch + cache (Search/Stats use the cache).
-                    </div>
                 </details>
             </div>
 
@@ -103,6 +78,10 @@
 
                 <button id="tabSearch" class="tab" role="tab" aria-selected="false" type="button">
                     Search
+                </button>
+
+                <button id="tabSettings" class="tab" role="tab" aria-selected="false" type="button">
+                    Settings
                 </button>
 
                 <button id="tabLogs" class="tab" role="tab" aria-selected="false" type="button">
@@ -450,14 +429,87 @@ ORGANIZE VIEW
                 </div>
             </section>
 
-
             <!-- =========================
-LOGS VIEW
+SETTINGS VIEW
 ========================= -->
-            <section id="viewLogs" class="view" role="tabpanel" aria-labelledby="tabLogs" hidden>
+            <section id="viewSettings" class="view" role="tabpanel" aria-labelledby="tabSettings" hidden>
+                <p class="muted">
+                    Configure fetching, developer tools, and connection details.
+                </p>
 
-                <details id="devConfigDetails" class="devConfig">
-                    <summary>Configuration</summary>
+                <!-- GENERAL -->
+                <details class="searchBox" id="settingsGeneralBox" role="group" >
+                    <summary>General</summary>
+
+                    <div class="row">
+                        <label class="confirm" style="margin-right: auto;">
+                            <input id="cfgShowDevTools" type="checkbox" />
+                            Show developer tools (Logs, Stats, debug options)
+                        </label>
+
+                        <span id="settingsGeneralStatus" class="muted"></span>
+                    </div>
+                </details>
+
+                <!-- FETCHING -->
+                <details class="searchBox" id="settingsFetchingBox" role="group" open>
+                    <summary>Fetching</summary>
+
+                    <div class="muted" style="margin-bottom: 8px;">
+                        Limits apply to fetch + cache (Search/Stats use the cache).
+                    </div>
+
+                    <!-- MOVED HERE from scopeControls (same IDs, no renames) -->
+                    <div class="row scopeRow">
+                        <label class="fieldInline">
+                            <span>Single limit</span>
+                            <input id="singleLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
+                        </label>
+
+                    </div>
+
+                    <div class="row scopeRow">
+                        <label class="fieldInline">
+                            <span>Projects limit</span>
+                            <input id="projectsLimit" type="number" inputmode="numeric" min="1" step="1" value="50" />
+                        </label>
+
+                        <label class="fieldInline">
+                            <span>Chats / project</span>
+                            <input id="projectsChatsLimit" type="number" inputmode="numeric" min="1" step="1"
+                                value="50" />
+                        </label>
+
+                    </div>
+
+                    <!-- Keep this hint ID if you ever used it elsewhere -->
+                    <div class="muted scopeHint" id="scopeLimitsHint">
+                        Limits apply to fetch + cache (Search/Stats use the cache).
+                    </div>
+                </details>
+
+                <!-- CONNECTION -->
+                <details class="searchBox" id="settingsConnectionBox" role="group">
+                    <summary>Connection</summary>
+
+                    <div class="row">
+                        <label class="fieldInline" style="flex:1; min-width: 220px;">
+                            <span>ChatGPT origin</span>
+                            <input id="apiOrigin" type="text" value="https://chatgpt.com" />
+                        </label>
+
+                        <button id="btnApiOriginReset" type="button" class="subtle">Reset</button>
+                        <span id="apiOriginStatus" class="muted"></span>
+                    </div>
+
+                    <div class="muted">
+                        Normally you should not change this. Only useful if ChatGPT is served from a different host.
+                    </div>
+                </details>
+
+                <!-- DEVELOPER (MOVED HERE from Logs) -->
+                <details id="devConfigDetails" class="searchBox" role="group">
+                    <summary>Developer</summary>
 
                     <div class="devConfigGrid">
                         <label class="devRow">
@@ -470,12 +522,6 @@ LOGS VIEW
                             <input id="cfgStopAfterOutOfScope" type="number" min="0" step="1" value="3" />
                         </label>
 
-
-                        <div class="devRow">
-                            <button id="btnCfgResetDefaults" type="button">Reset defaults</button>
-                            <span id="cfgStatus" class="muted"></span>
-                        </div>
- 
                         <label class="devRowSplit">
                             <span>Action log max stored entries</span>
                             <input id="cfgActionLogMax" type="number" min="100" step="100" value="5000" />
@@ -491,16 +537,42 @@ LOGS VIEW
                             <input id="cfgFailureLogsPerRun" type="number" min="0" step="10" value="50" />
                         </label>
 
+                        <label class="confirm" style="margin-right: auto;">
+                            <input id="logsCbDebug" type="checkbox" />
+                            Debug enabled (OFF wipes all debug traces)
+                        </label>
+
+                        <div class="devRow">
+                            <button id="btnCfgResetDefaults" type="button">Reset defaults</button>
+                            <span id="cfgStatus" class="muted"></span>
+                        </div>
 
 
                     </div>
                 </details>
-                <hr class="devDivider" />
+
+                <!-- ABOUT -->
+                <details class="searchBox" id="settingsAboutBox" role="group" open>
+                    <summary>About</summary>
+
+                    <div class="row">
+                        <div style="flex:1; min-width: 180px;">
+                            Version: <strong id="settingsVersion">—</strong>
+                        </div>
+
+                        <a id="settingsGitHubLink" class="subtle" href="#" target="_blank" rel="noreferrer">GitHub</a>
+                    </div>
+                </details>
+            </section>
 
 
-                <p class="muted">
-                    Audit log is always-on. Debug trace is optional and can be wiped instantly.
-                </p>
+
+            <!-- =========================
+LOGS VIEW
+========================= -->
+            <section id="viewLogs" class="view" role="tabpanel" aria-labelledby="tabLogs" hidden>
+
+
 
                 <!-- AUDIT -->
                 <h3>Audit log</h3>
@@ -532,10 +604,6 @@ LOGS VIEW
                 <h3>Debug trace</h3>
 
                 <div class="row">
-                    <label class="confirm" style="margin-right: auto;">
-                        <input id="logsCbDebug" type="checkbox" />
-                        Debug enabled (OFF wipes all debug traces)
-                    </label>
 
                     <label class="fieldInline">
                         <span>Show</span>
@@ -574,7 +642,7 @@ LOGS VIEW
 
 
                 <!-- Snapshot totals (collapsed by default, like Search filters/info) -->
-                <details class="statsBox" id="statsSnapshotBox" role="group">
+                <details class="statsBox" id="statsSnapshotBox" role="group" open>
                     <summary>Snapshot totals</summary>
 
                     <div class="statsGrid">
@@ -615,7 +683,7 @@ LOGS VIEW
                 </details>
 
                 <!-- Activity (collapsed) -->
-                <details class="statsBox" id="statsActivityBox" role="group">
+                <details class="statsBox" id="statsActivityBox" role="group" open>
                     <summary>Activity</summary>
 
                     <div class="muted statsExplain" id="statsActivityExplain">
@@ -639,7 +707,7 @@ LOGS VIEW
                 </details>
 
                 <!-- Project structure (collapsed) -->
-                <details class="statsBox" id="statsProjectsBox" role="group">
+                <details class="statsBox" id="statsProjectsBox" role="group" open>
                     <summary>Projects structure</summary>
 
                     <div class="statsGraphBox">

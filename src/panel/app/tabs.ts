@@ -1,7 +1,7 @@
 // src/panel/app/tabs.ts
 import type { Dom } from "./dom";
 
-export type TabId = "single" | "projects" | "organize" | "search" | "logs" | "stats";
+export type TabId = "single" | "projects" | "organize" | "search" | "settings" | "logs" | "stats";
 
 
 export type Tab = {
@@ -34,6 +34,12 @@ export function createTabs(dom: Dom, tabs: Record<TabId, Tab>) {
     dom.tabOrganize.setAttribute("aria-selected", String(is("organize")));
     dom.viewOrganize.hidden = !is("organize");
     
+
+    dom.tabSettings.classList.toggle("is-active", is("settings"));
+    dom.tabSettings.setAttribute("aria-selected", String(is("settings")));
+    dom.viewSettings.hidden = !is("settings");
+
+
     dom.tabLogs.classList.toggle("is-active", is("logs"));
     dom.tabLogs.setAttribute("aria-selected", String(is("logs")));
     dom.viewLogs.hidden = !is("logs");
@@ -57,6 +63,7 @@ export function createTabs(dom: Dom, tabs: Record<TabId, Tab>) {
     dom.tabProjects.addEventListener("click", () => switchTo("projects"));
     dom.tabOrganize.addEventListener("click", () => switchTo("organize"));
     dom.tabSearch.addEventListener("click", () => switchTo("search"));
+    dom.tabSettings.addEventListener("click", () => switchTo("settings"));
     dom.tabLogs.addEventListener("click", () => switchTo("logs"));
     dom.tabStats.addEventListener("click", () => switchTo("stats"));
   }

@@ -12,6 +12,7 @@ import { createOrganizeTab } from "./tabs/organize/tab";
 import { createSearchTab } from "./tabs/search/tab";
 import { createLogsTab } from "./tabs/logs/tab";
 import { createStatsTab } from "./tabs/stats/tab";
+import { createSettingsTab } from "./tabs/settings/tab";
 import { storageGet, storageSet } from "../shared/platform/storage";
 import { getBusy } from "./app/state";
 import * as debugTrace from "../shared/debugTrace";
@@ -73,6 +74,8 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
   const searchTab = createSearchTab(dom, bus, cache);
   const organizeTab = createOrganizeTab(dom, bus, cache);
 
+  const settingsTab = createSettingsTab(dom, bus);
+
   const logsTab = createLogsTab(dom, bus);
   const statsTab = createStatsTab(dom, bus, cache);
 
@@ -80,6 +83,7 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
   projectsTab.bind();
   organizeTab.bind();
   searchTab.bind();
+  settingsTab.bind();
   logsTab.bind();
   statsTab.bind();
 
@@ -88,6 +92,7 @@ async function waitNotBusy(maxMs = 10 * 60 * 1000) {
     projects: projectsTab,
     organize: organizeTab,
     search: searchTab,
+    settings: settingsTab,
     logs: logsTab,
     stats: statsTab,
   });

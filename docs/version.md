@@ -112,6 +112,40 @@ Read-only, zero risk.
 
 --- 
 
+## v0.1.19 — Epic: Settings tab and dev-tools visibility
+
+### Scope
+
+* Add a dedicated **Settings** tab to centralize configuration that was previously scattered (or in Logs).
+* Introduce a user preference **“Show developer tools”** that controls what advanced UI is visible.
+
+### Delivered
+
+* **Settings tab UI**
+
+  * Grouped sections: **General**, **Fetching**, **Connection**, **Developer**, **About**.
+  * Show extension version + GitHub link in **About**.
+
+* **Developer tools visibility switch**
+
+  * When enabled: **Logs** and **Stats** tabs become visible.
+  * When disabled: **Logs** and **Stats** tabs are hidden.
+  * Settings also respects the same switch:
+
+    * Hide **Developer** section when dev tools are off.
+    * Hide **Connection** section when dev tools are off.
+
+* **Configuration moves / cleanup**
+
+  * Fetch limits moved out of the scope bar UI into **Settings → Fetching** (IDs kept stable to avoid rewiring).
+  * Developer config UI moved out of **Logs** into **Settings → Developer**.
+  * Scope bar keeps only **scope + cache snapshot** and the legacy list buttons remain in DOM (hidden) for compatibility.
+
+ 
+
+---
+
+
 ## v0.1.18 — Epic: Add interactive Publishing Checklist to GitHub Pages
 
 ### Scope
@@ -119,6 +153,7 @@ Read-only, zero risk.
 * Add a reusable checklist engine to the GitHub Pages documentation site.
 * Ship a Chrome Web Store “Publishing Readiness” checklist as modular JSON sections + bundle.
 * collapsable demo to make checklist possible or better read the docs 
+* add inside github CONTRIBUTING, SECURITY, issue template, pullrequest template...
 
 ### Deliverables
 

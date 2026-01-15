@@ -51,9 +51,13 @@ ChatGPT Organizer exists to fill that gap.
 | ------------------------------------------------ | ------------------------------------------------- |
 | ![](docs/screenshots/screenshot-cgo-singles.png) | ![](docs/screenshots/screenshot-cgo-projects.png) |
 
-| Search                                          | Stats                                            |
+| Search                                          | Organize                                            |
 | ----------------------------------------------- | ------------------------------------------------ |
-| ![](docs/screenshots/screenshot-cgo-search.png) | ![](docs/screenshots/screenshot-cgo-stats-1.png) |
+| ![](docs/screenshots/screenshot-cgo-search.png) | ![](docs/screenshots/screenshot-cgo-organizepng) |
+
+| Logs                                          | Stats                                            |
+| ----------------------------------------------- | ------------------------------------------------ |
+| ![](docs/screenshots/screenshot-cgo-logs.png) | ![](docs/screenshots/screenshot-cgo-stats-1.png) |
 
 The interface is organized into **explicit tabs**, each with a single responsibility.
 

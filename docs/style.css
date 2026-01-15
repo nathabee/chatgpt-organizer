@@ -426,7 +426,7 @@ label { display: block; margin: 0.4rem 0; }
 /***************************************************/
 /* Markdown */
 /***************************************************/
-@
+
 /* Markdown images: default as thumbnails, clickable in md */
 .markdown img {
   display: block;

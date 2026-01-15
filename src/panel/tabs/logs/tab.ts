@@ -236,27 +236,7 @@ export function createLogsTab(dom: Dom, _bus: Bus) {
       doExportDebug().catch(() => {});
     });
 
-    // config (optional)
-    if (dom.cfgTraceScopeEl && dom.cfgStopAfterOutOfScopeEl && dom.btnCfgResetDefaults) {
-      dom.cfgTraceScopeEl.addEventListener("change", async () => {
-        const cfg = await readCfgFromUI(dom);
-        await setDevConfig(cfg);
-        setCfgStatus(dom, "Saved");
-      });
-
-      dom.cfgStopAfterOutOfScopeEl.addEventListener("change", async () => {
-        const cfg = await readCfgFromUI(dom);
-        await setDevConfig(cfg);
-        await applyConfigToUI(dom); // normalize back into input
-        setCfgStatus(dom, "Saved");
-      });
-
-      dom.btnCfgResetDefaults.addEventListener("click", async () => {
-        await resetDevConfigDefaults();
-        await applyConfigToUI(dom);
-        setCfgStatus(dom, "Reset");
-      });
-    }
+ 
   }
 
   return {

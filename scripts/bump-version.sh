@@ -36,16 +36,16 @@ if [[ -f manifest.json ]]; then
 fi
 
 # Update dist/manifest.json if it exists (built output)
-if [[ -f dist/manifest.json ]]; then
-  node -e '
-    const fs = require("fs");
-    const v = fs.readFileSync("VERSION","utf8").trim();
-    const p = "dist/manifest.json";
-    const j = JSON.parse(fs.readFileSync(p,"utf8"));
-    j.version = v;
-    fs.writeFileSync(p, JSON.stringify(j, null, 2) + "\n");
-  '
-fi
+#if [[ -f dist/manifest.json ]]; then
+#  node -e '
+#    const fs = require("fs");
+#    const v = fs.readFileSync("VERSION","utf8").trim();
+#    const p = "dist/manifest.json";
+#    const j = JSON.parse(fs.readFileSync(p,"utf8"));
+#    j.version = v;
+#    fs.writeFileSync(p, JSON.stringify(j, null, 2) + "\n");
+#  '
+#fi
 
 # Update package.json 
 if [[ -f package.json ]]; then
@@ -59,7 +59,29 @@ if [[ -f package.json ]]; then
   '
 fi
 
-git add VERSION manifest.json dist/manifest.json package.json 2>/dev/null || true
+# Update package.json 
+if [[ -f demo/package.json ]]; then
+  node -e '
+    const fs = require("fs");
+    const v = fs.readFileSync("VERSION","utf8").trim();
+    const p = "demo/package.json";
+    const j = JSON.parse(fs.readFileSync(p,"utf8"));
+    j.version = v;
+    fs.writeFileSync(p, JSON.stringify(j, null, 2) + "\n");
+  '
+fi
+
+# Update src/shared/version.ts (for demo + any non-extension build)
+node -e '
+  const fs = require("fs");
+  const v = fs.readFileSync("VERSION","utf8").trim();
+  const p = "src/shared/version.ts";
+  const out = `// src/shared/version.ts\n// Auto-generated. Do not edit by hand.\nexport const CGO_VERSION = "${v}";\n`;
+  fs.writeFileSync(p, out);
+'
+
+
+git add VERSION manifest.json  demo/package.json package.json src/shared/version.ts  2>/dev/null || true
 # git commit -m "chore(version): bump to ${new}"
 
 echo "Bumped: $old -> $new"

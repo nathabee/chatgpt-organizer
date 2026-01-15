@@ -1,3 +1,5 @@
+// src/shared/devConfigStore.ts
+
 import { storageGet, storageSet } from "./platform/storage";
 import { clampInt } from "../panel/app/format";
 

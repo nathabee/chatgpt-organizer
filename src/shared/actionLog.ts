@@ -20,6 +20,7 @@ export type ActionLogScope =
   | "search"
   | "stats"
   | "logs"
+  | "settings"
   | "background";
 
 export type ActionLogEntry = {
