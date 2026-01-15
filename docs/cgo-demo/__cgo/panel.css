@@ -230,6 +230,18 @@ button:disabled {
   background: white;
 }
 
+/* Settings: make ChatGPT origin input wide */
+#apiOrigin {
+  width: 100%;          /* take available space inside the label */
+  min-width: 260px;     /* avoid "too small" even in narrow layouts */
+}
+
+/* Connection row: allow wrapping on narrow screens */
+#settingsConnectionBox .row {
+  flex-wrap: wrap;
+}
+
+
 /* Projects card */
 .projectCard {
   display: grid;
@@ -280,33 +292,79 @@ details > summary {
   opacity: 0.9;
 }
 
-
+ 
 /* -----------------------------
-   log config debug
-   ----------------------------- */
+   Settings > Developer layout (grouped columns)
+----------------------------- */
 
- /*
+.devConfigGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 8px;
+}
+
+@media (max-width: 860px) {
+  .devConfigGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.devGroup {
+  border: 1px solid rgba(0,0,0,0.10);
+  background: rgba(0,0,0,0.015);
+  border-radius: 12px;
+  padding: 10px;
+  display: grid;
+  gap: 10px;
+}
+
+.devGroupTitle {
+  font-weight: 700;
+  opacity: 0.9;
+  margin-bottom: 2px;
+}
+
+/* ensure your existing row styles behave inside groups */
+.devActionsRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+/* Developer rows */
+.devRow {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  user-select: none;
+}
 
 .devRowSplit {
   display: grid;
-  grid-template-columns: max-content 140px;
+  grid-template-columns: 1fr auto;
   gap: 10px;
   align-items: center;
-  justify-content: start;
 }
 
-.devRowSplit > span {
-  white-space: normal; 
+.devRowSplit input[type="number"] {
+  width: 140px;
+  justify-self: start; /* keep input near the label */
+  font: inherit;
+  padding: 6px 8px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,0.16);
+  background: white;
+}
+#settingsConnectionBox .fieldInline {
+  flex: 1 1 420px; /* allow it to grow and keep a decent base width */
+  min-width: 260px;
 }
 
-
-
-.devDivider {
-  border: 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.12); 
-  margin: 12px 0 14px;
+#apiOrigin {
+  min-width: 0; /* allow flexbox to compute width properly */
 }
-*/
+
 
 /* -----------------------------
    Search results layout
