@@ -3,7 +3,7 @@
 Thanks for your interest in ChatGPT Organizer.
 
 This project is currently maintained by a single author.
-Contributions, bug reports, and feedback are welcome.
+Bug reports, feature suggestions, and feedback are welcome.
 
 ## How to contribute
 
@@ -15,7 +15,20 @@ Contributions, bug reports, and feedback are welcome.
 
 If you want to submit code:
 - open an issue first to discuss the change
-- keep PRs small and focused
+- keep pull requests small and focused
 - follow the existing project structure
 
-There is no formal roadmap yet.
+There is no formal roadmap at this time.
+
+## Documentation
+
+All user, developer, and testing documentation is available on the project documentation site:
+
+https://nathabee.github.io/chatgpt-organizer/index.html
+
+This includes:
+- User manual
+- Developer guide
+- Tester notes
+- Publishing checklist
+- Live demo
