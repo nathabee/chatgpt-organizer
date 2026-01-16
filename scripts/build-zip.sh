@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 # scripts/build-zip.sh
 set -euo pipefail
 
@@ -27,7 +26,17 @@ node -e '
   }
 '
 
-# 4) Create zip
+# 4) Hard fail if sourcemaps are present in dist
+if find dist -type f -name "*.map" -print -quit | grep -q .; then
+  echo "ERROR: Sourcemap files (*.map) found in dist/. Do not upload these to Chrome Web Store."
+  echo "Found:"
+  find dist -type f -name "*.map" -print
+  echo
+  echo "Fix: disable sourcemaps in your build OR keep them but exclude from dist output."
+  exit 1
+fi
+
+# 5) Create zip (exclude .map, and optionally svg)
 OUT_DIR="release"
 mkdir -p "$OUT_DIR"
 
@@ -37,7 +46,19 @@ ZIP_PATH="${OUT_DIR}/${ZIP_NAME}"
 rm -f "$ZIP_PATH"
 
 # zip dist contents (not the folder itself)
-( cd dist && zip -qr "../${ZIP_PATH}" . )
+# Exclusions:
+# - *.map : Chrome Web Store reviewers often reject sourcemaps in uploads
+# - *.svg : optional (keep only if you really need it at runtime)
+(
+  cd dist
+  zip -qr "../${ZIP_PATH}" . \
+    -x "*.map" \
+    -x "*.svg"
+)
 
 echo "Built: ${ZIP_PATH}"
 ls -lh "$ZIP_PATH"
+
+echo
+echo "ZIP contents (top level):"
+unzip -l "$ZIP_PATH" | sed -n '1,40p'

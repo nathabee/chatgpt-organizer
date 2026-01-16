@@ -1,3 +1,4 @@
+// scripts/build.mjs
 import { build, context } from "esbuild";
 import fs from "node:fs";
 import path from "node:path";
@@ -20,17 +21,22 @@ function copyFile(src, dst) {
   fs.copyFileSync(src, dst);
 }
 
-function copyDir(srcDir, dstDir) {
+function copyDir(srcDir, dstDir, opts = {}) {
+  const { excludeFileNames = new Set() } = opts;
   mkdirp(dstDir);
+
   for (const entry of fs.readdirSync(srcDir, { withFileTypes: true })) {
+    if (excludeFileNames.has(entry.name)) continue;
+
     const src = path.join(srcDir, entry.name);
     const dst = path.join(dstDir, entry.name);
-    if (entry.isDirectory()) copyDir(src, dst);
+
+    if (entry.isDirectory()) copyDir(src, dst, opts);
     else copyFile(src, dst);
   }
 }
 
-function copyStatic() {
+function copyStatic({ isDev }) {
   // manifest
   copyFile(path.join(root, "manifest.json"), path.join(distDir, "manifest.json"));
 
@@ -38,9 +44,13 @@ function copyStatic() {
   copyFile(path.join(root, "src/panel/panel.html"), path.join(distDir, "panel/panel.html"));
   copyFile(path.join(root, "src/panel/panel.css"), path.join(distDir, "panel/panel.css"));
 
-  // assets (optional)
+  // assets
   const assetsSrc = path.join(root, "assets");
-  if (fs.existsSync(assetsSrc)) copyDir(assetsSrc, path.join(distDir, "assets"));
+  if (fs.existsSync(assetsSrc)) {
+    // For Chrome Web Store uploads: exclude icon.svg (not needed at runtime)
+    const excludeFileNames = isDev ? new Set() : new Set(["icon.svg"]);
+    copyDir(assetsSrc, path.join(distDir, "assets"), { excludeFileNames });
+  }
 }
 
 function watchIfExists(fileOrDir, opts, cb) {
@@ -70,7 +80,6 @@ function runTypecheckWatch() {
     shell: false,
   });
   child.on("exit", (code) => {
-    // If tsc watch exits, we keep esbuild watch alive, but signal error code.
     if (code && code !== 0) process.exitCode = code;
   });
 }
@@ -78,20 +87,13 @@ function runTypecheckWatch() {
 const isWatch = process.argv.includes("--watch");
 const wantsTypecheckInWatch = process.argv.includes("--typecheck");
 
+// Allow forcing dev mode even without watch (optional)
+const isDev = isWatch || process.argv.includes("--dev");
+
 if (!isWatch) {
   rmrf(distDir);
 }
 mkdirp(distDir);
-
-const common = {
-  bundle: true,
-  format: "esm",
-  target: "es2022",
-  sourcemap: true,
-  outdir: distDir,
-  platform: "browser",
-  logLevel: "info",
-};
 
 const entryPoints = {
   background: path.join(root, "src/background/index.ts"),
@@ -99,8 +101,18 @@ const entryPoints = {
   panel: path.join(root, "src/panel/panel.ts"),
 };
 
+const common = {
+  bundle: true,
+  format: "esm",
+  target: "es2022",
+  sourcemap: isDev, // ✅ maps only in dev/watch
+  outdir: distDir,
+  platform: "browser",
+  logLevel: "info",
+};
+
 async function runOnce() {
-  // IMPORTANT: fail build on TS errors
+  // fail build on TS errors
   runTypecheckOnce();
 
   await build({
@@ -109,7 +121,7 @@ async function runOnce() {
     entryNames: "[name]",
   });
 
-  copyStatic();
+  copyStatic({ isDev });
 }
 
 async function runWatch() {
@@ -124,14 +136,14 @@ async function runWatch() {
   });
 
   await ctx.watch();
-  copyStatic();
+  copyStatic({ isDev });
 
   // crude static watcher: recopy on change
-  watchIfExists(path.join(root, "manifest.json"), {}, () => copyStatic());
-  watchIfExists(path.join(root, "src/panel"), { recursive: true }, () => copyStatic());
+  watchIfExists(path.join(root, "manifest.json"), {}, () => copyStatic({ isDev }));
+  watchIfExists(path.join(root, "src/panel"), { recursive: true }, () => copyStatic({ isDev }));
 
   const assetsDir = path.join(root, "assets");
-  watchIfExists(assetsDir, { recursive: true }, () => copyStatic());
+  watchIfExists(assetsDir, { recursive: true }, () => copyStatic({ isDev }));
 
   console.log("Watching…");
 }
