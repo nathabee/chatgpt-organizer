@@ -1,8 +1,8 @@
 {
   "name": "chatgpt-organizer",
   "private": true,
-  "version": "1.0.0",
-  "type": "module", 
+  "version": "1.0.1",
+  "type": "module",
   "scripts": {
     "clean": "rm -rf ./build ./dist",
     "typecheck": "tsc -p tsconfig.json --noEmit",

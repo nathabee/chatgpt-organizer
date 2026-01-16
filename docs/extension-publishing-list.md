@@ -1,259 +1,166 @@
 # Chrome Web Store — Phase 1 (Unlisted)
 
-## Submission Questions & Prepared Answers
+## prerequise
+ 
+You are logged into **Chrome Web Store Dev Console**.
+Developer account ✔
+Payment ✔
+Release 1.0.0 on GitHub ✔
 
-Use this to fill the Web Store submission form without improvising.
+ 
 
----
+## Step 1 — Create the extension entry
 
-## 1. Extension name
+In the Dev Console:
 
-**Question (implicit)**
-What is the name of your extension?
+**➜ “New Item”**
+Upload **ONE ZIP** only:
 
-**Answer**
+* the **compiled extension zip**
+* contains:
 
-> ChatGPT Organizer
+  * `manifest.json`
+  * `background.js`
+  * `content.js`
+  * `panel/…`
+  * `assets/icons`
+* **NO demo**
+* **NO source**
+* **NO dist leftovers**
 
----
+This ZIP must be exactly what Chrome will install.
 
-## 2. Extension summary (short description)
-
-**Question**
-Provide a short summary shown in listings.
-
-**Answer**
-
-> Inspect and organize your ChatGPT conversations with explicit, user-controlled actions.
-
-(Short, factual, no promises.)
-
----
-
-## 3. Detailed description
-
-**Question**
-Describe what your extension does.
-
-**Answer**
-
-> ChatGPT Organizer is a browser extension that helps users inspect and selectively manage their ChatGPT conversations and projects.
->
-> It runs locally in the browser, uses the user’s existing ChatGPT session, and performs actions only when explicitly requested.
->
-> The extension provides visibility into conversations and projects, supports selective bulk operations such as deletion, and keeps a local audit log of actions performed.
+If this ZIP is wrong, stop here and fix it first.
 
 ---
 
-## 4. What problem does this extension solve?
+## Step 2 — Choose visibility (IMPORTANT)
 
-**Question (reviewer mindset)**
-Why does this exist?
+You will be asked for visibility:
 
-**Answer**
+* **Unlisted** ✅ ← choose this
+* Public ❌ (later, maybe)
+* Private ❌
 
-> The ChatGPT web interface makes it difficult to manage large conversation histories.
-> Conversations and projects become hard to reach as they grow, and cleanup is limited to single deletions or deleting everything at once.
->
-> This extension enables selective inspection and cleanup with explicit user control.
+Unlisted means:
 
----
-
-## 5. Permissions justification (CRITICAL)
-
-**Question**
-Why does your extension request these permissions?
-
-You must justify **each permission** in plain language.
-
-**Example structure (adapt to your exact manifest):**
-
-> **Access to chatgpt.com**
-> Required to read and interact with the ChatGPT web interface within the user’s logged-in browser session.
->
-> **Side Panel API**
-> Used to display the extension’s user interface within Chrome’s side panel.
->
-> **Storage**
-> Used to store local cache data, statistics, and action logs on the user’s device.
-
-Rule:
-
-* No “for convenience”
-* No “may be used”
-* No future features
+* Google review still happens
+* No store listing
+* You can share the link manually
+* Perfect for first submission
 
 ---
 
-## 6. Does the extension collect personal data?
+## Step 3 — Store listing (minimal but correct)
 
-**Question**
-Does your extension collect or transmit personal data?
+### Name
 
-**Answer**
+**ChatGPT Organizer**
 
-> No.
+### Description (short)
 
-Clarification you can add:
+> Organize, group, and manage your own ChatGPT conversations locally in your browser.
 
-> All data remains local in the user’s browser and is not transmitted to any server.
+No marketing fluff. No promises.
 
----
+### Detailed description
 
-## 7. Privacy policy (mandatory even if local-only)
+Explain **what it does**, not what you hope it does:
 
-**Question**
-Provide a Privacy Policy URL.
-
-**Answer**
-
-> [https://github.com/nathabee/chatgpt-organizer/blob/main/docs/privacy-policy.md](https://github.com/nathabee/chatgpt-organizer/blob/main/docs/privacy-policy.md)
-> (or your published Pages version)
-
-**Key statements your policy must contain (and you already do):**
-
-* No data collection
-* No transmission
-* No analytics
-* Local-only storage
+* client-side only
+* uses ChatGPT UI
+* no external servers
+* no analytics
+* no tracking
 
 ---
 
-## 8. Data usage disclosure (Chrome form checkboxes)
+## Step 4 — Permissions justification (CRITICAL)
 
-**Question**
-How is user data handled?
+Chrome will show your permissions.
+You must **justify them** in plain English.
 
-**Your selections**
+Example (adapt wording, but keep meaning):
 
-* ❌ Data sold to third parties
-* ❌ Data used for advertising
-* ❌ Data used for analytics
-* ❌ Data transmitted off-device
-* ❌ Data shared with external services
-* ✔️ Data processed locally only
+* **tabs**
+  Required to detect and interact with the active ChatGPT tab.
 
----
+* **storage**
+  Used to store local configuration and cached metadata in the browser.
 
-## 9. In-app purchases
+* **activeTab**
+  Required to access the currently active ChatGPT tab on user action.
 
-**Question**
-Does your extension contain paid features or purchases?
+* **sidePanel**
+  Used to display the extension interface.
 
-**Answer**
+* **Host: [https://chatgpt.com/](https://chatgpt.com/)**
+  The extension only operates on ChatGPT pages.
 
-> No.
-
-(Do not explain further.)
+If this section is sloppy → rejection.
 
 ---
 
-## 10. Monetization
+## Step 5 — Privacy policy (MANDATORY)
 
-**Question (implicit)**
-Is this extension monetized?
+Even if you collect **nothing**, you MUST provide one.
 
-**Answer**
+You already did the right thing earlier.
+Use your GitHub Pages or docs URL.
 
-> No.
-> This extension is free and open source.
+Must explicitly say:
 
----
-
-## 11. Support URL
-
-**Question**
-Where can users get support?
-
-**Answer**
-
-> [https://github.com/nathabee/chatgpt-organizer/issues](https://github.com/nathabee/chatgpt-organizer/issues)
-
-Optional wording in description:
-
-> Support is provided on a best-effort basis via GitHub Issues.
+* no personal data collected
+* no data sent to servers
+* all data stays local
+* open-source
 
 ---
 
-## 12. Website / homepage (optional but recommended)
+## Step 6 — Support URL
 
-**Question**
-Do you have a website?
+Use:
 
-**Answer**
+* GitHub Issues
+  or
+* a docs page
 
-> [https://nathabee.github.io/chatgpt-organizer/index.html](https://nathabee.github.io/chatgpt-organizer/index.html)
-
-This strengthens reviewer trust.
-
----
-
-## 13. Distribution visibility
-
-**Question**
-Who can discover this extension?
-
-**Answer**
-
-> Unlisted
-
-Meaning:
-
-* accessible via direct link
-* not searchable
-* safe for early users
+Do **not** put an email unless you want support load.
 
 ---
 
-## 14. Target audience
+## Step 7 — Version check
 
-**Question (implicit)**
-Who is this for?
+Chrome will read:
 
-**Answer**
+* `manifest.json → version: 1.0.0`
 
-> Individual users managing large ChatGPT conversation histories.
-
-No enterprise claims. No automation claims.
+This **must match** your GitHub release.
+If it does, you’re clean.
 
 ---
 
-## 15. Security expectations
+## Step 8 — Submit for review
 
-**Question (reviewer mindset)**
-Does this extension introduce risk?
+Click **Submit for review**.
 
-**Answer**
+What happens next:
 
-> No elevated risk.
-> The extension operates within the browser using the user’s existing authenticated session and does not introduce external communication.
+* Review time: **hours to a few days**
+* First submission may take longer
+* If rejected, Google tells you exactly why
 
----
+No silence, no black hole.
 
-## 16. Update behavior
+--- 
 
-**Question**
-How are updates handled?
+## After submission
 
-**Answer**
+When it’s approved:
 
-> Updates are distributed through the Chrome Web Store.
-> Local data remains on the user’s device.
-
----
-
-## 17. Accuracy & honesty check (self-audit)
-
-Before submitting, confirm internally:
-
-* [x] Description matches actual behavior
-* [x] No hidden automation
-* [x] No background fetching
-* [x] No undeclared permissions
-* [x] No misleading wording
-
-If all are true → submit.
+* You get a **store link**
+* You can share it manually
+* Later: switch to Public if you want
 
 ---
-
  
