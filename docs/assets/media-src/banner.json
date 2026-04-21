@@ -1,0 +1,39 @@
+{
+  "appName": "ChatGPT Organizer",
+  "tagline": "Chrome extension for visibility and control in ChatGPT",
+  
+ "subline": "Inspect and manage chats and projects with full user control",
+ 
+  "featureTitle": "Selective conversation and project management",
+  "featureLeft1": "• browser-local operation",
+  "featureLeft2": "• auditable action log",
+  "featureRight1": "• bulk review and cleanup",
+  "featureRight2": "• explicit user-triggered actions",
+
+  "chip1": "Extension",
+  "chip2": "Local Cache",
+  "chip3": "Action Log",
+  "chip4": "Bulk Control",
+
+  "iconFile": "icon.svg",
+  "screenshot1": "screenshot-1.png",
+  "screenshot2": "screenshot-2.png",
+
+  "screenshot1Label": "Search tab",
+  "screenshot2Label": "Stats tab",
+
+  "shot1X": 900,
+  "shot1Y": 62,
+  "shot1Width": 300,
+  "shot1Height": 300,
+  "shot1Radius": 18,
+  "shot1Fit": "xMidYMid meet",
+
+  "shot2X": 1100,
+  "shot2Y": 150,
+  "shot2Width": 400,
+  "shot2Height": 190,
+  "shot2Radius": 18,
+  "shot2Fit": "xMidYMid meet"
+
+}

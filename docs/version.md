@@ -3,18 +3,72 @@
 This document tracks functional and architectural changes of the ChatGPT Organizer
 Chrome extension.
 
-Versions are listed with the **newest at the top**.
+* Versions are listed with the **newest at the top**.
+* use "##" for major version
+* use "###" for minor version
+* use "####" for patch version
+
+---
+ 
+
+## **MAJOR v1**
+
+### **v1.0 — Focus: First Publication in Chrome Web Store**
+
+* Initial public-ready release
+* Chrome Web Store–compliant build pipeline
+* Permissions, privacy practices, and documentation aligned with Chrome policies
+* Demo and extension versions synchronized
 
 ---
 
-## MINOR VERSION
+#### **v1.0.1 — Epic: Chrome publication compatibility update**
+
+* Update `docs/privacy.html`
+* Minor compliance adjustments for Chrome Web Store review
+* No feature changes
+
+ 
+---
+#### v1.0.0 — Epic: Initial stable release
+
+##### Scope
+
+*(Identical to v0.1.20 — no functional changes)*
+
+* **Settings UI**
+
+  * Finalized layout and readability
+  * Stable Connection configuration
+  * Developer tools clearly isolated and optional
+
+* **Documentation**
+
+  * Screenshots, README, and User Manual fully aligned with the UI
+
+##### Release intent
+
+* First **stable** release
+* Prepared for **Chrome Web Store submission**
+* Feature-complete, predictable behavior
+* No experimental or hidden functionality
+
+---
+---
+
+
+---
+
+## MAJOR v0
+---
 
 ### v0.1 — Focus: Organization, Visibility, Control *(planned)*
 
+#### v0.1 overview
 This minor version marks the end of the experimental 0.0.x phase and shifts the
 extension from **cleanup tooling** to **long-term chat organization**.
 
-#### Vision
+##### Vision
 
 ChatGPT Organizer becomes a **curation tool**, not just a deletion helper.
 
@@ -24,7 +78,7 @@ The focus is on:
 * understanding what exists,
 * and keeping long histories manageable over time.
 
-#### Planned Epics
+##### Planned Epics
 
 ##### 1. Organize Tab (Drag & Drop Project Filing)
 
@@ -86,59 +140,10 @@ High-level visibility into the account.
 * Large projects (cleanup candidates)
 
 Read-only, zero risk.
- 
 
----
+#### v0.1.20 — Epic: Settings tab display (final pre-release)
 
-## v0.0 — Experimental  Phase *(completed)*
-
-
-### What 0.0.x Can Do
-
-* Scrape visible and full ChatGPT chat lists
-* Deep scan long histories
-* Select chats manually or in bulk
-* Execute ChatGPT REST delete requests
-* Show:
-
-  * live scan progress
-  * execution progress
-  * confirmation previews
-* Discover ChatGPT projects
-* Show project → conversation counts
-* Delete empty or selected projects
-* Local project notes (browser storage)
-  
-
- 
----
-## v1.0.0 — Epic: Initial stable release
-
-### Scope
-
-*(Identical to v0.1.20 — no functional changes)*
-
-* **Settings UI**
-
-  * Finalized layout and readability
-  * Stable Connection configuration
-  * Developer tools clearly isolated and optional
-
-* **Documentation**
-
-  * Screenshots, README, and User Manual fully aligned with the UI
-
-### Release intent
-
-* First **stable** release
-* Prepared for **Chrome Web Store submission**
-* Feature-complete, predictable behavior
-* No experimental or hidden functionality
-
----
-## v0.1.20 — Epic: Settings tab display (final pre-release)
-
-### Scope
+##### Scope
 
 * **Settings UI**
 
@@ -152,7 +157,7 @@ Read-only, zero risk.
   * `README.md`: document Settings tab and its purpose
   * `docs/user-manual.md`: update to reflect the new Settings layout and options
 
-### Release policy
+##### Release policy
 
 * **Feature freeze starts here**
 
@@ -168,14 +173,14 @@ Read-only, zero risk.
 
  
 
-## v0.1.19 — Epic: Settings tab and dev-tools visibility
+#### v0.1.19 — Epic: Settings tab and dev-tools visibility
 
-### Scope
+##### Scope
 
 * Add a dedicated **Settings** tab to centralize configuration that was previously scattered (or in Logs).
 * Introduce a user preference **“Show developer tools”** that controls what advanced UI is visible.
 
-### Delivered
+##### Delivered
 
 * **Settings tab UI**
 
@@ -202,16 +207,16 @@ Read-only, zero risk.
 ---
 
 
-## v0.1.18 — Epic: Add interactive Publishing Checklist to GitHub Pages
+#### v0.1.18 — Epic: Add interactive Publishing Checklist to GitHub Pages
 
-### Scope
+##### Scope
 
 * Add a reusable checklist engine to the GitHub Pages documentation site.
 * Ship a Chrome Web Store “Publishing Readiness” checklist as modular JSON sections + bundle.
 * collapsable demo to make checklist possible or better read the docs 
 * add inside github CONTRIBUTING, SECURITY, issue template, pullrequest template...
 
-### Deliverables
+##### Deliverables
 
 * **Docs UI**
 
@@ -233,7 +238,7 @@ Read-only, zero risk.
 
   * Document local serving for GitHub Pages (`npx serve docs` / `python3 -m http.server`) to avoid `file://` issues.
 
-### Acceptance criteria
+##### Acceptance criteria
 
 * Checklist loads on the GitHub Pages site and is usable without console errors.
 * Exported JSON preserves states/notes/descriptions.
@@ -245,13 +250,13 @@ Read-only, zero risk.
 
 --- 
 
-## v0.1.16 → v0.1.17 — Epic: Execution stability, logging discipline, demo parity
+#### v0.1.16 → v0.1.17 — Epic: Execution stability, logging discipline, demo parity
 
-### Scope
+##### Scope
 
 Stabilization and cleanup release focused on correctness, not new features.
 
-### What was done
+##### What was done
 
 - **Busy / execution semantics**
   - Clarified: *one user action = one busy window*
@@ -277,7 +282,7 @@ Stabilization and cleanup release focused on correctness, not new features.
   - Confirmed which are configurable vs hard-capped
   - Refactor deferred to a dedicated follow-up epic
 
-### Outcome
+##### Outcome
 
 - More predictable UI behavior
 - Correct execution reports per tab
@@ -288,17 +293,17 @@ Stabilization and cleanup release focused on correctness, not new features.
 
 ---
 
-## v0.1.11 to v0.1.15  — Epic: Demo deployment in beelab and in githubpage
+#### v0.1.11 to v0.1.15  — Epic: Demo deployment in beelab and in githubpage
 
-### Scope
+##### Scope
 * demo version correction to enable deployment beelab or in github page
 * user-manual docs creation
 * docs adaptation to show the demo
 ---
 
-## v0.1.10 — Epic: Demo version (Standalone Panel Simulation)
+#### v0.1.10 — Epic: Demo version (Standalone Panel Simulation)
 
-### Scope
+##### Scope
 
 Deliver a **standalone demo version** of **ChatGPT Organizer (CGO)** that runs the **real panel code** outside the browser extension environment.
 
@@ -321,9 +326,9 @@ It is **not** a production replacement for the extension.
 
 ---
 
-### Goals
+##### Goals
 
-#### 1. Platform seam isolation
+###### 1. Platform seam isolation
 
 * Replace:
 
@@ -335,7 +340,7 @@ It is **not** a production replacement for the extension.
   * `demo/src/mocks/storage.ts`
 * Achieved via Vite resolve / plugin logic (no code changes in `src/`)
 
-#### 2. Real panel code execution
+###### 2. Real panel code execution
 
 * Load and execute:
 
@@ -343,7 +348,7 @@ It is **not** a production replacement for the extension.
 * Without modification
 * All relative imports must continue to work unchanged
 
-#### 3. Panel UI reuse
+###### 3. Panel UI reuse
 
 * Reuse the real extension UI:
 
@@ -352,7 +357,7 @@ It is **not** a production replacement for the extension.
 * Strip extension-only `<script src="../panel.js">` references
 * Serve / emit these files into the demo build output
 
-#### 4. Functional UI simulation
+###### 4. Functional UI simulation
 
 * Tabs must work:
 
@@ -365,7 +370,7 @@ It is **not** a production replacement for the extension.
 * Buttons, routing, state updates must behave as in the extension
 * Data is provided by **mock handlers**, not real ChatGPT APIs
 
-#### 5. Deterministic mock data
+###### 5. Deterministic mock data
 
 * Provide predictable demo content:
 
@@ -376,7 +381,7 @@ It is **not** a production replacement for the extension.
 * Scope filtering (`Updated since`) must function against mock data
 * Cache updates must correctly refresh the UI
 
-#### 6. Independent build output
+###### 6. Independent build output
 
 * `npm run build` must produce a fully standalone demo in `demo/dist`
 * Demo must run with:
@@ -389,7 +394,7 @@ It is **not** a production replacement for the extension.
   * source files
   * Vite dev server
 
-#### 7. Web embedding support
+###### 7. Web embedding support
 
 * Demo must be embeddable via iframe
 * Designed to be hosted at a stable URL (e.g. BeeLab VPS)
@@ -397,7 +402,7 @@ It is **not** a production replacement for the extension.
 
 ---
 
-### Explicit Non-Goals
+###### Explicit Non-Goals
 
 * ❌ No real ChatGPT account access
 * ❌ No authentication
@@ -408,7 +413,7 @@ It is **not** a production replacement for the extension.
 
 ---
 
-### Deliverables
+###### Deliverables
 
 * `demo/` folder with:
 
@@ -424,7 +429,7 @@ It is **not** a production replacement for the extension.
 
 ---
 
-### Exit Criteria
+###### Exit Criteria
 
 This epic is complete when:
 
@@ -436,15 +441,15 @@ This epic is complete when:
 
 ---
  
-## v0.1.9 — Epic: Create Projects & Stabilize Tracing
+#### v0.1.9 — Epic: Create Projects & Stabilize Tracing
 
-### Scope
+##### Scope
 
 Introduce **project creation** and **empty-project support**, while **cleaning and standardizing tracing, logging, and API boundaries** across the background architecture.
 
 ---
 
-## Goals
+##### Goals
 
 * Enable **project creation** from Organize / Projects
 * Show **empty projects** (newly created projects have no conversations)
@@ -453,7 +458,7 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
 
 ---
 
-## Logging & Tracing (Final Model)
+##### Logging & Tracing (Final Model)
 
 | Layer                                               | Purpose                                     | Persistence          | Controlled by |
 | --------------------------------------------------- | ------------------------------------------- | -------------------- | ------------- |
@@ -461,7 +466,7 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
 | **Debug trace (`debugTrace`)**                      | Deep API inspection (payloads, schemas)     | Yes (storage → JSON) | Debug toggle  |
 | **Action log (`actionLog`)**                        | User-visible history (delete, move, create) | Yes (storage)        | Feature logic |
 
-### Rules (kept simple)
+##### Rules (kept simple)
 
 * **Console logs** → developer feedback only
 * **Debug trace** → inspect HTTP reality
@@ -469,9 +474,9 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
 
 ---
 
-## Architecture Rules (Enforced)
+##### Architecture Rules (Enforced)
 
-### API (`api/*`)
+###### API (`api/*`)
 
 * Example: `createProjectApi`
 * Pure HTTP + parsing
@@ -479,21 +484,21 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
 * No `chrome.runtime`
 * Returns structured result
 
-### Controllers (`controllers/*`)
+###### Controllers (`controllers/*`)
 
 * Orchestrate multiple API calls
 * Apply scope rules
 * Emit progress / done events
 * Minimal `logTrace / logWarn`
 
-### Executors (`executors/*`)
+###### Executors (`executors/*`)
 
 * Run destructive or long operations
 * Emit progress + done
 * Handle retries
 * Use `logTrace / logWarn / logError`
 
-### Index (`background/index.ts`)
+###### Index (`background/index.ts`)
 
 * Dispatch only
 * No HTTP knowledge
@@ -502,7 +507,7 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
 
 ---
 
-## Key Functional Changes
+##### Key Functional Changes
 
 * **Create Project** now works using the correct `snorlax/upsert` payload
   (including required `sharing` structure)
@@ -512,7 +517,7 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
 
 ---
 
-## Code Structure Impact
+##### Code Structure Impact
 
 * Clear split:
 
@@ -525,7 +530,7 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
 
 ---
 
-## Open Problem (Next Work)
+##### Open Problem (Next Work)
 
 * Avoid full refresh after **create / move**
 * Update cache in-place and re-render (same approach as delete)
@@ -534,16 +539,16 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
 
 
 
-## v0.1.8 — Epic: Organize Tab (Move Chats into Projects)
+#### v0.1.8 — Epic: Organize Tab (Move Chats into Projects)
 
-### Goals
+#### Goals
 
 * Provide a clear workflow to **move selected chats into a chosen project**.
 * Keep interaction simple, visual, and safe.
 
-### Planned deliverables
+#### Planned deliverables
 
-#### 1) Organize tab UI (two-column layout)
+##### 1) Organize tab UI (two-column layout)
 
 * **Left column:** source chats (select many)
 
@@ -556,7 +561,7 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
 
   * Choose exactly **one** target project
 
-#### 2) Move action
+##### 2) Move action
 
 * Button: **Move to project**
 * Behavior:
@@ -566,18 +571,18 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
   * progress + per-item success/failure logging
   * updates local model + cache after successful moves
 
-#### 3) Guardrails + feedback
+###### 3) Guardrails + feedback
 
 * Clear confirmation gating (similar to delete pattern)
 * Progress indicator + results log
 * Failure logging into Logs tab
 
-#### 4) Optional (if time)
+###### 4) Optional (if time)
 
 * “Filter left list” (search box)
 * “Show only loaded data” vs “fetch missing” (later)
 
-### Dependencies / prerequisites from v0.1.6
+#### Dependencies / prerequisites from v0.1.6
 
 * Reuse timestamp + conversation parsing utilities
 * Reuse global scope concept later for filtering what appears in Organize
@@ -585,9 +590,7 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
 ---
  
 
-## v0.1.7 — Epic: 
-
-### v0.1.7 — Epic: Config-Driven API URLs
+#### v0.1.7 — Epic: Config-Driven API URLs
 
 #### Goals
 
@@ -665,23 +668,23 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
  
 ---
  
-## v0.1.6 — Epic: Global Scope Controls + Timestamp Groundwork (No Organize)
+#### v0.1.6 — Epic: Global Scope Controls + Timestamp Groundwork (No Organize)
 
-### Goals
+#### Goals
 
 * Establish a **global “Scope” concept** (date-based) that will later drive consistent filtering.
 * Add **instrumentation** to verify what ChatGPT’s backend timestamps actually do (single + projects).
 * Keep the release focused: **no Organize UI yet**.
 
-### Delivered
+#### Delivered
 
-#### 1) Global Scope UI foundation
+##### 1) Global Scope UI foundation
 
 * Added a global **Scope date** control (date input + label).
 * Scope is stored at the panel level (UI-level source of truth).
 * Scope intended semantics: **date at 00:00 local time** (day-granularity).
 
-#### 2) Timestamp parsing + normalization utilities
+##### 2) Timestamp parsing + normalization utilities
 
 * Added robust parsing for time fields that can be:
 
@@ -691,7 +694,7 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
   * epoch milliseconds
 * Unified logic around “updated time” = `update_time` fallback to `create_time`.
 
-#### 3) Scope-first paging algorithm for projects (implemented but not fully wired yet)
+##### 3) Scope-first paging algorithm for projects (implemented but not fully wired yet)
 
 * Implemented “scope-first / time-first” paging logic for gizmo conversations:
 
@@ -700,7 +703,7 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
   * Keep only in-scope conversations (intended)
   * Skip caching empty projects (intended)
 
-#### 4) Debug tracing to diagnose scope flow + backend behavior
+##### 4) Debug tracing to diagnose scope flow + backend behavior
 
 * Added console/debug trace points showing:
 
@@ -708,7 +711,7 @@ Introduce **project creation** and **empty-project support**, while **cleaning a
   * first item timestamps per gizmo project fetch
 * Result of tracing: **scope cutoff wasn’t being passed** (sinceUpdatedMs shows `undefined`), so scope filtering was not active.
 
-#### 5) Verified timestamp behavior experimentally (important findings)
+##### 5) Verified timestamp behavior experimentally (important findings)
 
 Based on your controlled edits:
 
@@ -731,9 +734,9 @@ Based on your controlled edits:
 
  
 
-### v0.1.5 — Epic: Global Scope Date
+#### v0.1.5 — Epic: Global Scope Date
 
-#### Goal
+##### Goal
 
 Introduce a **single global “updated since” scope date** that controls **all data retrieval** (single chats and projects).
 
@@ -742,7 +745,7 @@ Users must explicitly choose a scope and refresh.
 
 ---
 
-#### Rationale
+##### Rationale
 
 * Numeric limits alone are misleading for large histories
 * Fetching without a clear temporal scope wastes time and bandwidth
@@ -755,7 +758,7 @@ Users must explicitly choose a scope and refresh.
 
 ---
 
-#### Core Changes
+##### Core Changes
 
 **1. Global scope controller**
 
@@ -799,7 +802,7 @@ Users must explicitly choose a scope and refresh.
 
 ---
 
-#### UI / UX Notes
+##### UI / UX Notes
 
 * Scope label reflects **actual cache state**
 
@@ -813,7 +816,7 @@ Users must explicitly choose a scope and refresh.
 ---
  
 
-### v0.1.4 — Epic: Stats Tab
+#### v0.1.4 — Epic: Stats Tab
 
 #### Goal
 
@@ -828,9 +831,9 @@ Statistics must be:
 
 ---
 
-## Data sources
+#### Data sources
 
-### 1. Cache-derived snapshot (primary)
+##### 1. Cache-derived snapshot (primary)
 
 All core statistics are computed **only from the in-panel cache**, populated by:
 
@@ -844,7 +847,7 @@ Cache arrays used:
 * `cache.singleChats`
 * `cache.projects[].conversations`
 
-### 2. Persistent counters (minimal storage)
+##### 2. Persistent counters (minimal storage)
 
 A small persistent record is stored in extension storage:
 
@@ -857,7 +860,7 @@ All other stats are derived from cache only.
 
 ---
 
-## Snapshot totals (always visible)
+#### Snapshot totals (always visible)
 
 Computed on demand from cache:
 
@@ -888,9 +891,9 @@ Additional snapshot indicators:
 
 ---
 
-## Activity statistics (cache-based)
+#### Activity statistics (cache-based)
 
-### Chat creation activity (GitHub-style)
+##### Chat creation activity (GitHub-style)
 
 **What it shows**
 
@@ -911,7 +914,7 @@ Based only on loaded chats. Older history requires increasing list limits.
 
 ---
 
-### Chat lifetime distribution
+##### Chat lifetime distribution
 
 **Metric**
 
@@ -927,9 +930,9 @@ Shows whether chats are mostly short-lived or maintained over time.
 
 ---
 
-## Project structure statistics
+#### Project structure statistics
 
-### Project size distribution
+##### Project size distribution
 
 **Visualization**
 
@@ -941,7 +944,7 @@ Shows whether projects tend to stay small or grow large.
 
 ---
 
-### Top projects (snapshot)
+##### Top projects (snapshot)
 
 **Visualization**
 
@@ -953,7 +956,7 @@ Highlights where most activity is concentrated.
 
 ---
 
-## Delete activity (persistent counters)
+#### Delete activity (persistent counters)
 
 Stored in extension storage:
 
@@ -968,7 +971,7 @@ Deletes are also logged in the audit log for detailed traceability.
 
 ---
 
-## Performance & lifecycle rules
+#### Performance & lifecycle rules
 
 * Stats are **not continuously recalculated**.
 * Computation happens:
@@ -981,7 +984,7 @@ Deletes are also logged in the audit log for detailed traceability.
 
 ---
 
-## Scope & limitations (explicit in UI)
+#### Scope & limitations (explicit in UI)
 
 Stats are based on **currently loaded cache only**.
 
@@ -992,7 +995,7 @@ The UI clearly states:
 
 ---
 
-## Non-goals (explicitly out of scope)
+#### Non-goals (explicitly out of scope)
 
 * No background tracking of full history
 * No cross-device sync
@@ -1003,7 +1006,7 @@ The UI clearly states:
 
  
 
-### v0.1.3 — Epic: Search Tab
+#### v0.1.3 — Epic: Search Tab
 
 #### Goal
 
@@ -1064,16 +1067,16 @@ When Single/Projects loads new data (or deletes data), the cache updates and:
 * Search refreshes automatically
 * counts and results update without manual refresh
 
-#### Notes / constraints
+####### Notes / constraints
 
 * Search coverage depends on what was loaded via limits in Single/Projects.
 * Some metadata fields are often empty in real usage (e.g., starred/pinned depending on UI availability), so filters should only exist for fields that are reliably populated by the API.
 
 ---
 
-### v0.1.2 — Epic: Placeholder Tabs + Logs + Debug Trace
+#### v0.1.2 — Epic: Placeholder Tabs + Logs + Debug Trace
 
-#### Goals
+###### Goals
 
 * Add the new tab skeletons (UI only) so the architecture is ready for the next epics:
 
@@ -1088,7 +1091,7 @@ When Single/Projects loads new data (or deletes data), the cache updates and:
 
 ---
 
-#### Features
+###### Features
 
 **1. Placeholder tabs (UI only)**
 
@@ -1144,7 +1147,7 @@ This is intentionally small to avoid spamming storage.
 
 ---
 
-#### Storage
+###### Storage
 
 **Audit Log**
 
@@ -1164,15 +1167,15 @@ Debug OFF => `cgo.debugTrace` is cleared immediately.
 
  
 
-### v0.1.1 — Epic: Architecture Restructure
+#### v0.1.1 — Epic: Architecture Restructure
 
-#### Goals
+###### Goals
 
 * Split the codebase into **clear, testable modules** with explicit responsibilities.
 * Reduce “god files” and make future features (organize, logs, stats, moves) easier to extend.
 * Establish consistent structure across **background**, **panel**, and **shared** layers.
 
-#### What changed
+###### What changed
 
 **1. Background split**
 
@@ -1269,14 +1272,14 @@ src/shared/
 │   └── index.ts            ← re-exports (barrel)
 ```
 
-#### Notes
+##### Notes
 
 * This epic is **structural**: behavior should remain the same (no intentional regressions).
 * Some future tabs/files are intentionally present but still empty (placeholders for the next epics).
 
 ---
 
-### v0.1.0 — Epic: Lock Previous v0.0.x
+#### v0.1.0 — Epic: Lock Previous v0.0.x
 
 #### Goals
 
@@ -1289,7 +1292,31 @@ src/shared/
 * Confirmed that all v0.0.x epics/features are included unchanged
 * Established the new development track for architecture changes in **v0.1.1+**
 
-### v0.0.15 — Epic: Dual Progress for Project Cleanup
+
+---
+
+### v0.0 — Experimental  Phase *(completed)*
+
+#### v0.0 overview
+
+##### What 0.0.x Can Do
+
+* Scrape visible and full ChatGPT chat lists
+* Deep scan long histories
+* Select chats manually or in bulk
+* Execute ChatGPT REST delete requests
+* Show:
+
+  * live scan progress
+  * execution progress
+  * confirmation previews
+* Discover ChatGPT projects
+* Show project → conversation counts
+* Delete empty or selected projects
+* Local project notes (browser storage)
+  
+
+#### v0.0.15 — Epic: Dual Progress for Project Cleanup
 
 #### Goals
 
@@ -1324,7 +1351,7 @@ src/shared/
 
 ---
 
-### v0.0.14 — Epic: Fix Project Delete Message Wiring
+#### v0.0.14 — Epic: Fix Project Delete Message Wiring
 
 #### Goals
 
@@ -1340,7 +1367,7 @@ src/shared/
 * Ensure panel receives structured per-project results (ok/status/error)
 ---
 
-### v0.0.13 — Epic: New UX Structure + Project Delete Flow (Partial)
+#### v0.0.13 — Epic: New UX Structure + Project Delete Flow (Partial)
 
 #### Goals
 
@@ -1370,7 +1397,7 @@ src/shared/
 ---
 
 
-### v0.0.12 — Epic: Backend Listing (Stable)
+#### v0.0.12 — Epic: Backend Listing (Stable)
 
 #### Goals
 
@@ -1387,7 +1414,7 @@ src/shared/
 
 ---
 
-### v0.0.11 — Epic: Project Deep Scan (Loop Projects + Standalone Chats)
+#### v0.0.11 — Epic: Project Deep Scan (Loop Projects + Standalone Chats)
 
 #### Goals
 
@@ -1463,7 +1490,7 @@ src/shared/
 
 ---
 
-### v0.0.10 — Epic: Reliable Scraping (Chats + Projects)
+#### v0.0.10 — Epic: Reliable Scraping (Chats + Projects)
 
 #### Goals
 
@@ -1512,7 +1539,7 @@ src/shared/
 ---
  
 
-### v0.0.9 — Epic: Read ChatGPT Projects
+#### v0.0.9 — Epic: Read ChatGPT Projects
 
 #### Goals
 
@@ -1553,18 +1580,18 @@ src/shared/
 
 --- 
 
-## v0.0.8 — Panel tabs  Projects  
+#### v0.0.8 — Panel tabs  Projects  
 
-### Key changes
+##### Key changes
 * Tab bar: “Delete” | “Projects”
 * Persist active tab 
 * Basic CRUD: add/edit/delete project
  
 ---
 
-## v0.0.7 — Progression in delete
+#### v0.0.7 — Progression in delete
 
-### Key changes
+##### Key changes
 
 * **Live deletion progress (no more “stuck on deleting…”)**
 
@@ -1606,9 +1633,9 @@ src/shared/
 
 ---
 
-## v0.0.6 — Safe Execute UX + Deep Scan foundation
+#### v0.0.6 — Safe Execute UX + Deep Scan foundation
 
-### Key changes
+##### Key changes
 
 - **Minimum safe UX for “Execute delete”**
   - Single execute action (no dry-run UI exposed)
@@ -1644,9 +1671,9 @@ src/shared/
 
 ---
 
-## v0.0.5 — Dry-run preview + Execute delete (ChatGPT API)
+#### v0.0.5 — Dry-run preview + Execute delete (ChatGPT API)
 
-### Key changes
+##### Key changes
 
 * **Dry-run delete preview**
 
@@ -1695,9 +1722,9 @@ src/shared/
 
 ---
 
-## v0.0.4 — Network-backed dry-run delete
+#### v0.0.4 — Network-backed dry-run delete
 
-### Key changes
+##### Key changes
 
 * **Network-backed dry-run delete**
 
@@ -1720,9 +1747,9 @@ src/shared/
 
 ---
 
-## v0.0.3 — Local dry-run + selection UX
+#### v0.0.3 — Local dry-run + selection UX
 
-### Key changes
+##### Key changes
 
 * **Conversation selection**
 
@@ -1748,9 +1775,9 @@ src/shared/
 
 ---
 
-## v0.0.2 — Interactive panel + scraping
+#### v0.0.2 — Interactive panel + scraping
 
-### Key changes
+##### Key changes
 
 * **Side panel UI**
 
@@ -1770,9 +1797,9 @@ src/shared/
 
 ---
 
-## v0.0.1 — Initial prototype
+#### v0.0.1 — Initial prototype
 
-### Key changes
+##### Key changes
 
 * **Extension skeleton**
 

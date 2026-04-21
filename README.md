@@ -1,5 +1,8 @@
- # <img src="./docs/icon.svg" alt="CGO Icon" width="60" style="vertical-align:middle; margin-right:20px;"> ChatGPT Organizer (CGO)
+ <p align="center">
+  <img src="docs/assets/media/banner-1544x500.png" alt="ChatGPT Organizer (CGO)">
+</p>
 
+ 
 **ChatGPT Organizer** is a Chrome extension designed to give users better **visibility and control** over their ChatGPT conversations and projects.
 
 It focuses on **inspection, organization, and explicit user-triggered actions** — not automation.
